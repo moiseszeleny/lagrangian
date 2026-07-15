@@ -1,0 +1,62 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+`feynlag` — a pure-SymPy library that derives tree-level Feynman rules from user-written BSM (Beyond Standard Model) Lagrangians. Input style is FeynRules-like: declare particle fields with gauge/discrete representations, write Lagrangian terms explicitly with library building blocks (`Dmu`, `dag`, `Bilinear`), and the library checks invariance, breaks the symmetry, diagonalizes, and extracts vertices.
+
+## Commands
+
+```bash
+pip install -e .[dev]              # sympy + pytest + numpy, editable install
+pytest                             # full suite (~130s)
+pytest tests/test_invariance.py -q # single file
+pytest tests/test_invariance.py::TestFermionGaugeInvariance::test_yukawa_gauge_invariant -q  # single test
+python examples/sm_scalar_gauge.py # run a worked example end-to-end
+jupyter nbconvert --to notebook --execute --inplace examples/SM_Feynman_Rules_Tutorial.ipynb  # re-execute the tutorial notebook after editing it
+```
+
+There is no linter/formatter configured. No build step beyond the editable install.
+
+## Architecture
+
+### Pipeline stage → module map
+
+The library is organized around one linear physics pipeline; each stage lives in its own module and the top-level `Model` (in `lagrangian.py`) orchestrates all of them **lazily** (`functools`-style caching via `Model._cache`, invalidated on `solve_tadpoles`/`rotate` — nothing is computed at construction or at import time, deliberately, to avoid a known flaw in the DLRSM1 reference implementation this library was built from):
+
+1. **Declare** — `parameters.py` (`ExternalParameter` fixed by experiment, `InternalParameter` derived later, `ParameterSet` topologically sorts internal dependencies), `fields.py` (`Scalar`/`Fermion`/`GaugeBoson`, auto-generated component symbols + conjugate registry), `groups/` (`gauge.py`: U1/SU2/SU3 with explicit generator matrices; `discrete.py`: ZN/S3 with Clebsch–Gordan products).
+2. **Write** — `Lagrangian`/`LagrangianTerm` (`lagrangian.py`) collect sector-tagged terms (`kinetic`, `potential`, `yukawa`, `gauge`, `other`); `operators.py` provides `Dmu` (covariant derivative) and `PartialMu` (the `∂_μ` placeholder, resolved to momentum space later).
+3. **Check** — `invariance.py`: gauge invariance by infinitesimal component transformation (`δφ = iα^aT^aφ`), discrete invariance by finite generator substitution, hermiticity, mass-dimension power counting. `Model.check_invariance()` is the entry point.
+4. **Break the symmetry** — `vacuum/ewsb.py` (`Vacuum`: VEV shift maps `φ⁰→(v+h+ia)/√2`), `vacuum/tadpoles.py` (extract + solve, registers solutions on `InternalParameter`s), `vacuum/masses.py` (mass matrices: real, complex/charged via Dummy-conjugate trick, gauge-boson).
+5. **Diagonalize** — `vacuum/diagonalize.py`: `Rotation` (weak↔physical substitution + verification), 2×2 analytic (`tan 2θ`), SVD (Dirac), Takagi (Majorana).
+6. **Extract vertices** — `vertices/extract.py` (Poly-based commuting-symbol extractor, bosons only), `vertices/bilinear.py` (`Bilinear` — the fermion-sandwich track, separate from the extractor since fermions aren't commuting symbols), `vertices/yangmills.py` (cubic/quartic pure-gauge self-couplings from structure constants, not from the extractor), `vertices/vertex.py` (`Vertex` objects classified into the closed catalog SSS/SSSS/VSS/VVS/VVSS/VVV/VVVV/FFS/FFV).
+7. **Export** — `export/latex.py`, `export/ufo/` (writer + UFO `object_library`/`lorentz_map`/`pycode` for MadGraph-importable model directories).
+
+`dirac.py` (Clifford algebra, chiral projectors `diracPL`/`diracPR`) and `verify/checks.py` (dual symbolic+numeric verification utilities, `numeric_equal`) are used across stages.
+
+### The two-track extraction design (important, easy to get wrong)
+
+Bosonic fields (scalars, gauge bosons) are represented as plain commuting `sympy.Symbol`s and go through the `Poly`-based extractor in `vertices/extract.py`. Fermion fields are `IndexedBase`-typed (one flavor-indexed component per generator), and a fermion sandwich `ψ̄Γψ` is wrapped in the opaque `Bilinear(bar_indexed, gamma, field_indexed)` atom — this **never** enters the commuting-symbol extractor. `vertices/bilinear.py`'s `extract_fermion_vertices` groups terms by `(bar, gamma, field)` and peels boson legs off the coefficient with the bosonic extractor.
+
+Because `Bilinear` and `PartialMu` are custom SymPy `Function`s with no `fdiff` rule, code that needs to differentiate an expression containing one of them **must never let the differentiation variable end up inside their arguments** — SymPy's chain rule falls back to an unevaluated, non-cancelling `Subs(Derivative(...))` placeholder otherwise. This has caused two real bugs (both fixed): gauge-invariance checking of `Dmu`-built kinetic terms, and of fermion `Bilinear` terms. The fix pattern in both cases: exploit that the transform commutes with the operator (∂_μ or the flavor index) and substitute *outside*, or explicitly redistribute the operator over `Add` args first (see `_transform_map`/`_fermion_transform`/`_expand_bilinear` in `invariance.py`, and `D_linear` in `operators.py`) — never call `sp.diff` on an expression where `PartialMu`/`Bilinear` wraps a variable-dependent argument.
+
+Related gotcha: `Expr.as_coeff_Mul()` defaults to `rational=True` and only pulls out *Rational* coefficients, silently leaving Dummy/Symbol factors bundled into the "atom" side. Any code splitting `coeff * atom` terms (as the bilinear-distribution logic does) must find the atom explicitly via `as_ordered_factors()`, not rely on `as_coeff_Mul()`.
+
+Fermion-bilinear **hermiticity** is checked via `Bilinear._eval_conjugate` (`vertices/bilinear.py`), which implements `(ψ̄₁Γψ₂)† = ψ̄₂Γ̄ψ₁` with `Γ̄ = γ⁰Γ†γ⁰` computed by `dirac.dirac_conjugate` (covers `diracI`, `diracPL`/`diracPR`, bare `DiracGamma(mu)`, and `DiracGamma(mu)*diracPL`/`diracPR` — raises `NotImplementedError` for anything else, e.g. products of ≥2 gamma matrices, rather than guessing) and a `bar_partner` registry (`fields.py`) that every `Fermion` populates at construction to find "the bar of this field"/"the field of this bar". A Yukawa term written without its `+ h.c.` partner now genuinely fails `Model.check_invariance()`'s hermiticity check; a gauge current (`fermion_gauge_current`) is hermitian by construction with no hand-written h.c. needed.
+
+**Discrete-symmetry invariance for fermion multiplets** (`ZN`/`S3` acting on fermion generations — e.g. two lepton doublets forming an S₃ doublet, matching `thdm_s3.py`'s scalar S₃ pattern but for leptons) is also checked, via `DiscreteSymmetry.fermion_generator_data()` (`groups/discrete.py`) + `_fermion_transform_discrete` (`invariance.py`). Unlike the gauge case, discrete transformations are *finite* (no `α`-linearization/differentiation needed) — a multiplet member substitutes directly as `ψ'_i = Σ_k M[i,k]ψ_k`. The bar leg uses `X = (M⁻¹)ᵀ`, **not** `M` itself (derived from requiring `Σ_i ψ̄'_iψ'_i` invariant, verified by direct computation, not assumed) — `X` only coincides with `M` when `M` is real orthogonal (true for `S3`'s irreps, not `ZN`'s complex-phase ones, where `X = M̄`). `assign()` rejects multiplets mixing `Fermion` and non-`Fermion` members (they'd need different substitution mechanisms — flat dict vs. index-preserving `.replace()`).
+
+### v2-deferred (not implemented, not attempted)
+
+R_ξ gauge fixing and ghosts, four-fermion operators, SU(3) vertex dynamics (representation bookkeeping only, no vertex extraction), UFO NLO extensions.
+
+### Conventions (all pinned by tests — see `CONVENTIONS.md` for the full list)
+
+Metric `(+,−,−,−)`; `P_L=(1−γ₅)/2`; `D_μ=∂_μ−igT^aA^a_μ`; VEV expansion with explicit `1/√2`; Feynman rule = `i × coefficient × ∏(field multiplicity)!`; momentum convention `∂_μφ→ip(φ)φ`; simplification hierarchy `expand→collect→factor→simplify` (simplify last); positive-assumption dummies for anything under `sqrt`; every physical result gets dual verification (symbolic diff **and** `verify.numeric_equal` random-point check).
+
+## Tests and examples
+
+Tests are organized per-module/per-physics-topic (`test_invariance.py`, `test_fermion_sector.py`, `test_scalar_pipeline_sm.py`, `test_gauge_sector_sm.py`, `test_ufo_export.py`, etc.) and pin actual physics values (e.g. `hWW = igm_W`, `m_h²=2λv²`), not just code paths — when adding a feature, add a test that pins the expected physical result, following the existing pattern in the relevant `test_*.py` file.
+
+`examples/` contains full worked models used as both documentation and manual smoke tests: `sm_scalar_gauge.py` (complete SM: Higgs + electroweak gauge + lepton sector), `thdm.py` (2HDM), `thdm_s3.py` (3HDM with S₃ flavor symmetry — the tadpole system there is deliberately over-constrained, forcing a vacuum alignment), and `SM_Feynman_Rules_Tutorial.ipynb` (an *executed* notebook — regenerate its outputs with `jupyter nbconvert --execute` after any edit that could change its results, don't hand-edit output cells).
