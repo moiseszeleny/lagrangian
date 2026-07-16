@@ -195,17 +195,24 @@ def diagonalize_svd_2x2(M, left_fields, right_fields, new_left, new_right,
                         angle_left=None, angle_right=None):
     """Analytic biunitary SVD of a real 2×2 Dirac mass matrix.
 
-    ``θ_L`` diagonalizes ``M·Mᵀ`` and ``θ_R`` diagonalizes ``Mᵀ·M``, each
-    via :func:`diagonalize_orthogonal_2x2` — the clean symbolic route
-    (``diagonalize_svd``'s ``Matrix.diagonalize(normalize=True)`` path
-    returns unusable nested-sqrt/``Abs`` forms for symbolic entries).
-
-    The ``atan`` branch pairs the two angles consistently for hierarchies
-    where new field 1 is the light state (e.g. a vector-like fermion with
-    ``M ≫ v``); no sign/permutation fixing is applied (that is
-    :func:`diagonalize_svd`'s job).  Per CONVENTIONS.md, callers must
-    dual-verify that ``U_L·M·U_Rᵀ`` is actually diagonal (symbolically and
-    at a numeric point) — it is not guaranteed for arbitrary sign patterns.
+    ``θ_L`` diagonalizes ``M·Mᵀ`` via :func:`diagonalize_orthogonal_2x2` —
+    the clean symbolic route (``diagonalize_svd``'s
+    ``Matrix.diagonalize(normalize=True)`` path returns unusable
+    nested-sqrt/``Abs`` forms for symbolic entries).  ``θ_R`` is then
+    **derived from θ_L and M directly** (``N = R(θ_L)·M``; since
+    ``N·Nᵀ`` is diagonal by construction, ``N``'s rows are automatically
+    orthogonal, so ``θ_R = atan(N[0,1]/N[0,0])`` biunitarily pairs with
+    ``θ_L`` by construction) rather than solved independently from
+    ``Mᵀ·M``: solving the two angles independently only fixes each up to
+    its own sign/eigenvector-ordering convention, and those two
+    conventions can disagree — for a generic (non-symmetric) ``M`` this
+    silently produces an anti-diagonal (row-swapped) ``U_L·M·U_Rᵀ`` for
+    roughly half of parameter space, not merely a sign flip. Deriving
+    θ_R from θ_L guarantees ``U_L·M·U_Rᵀ`` is exactly diagonal always
+    (the off-diagonal vanishing is an algebraic identity, not dependent
+    on the sign pattern of ``M``'s entries) — verified in
+    ``tests/test_fermion_sector.py``/``tests/test_vll.py`` both
+    symbolically and at random numeric points per CONVENTIONS.md.
 
     Args:
         M: real 2×2 mass matrix (rows = bar/left legs, cols = right legs).
@@ -223,8 +230,17 @@ def diagonalize_svd_2x2(M, left_fields, right_fields, new_left, new_right,
         raise ValueError("diagonalize_svd_2x2 needs a 2×2 matrix")
     rot_left = diagonalize_orthogonal_2x2(M * M.T, left_fields, new_left,
                                           angle=angle_left)
-    rot_right = diagonalize_orthogonal_2x2(M.T * M, right_fields, new_right,
-                                           angle=angle_right)
+    N = rotation_2x2(rot_left.angle_solution) * M
+    theta_R_expr = sp.atan(N[0, 1] / N[0, 0])
+    tan2R = sp.cancel(2 * N[0, 0] * N[0, 1] / (N[0, 0] ** 2 - N[0, 1] ** 2))
+    aR = angle_right if angle_right is not None else theta_R_expr
+    rot_right = Rotation(right_fields, new_right, rotation_2x2(aR),
+                         kind="orthogonal")
+    # tan(2·aR) expanded to tan(aR) BEFORE substituting aR->theta_R_expr:
+    # sympy proves tan(atan(z))=z trivially but not tan(2*atan(z))=2z/(1-z²)
+    # directly, so expanding first is what makes the relation verifiable.
+    rot_right.angle_relation = sp.Eq(sp.expand_trig(sp.tan(2 * aR)), tan2R)
+    rot_right.angle_solution = theta_R_expr
     return rot_left, rot_right
 
 

@@ -234,8 +234,10 @@ class TestDiagonalization:
 
         rotL, rotR = diagonalize_svd_2x2(M, eL, eRs, eLp, eRp)
         D = rotL.matrix * M * rotR.matrix.T
-        assert numeric_equal(D[0, 1], sp.S.Zero, [a, b, c])
-        assert numeric_equal(D[1, 0], sp.S.Zero, [a, b, c])
+        ok, diff = numeric_equal(D[0, 1], sp.S.Zero, [a, b, c])
+        assert ok, diff
+        ok, diff = numeric_equal(D[1, 0], sp.S.Zero, [a, b, c])
+        assert ok, diff
 
     def test_takagi_toy_seesaw(self):
         mD, MR = sp.Rational(1, 10), sp.Integer(100)

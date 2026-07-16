@@ -193,14 +193,16 @@ def test_mixing_angles(vll):
     expected_L = -2 * lamE * ye * v**2 / (2 * M**2 + lamE**2 * v**2
                                           - ye**2 * v**2)
     assert sp.simplify(tan2L - expected_L) == 0
-    assert numeric_equal(tan2L, expected_L, [ye, lamE, v, M])
+    ok, diff = numeric_equal(tan2L, expected_L, [ye, lamE, v, M])
+    assert ok, diff
 
     _, tan2R = solve_mixing_angle_2x2(M2.T * M2)
     expected_R = 2 * sp.sqrt(2) * M * lamE * v / (-2 * M**2
                                                   + lamE**2 * v**2
                                                   + ye**2 * v**2)
     assert sp.simplify(tan2R - expected_R) == 0
-    assert numeric_equal(tan2R, expected_R, [ye, lamE, v, M])
+    ok, diff = numeric_equal(tan2R, expected_R, [ye, lamE, v, M])
+    assert ok, diff
 
 
 def test_svd_diagonalizes(vll):
@@ -213,14 +215,17 @@ def test_svd_diagonalizes(vll):
     sub = {thL: rotL.angle_solution, thR: rotR.angle_solution}
     D = (rotL.matrix * M2 * rotR.matrix.T).subs(sub)
     for off in (D[0, 1], D[1, 0]):
-        assert numeric_equal(off, sp.S.Zero, [ye, lamE, v, M])
+        ok, diff = numeric_equal(off, sp.S.Zero, [ye, lamE, v, M])
+        assert ok, diff
 
     # invariants: symbolic simplify can't crack the nested atan forms —
     # numeric random-point equality is the designed fallback (checks.py)
-    assert numeric_equal(D[0, 0]**2 + D[1, 1]**2,
-                         sp.trace(M2 * M2.T), [ye, lamE, v, M])
-    assert numeric_equal(sp.Abs(D[0, 0] * D[1, 1]),
-                         ye * v * M / sp.sqrt(2), [ye, lamE, v, M])
+    ok, diff = numeric_equal(D[0, 0]**2 + D[1, 1]**2,
+                             sp.trace(M2 * M2.T), [ye, lamE, v, M])
+    assert ok, diff
+    ok, diff = numeric_equal(sp.Abs(D[0, 0] * D[1, 1]),
+                             ye * v * M / sp.sqrt(2), [ye, lamE, v, M])
+    assert ok, diff
 
     # light-first ordering at the benchmark (M >> v regime)
     bench = {ye: 0.01, lamE: 0.4, v: 246.0, M: 1000.0}
@@ -247,13 +252,15 @@ def test_z_couplings(vll):
     zR11 = _coeff(vll, vll["e1Rbar"][i], gammaR, vll["e1R"][i], Z)
     expected = gZ * (sw2 - sp.sin(thR)**2 / 2)
     assert sp.simplify(zR11 - expected) == 0
-    assert numeric_equal(zR11, expected, [g, gp, thR])
+    ok, diff = numeric_equal(zR11, expected, [g, gp, thR])
+    assert ok, diff
 
     # RH FCNC: -(g_Z/2) sinθ_R cosθ_R
     zR12 = _coeff(vll, vll["e1Rbar"][i], gammaR, vll["e2R"][i], Z)
     expected = -gZ / 2 * sp.sin(thR) * sp.cos(thR)
     assert sp.simplify(zR12 - expected) == 0
-    assert numeric_equal(zR12, expected, [g, gp, thR])
+    ok, diff = numeric_equal(zR12, expected, [g, gp, thR])
+    assert ok, diff
 
     # RH heavy diagonal
     zR22 = _coeff(vll, vll["e2Rbar"][i], gammaR, vll["e2R"][i], Z)
@@ -305,7 +312,8 @@ def test_higgs_couplings(vll):
     m_e = (cL * ye + sL * lamE) * v / sp.sqrt(2) * cR + sL * sR * M
     expected = -(m_e - sL * sR * M) / v
     assert sp.simplify(h11 - expected) == 0
-    assert numeric_equal(h11, expected, [ye, lamE, v, M, thL, thR])
+    ok, diff = numeric_equal(h11, expected, [ye, lamE, v, M, thL, thR])
+    assert ok, diff
 
     # FCNC h couplings, both P_R "directions", pinned exactly
     h12 = _coeff(vll, vll["e1Lbar"][i], diracPR, vll["e2R"][i], h)
