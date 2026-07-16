@@ -24,7 +24,7 @@ import sympy as sp
 
 from .fields import Fermion
 from .operators import PartialMu, expand_derivatives
-from .vertices.bilinear import Bilinear
+from .vertices.bilinear import Bilinear, expand_bilinear
 
 __all__ = ["gauge_variation", "check_gauge_invariance",
            "check_discrete_invariance", "check_hermiticity",
@@ -130,53 +130,6 @@ def _fermion_transform(expr, fields, group, alphas):
         lambda x: isinstance(x, sp.Indexed) and x.base in replacements, _sub)
 
 
-def _split_indexed_term(term):
-    """Split ``coeff * Indexed(...)`` into ``(coeff, Indexed(...))``.
-
-    Unlike :meth:`~sympy.core.expr.Expr.as_coeff_Mul` (which, with its
-    default ``rational=True``, only pulls out a *Rational* coefficient and
-    leaves any Dummy/Symbol factors — such as the infinitesimal ``alpha``
-    from :func:`_fermion_transform` — bundled into the "atom" side), this
-    finds the single ``Indexed`` factor explicitly and treats everything
-    else (numbers, ``I``, ``alpha``, generator matrix entries, …) as the
-    coefficient.
-    """
-    if isinstance(term, sp.Indexed):
-        return sp.S.One, term
-    factors = term.as_ordered_factors()
-    indexed = [f for f in factors if isinstance(f, sp.Indexed)]
-    if len(indexed) != 1:
-        raise ValueError(f"expected exactly one Indexed factor in {term!r}, "
-                         f"found {len(indexed)}")
-    atom = indexed[0]
-    coeff = sp.Mul(*[f for f in factors if f is not atom])
-    return coeff, atom
-
-
-def _expand_bilinear(expr):
-    """Distribute ``Bilinear(bar, gamma, field)`` over ``Add``-valued
-    ``bar``/``field`` legs.
-
-    ``Bilinear`` is linear in each of those two slots (not in ``gamma``) but
-    is an opaque custom ``Function``, so ``sp.expand()`` alone won't
-    distribute it — the same "teach SymPy about a custom operator's
-    linearity" need as :func:`~feynlag.operators.D_linear` for
-    ``PartialMu``, here applied to two slots instead of one.
-    """
-    def _one(bar, gamma, field):
-        bar_terms = sp.Add.make_args(sp.expand(bar))
-        field_terms = sp.Add.make_args(sp.expand(field))
-        total = sp.S.Zero
-        for bt in bar_terms:
-            bc, ba = _split_indexed_term(bt)
-            for ft in field_terms:
-                fc, fa = _split_indexed_term(ft)
-                total += bc * fc * Bilinear(ba, gamma, fa)
-        return total
-
-    return expr.replace(Bilinear, _one)
-
-
 def _fermion_transform_discrete(expr, group, gen_index):
     """Finite discrete transformation of fermion legs inside ``Bilinear``.
 
@@ -219,7 +172,7 @@ def gauge_variation(term, fields, group):
                   if sub else term)
     if has_fermion_content:
         transformed = _fermion_transform(transformed, fields, group, alphas)
-        transformed = _expand_bilinear(transformed)
+        transformed = expand_bilinear(transformed)
 
     delta = sp.expand(transformed - term)
     coeffs = []
@@ -256,7 +209,7 @@ def check_discrete_invariance(term, group):
         if has_fermion_content:
             transformed = _fermion_transform_discrete(transformed, group,
                                                        gen_index)
-            transformed = _expand_bilinear(transformed)
+            transformed = expand_bilinear(transformed)
         residual = sp.expand(transformed - term)
         if residual != 0:
             residual = sp.simplify(residual)  # ω-phases need simplification

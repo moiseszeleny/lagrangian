@@ -212,7 +212,7 @@ class TestFermionGaugeInvariance:
     """SM lepton Yukawa + gauge-current terms: check_gauge_invariance and
     check_mass_dimension now cover the fermion Bilinear track (previously
     they crashed / silently no-opped on it — see invariance.py's
-    _fermion_transform / _expand_bilinear)."""
+    _fermion_transform and vertices/bilinear.py's expand_bilinear)."""
 
     fl_i, fl_j = sp.symbols("fl_i fl_j", integer=True)
 

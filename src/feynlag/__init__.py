@@ -33,12 +33,13 @@ from .fields import (
 )
 from .vacuum import (
     Rotation, Vacuum, build_mass_matrix, charged_mass_matrix,
-    diagonalize_orthogonal_2x2, diagonalize_svd, diagonalize_takagi,
+    diagonalize_orthogonal_2x2, diagonalize_svd, diagonalize_svd_2x2,
+    diagonalize_takagi,
     rotation_2x2, scalar_mass_matrix, solve_mixing_angle_2x2,
 )
 from .vertices.bilinear import (
-    Bilinear, extract_fermion_vertices, fermion_feynman_rule,
-    fermion_gauge_current, fermion_mass_matrix,
+    Bilinear, expand_bilinear, extract_fermion_vertices,
+    fermion_feynman_rule, fermion_gauge_current, fermion_mass_matrix,
 )
 from .invariance import (
     check_discrete_invariance, check_gauge_invariance, check_hermiticity,
@@ -53,10 +54,11 @@ __all__ = [
     "MajoranaFermion", "GaugeBoson", "dag", "hc", "conjugate_pair",
     "bar_partner",
     "Vacuum", "Rotation", "rotation_2x2", "solve_mixing_angle_2x2",
-    "diagonalize_orthogonal_2x2", "diagonalize_svd", "diagonalize_takagi",
+    "diagonalize_orthogonal_2x2", "diagonalize_svd", "diagonalize_svd_2x2",
+    "diagonalize_takagi",
     "build_mass_matrix", "scalar_mass_matrix", "charged_mass_matrix",
-    "Bilinear", "extract_fermion_vertices", "fermion_feynman_rule",
-    "fermion_gauge_current", "fermion_mass_matrix",
+    "Bilinear", "expand_bilinear", "extract_fermion_vertices",
+    "fermion_feynman_rule", "fermion_gauge_current", "fermion_mass_matrix",
     "gauge_variation", "check_gauge_invariance", "check_discrete_invariance",
     "check_hermiticity", "check_mass_dimension",
     "Lagrangian", "LagrangianTerm", "Model", "InvarianceReport",

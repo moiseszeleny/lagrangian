@@ -14,10 +14,10 @@ import pytest
 
 from feynlag import (
     Bilinear, DiracGamma, ExternalParameter, Rotation, SU2, Scalar, U1,
-    Vacuum, WeylFermion, diagonalize_svd, diagonalize_takagi, diracPL,
-    diracPR, extract_fermion_vertices, fermion_feynman_rule,
-    fermion_gauge_current, fermion_mass_matrix, rotation_2x2,
-    seesaw_light_mass,
+    Vacuum, WeylFermion, diagonalize_svd, diagonalize_svd_2x2,
+    diagonalize_takagi, diracPL, diracPR, extract_fermion_vertices,
+    fermion_feynman_rule, fermion_gauge_current, fermion_mass_matrix,
+    numeric_equal, rotation_2x2, seesaw_light_mass,
 )
 
 i, j = sp.symbols("fl_i fl_j", integer=True)
@@ -189,6 +189,54 @@ class TestDiagonalization:
         for s2, e in zip(svals, eigs):
             assert sp.simplify(s2 - e) == 0
 
+    def test_svd_2x2_analytic_matches_svd(self):
+        """diagonalize_svd_2x2 (analytic tan-2θ route) agrees with
+        diagonalize_svd on the pinned numeric case: zero off-diagonals,
+        same |singular values|, and each angle satisfies its own
+        angle_relation."""
+        M = sp.Matrix([[3, 1], [1, sp.Rational(3, 2)]])
+        eL = sp.symbols("a1L a2L")
+        eRs = sp.symbols("a1R a2R")
+        eLp = sp.symbols("a1Lp a2Lp")
+        eRp = sp.symbols("a1Rp a2Rp")
+        thL, thR = sp.symbols("thL_svd thR_svd", real=True)
+
+        rotL, rotR = diagonalize_svd_2x2(M, eL, eRs, eLp, eRp,
+                                         angle_left=thL, angle_right=thR)
+        # angles satisfy their defining tan-2θ relations
+        for rot, th in ((rotL, thL), (rotR, thR)):
+            rel = rot.angle_relation.subs(th, rot.angle_solution)
+            # Eq may auto-evaluate to BooleanTrue on substitution
+            assert rel is sp.true or sp.simplify(rel.lhs - rel.rhs) == 0
+
+        D = (rotL.matrix * M * rotR.matrix.T).subs(
+            {thL: rotL.angle_solution, thR: rotR.angle_solution})
+        assert sp.simplify(D[0, 1]) == 0
+        assert sp.simplify(D[1, 0]) == 0
+        # |singular values| match the general-SVD route
+        rotL2, rotR2 = diagonalize_svd(M, eL, eRs, eLp, eRp)
+        D2 = rotL2.matrix * M * rotR2.matrix.T
+        svals_analytic = sorted([abs(float(D[0, 0])), abs(float(D[1, 1]))])
+        svals_general = sorted([abs(float(D2[0, 0])), abs(float(D2[1, 1]))])
+        for a, b in zip(svals_analytic, svals_general):
+            assert abs(a - b) < 1e-10
+
+    def test_svd_2x2_symbolic_off_diagonal(self):
+        """Symbolic triangular case [[a,0],[b,c]] (the vector-like-fermion
+        mass-matrix shape): off-diagonals of U_L M U_Rᵀ vanish at random
+        numeric points."""
+        a, b, c = sp.symbols("svd_a svd_b svd_c", positive=True)
+        M = sp.Matrix([[a, 0], [b, c]])
+        eL = sp.symbols("b1L b2L")
+        eRs = sp.symbols("b1R b2R")
+        eLp = sp.symbols("b1Lp b2Lp")
+        eRp = sp.symbols("b1Rp b2Rp")
+
+        rotL, rotR = diagonalize_svd_2x2(M, eL, eRs, eLp, eRp)
+        D = rotL.matrix * M * rotR.matrix.T
+        assert numeric_equal(D[0, 1], sp.S.Zero, [a, b, c])
+        assert numeric_equal(D[1, 0], sp.S.Zero, [a, b, c])
+
     def test_takagi_toy_seesaw(self):
         mD, MR = sp.Rational(1, 10), sp.Integer(100)
         M = sp.Matrix([[0, mD], [mD, MR]])
@@ -205,3 +253,81 @@ class TestDiagonalization:
     def test_takagi_requires_symmetric(self):
         with pytest.raises(ValueError):
             diagonalize_takagi(sp.Matrix([[0, 1], [2, 0]]))
+
+
+class TestRotatedBilinearExtraction:
+    """Regression for the bilinear-distribution gap: a fermion mass-basis
+    Rotation (Indexed old fields) xreplace'd into a Lagrangian leaves
+    Add-valued legs inside Bilinear slots; extract_fermion_vertices and
+    fermion_mass_matrix must distribute them (via expand_bilinear, moved
+    from invariance.py) instead of silently grouping by composite keys."""
+
+    th = sp.Symbol("th_rot", real=True)
+
+    def _rotated_current(self):
+        psiA = WeylFermion("rbA", reps={}, chirality="L", nflavors=1,
+                           component_names=["rbA"])
+        psiB = WeylFermion("rbB", reps={}, chirality="L", nflavors=1,
+                           component_names=["rbB"])
+        Zb = sp.Symbol("Zb", real=True)
+        mu = sp.Symbol("mu", integer=True)
+        gamma_L = DiracGamma(mu) * diracPL
+
+        A, B = psiA.components[0], psiB.components[0]
+        Abar, Bbar = psiA.bar_components[0], psiB.bar_components[0]
+        n1, n2 = sp.IndexedBase("rb_n1"), sp.IndexedBase("rb_n2")
+        n1bar, n2bar = sp.IndexedBase("rb_n1bar"), sp.IndexedBase("rb_n2bar")
+
+        R = rotation_2x2(self.th)
+        sub = Rotation([A[i], B[i]], [n1[i], n2[i]], R).substitution()
+        sub.update(Rotation([Abar[i], Bbar[i]], [n1bar[i], n2bar[i]],
+                            R).substitution())
+        return (psiA, psiB, Zb, gamma_L, (n1, n2, n1bar, n2bar), sub)
+
+    def test_extraction_splits_rotated_legs(self):
+        psiA, psiB, Zb, gamma_L, (n1, n2, n1bar, n2bar), sub = \
+            self._rotated_current()
+        A, Abar = psiA.components[0], psiA.bar_components[0]
+        gz = sp.Symbol("gz", positive=True)
+
+        L = gz * Zb * Bilinear(Abar[i], gamma_L, A[i])
+        L_rot = L.xreplace(sub)
+        table = extract_fermion_vertices(L_rot, [Zb])
+
+        c, s = sp.cos(self.th), sp.sin(self.th)
+        # old = Rᵀ·new: A → c n1 − s n2, Abar → c n1bar − s n2bar
+        expected = {(n1bar[i], n1[i]): gz * c**2,
+                    (n1bar[i], n2[i]): -gz * s * c,
+                    (n2bar[i], n1[i]): -gz * s * c,
+                    (n2bar[i], n2[i]): gz * s**2}
+        assert len(table) == 4
+        for (bar, gamma, field), coeffs in table.items():
+            # every key leg must be a plain Indexed, never an Add
+            assert isinstance(bar, sp.Indexed), bar
+            assert isinstance(field, sp.Indexed), field
+            assert gamma == gamma_L
+            got = coeffs[1][(Zb,)]
+            assert sp.simplify(got - expected[(bar, field)]) == 0
+
+    def test_mass_matrix_of_rotated_term(self):
+        psiA, psiB, Zb, gamma_L, (n1, n2, n1bar, n2bar), sub = \
+            self._rotated_current()
+        A, Abar = psiA.components[0], psiA.bar_components[0]
+        m1 = sp.Symbol("m1_rot", positive=True)
+
+        L = -m1 * Bilinear(Abar[i], diracPR, A[i])
+        L_rot = L.xreplace(sub)
+        # dummy VEV'd scalar: Vacuum requires one, the term doesn't use it
+        S = Scalar("rb_S", real=True)
+        S.expand_vev({S.components[0]: sp.Symbol("rb_vS", positive=True)})
+        vac = Vacuum([S])
+
+        c, s = sp.cos(self.th), sp.sin(self.th)
+        expected = sp.Matrix([[m1 * c**2, -m1 * s * c],
+                              [-m1 * s * c, m1 * s**2]])
+        bars, fields = (n1bar, n2bar), (n1, n2)
+        for a in range(2):
+            for b in range(2):
+                M = fermion_mass_matrix(L_rot, bars[a], fields[b], vac, 1,
+                                        (i, j), gamma=diracPR)
+                assert sp.simplify(M[0, 0] - expected[a, b]) == 0, (a, b)

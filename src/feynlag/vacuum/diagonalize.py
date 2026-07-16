@@ -17,7 +17,7 @@ import sympy as sp
 
 __all__ = ["Rotation", "rotation_2x2", "solve_mixing_angle_2x2",
            "diagonalize_orthogonal_2x2", "diagonalize_svd",
-           "diagonalize_takagi"]
+           "diagonalize_svd_2x2", "diagonalize_takagi"]
 
 
 class Rotation:
@@ -182,6 +182,43 @@ def diagonalize_svd(M, left_fields, right_fields, new_left, new_right):
             UR[i, :] = -UR[i, :]
     rot_left = Rotation(left_fields, new_left, UL, kind="orthogonal")
     rot_right = Rotation(right_fields, new_right, UR, kind="orthogonal")
+    return rot_left, rot_right
+
+
+def diagonalize_svd_2x2(M, left_fields, right_fields, new_left, new_right,
+                        angle_left=None, angle_right=None):
+    """Analytic biunitary SVD of a real 2×2 Dirac mass matrix.
+
+    ``θ_L`` diagonalizes ``M·Mᵀ`` and ``θ_R`` diagonalizes ``Mᵀ·M``, each
+    via :func:`diagonalize_orthogonal_2x2` — the clean symbolic route
+    (``diagonalize_svd``'s ``Matrix.diagonalize(normalize=True)`` path
+    returns unusable nested-sqrt/``Abs`` forms for symbolic entries).
+
+    The ``atan`` branch pairs the two angles consistently for hierarchies
+    where new field 1 is the light state (e.g. a vector-like fermion with
+    ``M ≫ v``); no sign/permutation fixing is applied (that is
+    :func:`diagonalize_svd`'s job).  Per CONVENTIONS.md, callers must
+    dual-verify that ``U_L·M·U_Rᵀ`` is actually diagonal (symbolically and
+    at a numeric point) — it is not guaranteed for arbitrary sign patterns.
+
+    Args:
+        M: real 2×2 mass matrix (rows = bar/left legs, cols = right legs).
+        left_fields / right_fields: 2 weak-basis symbols each.
+        new_left / new_right: 2 physical-basis symbols each.
+        angle_left / angle_right: optional angle symbols; if given, the
+            rotations carry them with the defining ``tan 2θ`` relation
+            attached (``.angle_relation`` / ``.angle_solution``).
+
+    Returns:
+        ``(rot_left, rot_right)`` :class:`Rotation` objects.
+    """
+    M = sp.Matrix(M)
+    if M.shape != (2, 2):
+        raise ValueError("diagonalize_svd_2x2 needs a 2×2 matrix")
+    rot_left = diagonalize_orthogonal_2x2(M * M.T, left_fields, new_left,
+                                          angle=angle_left)
+    rot_right = diagonalize_orthogonal_2x2(M.T * M, right_fields, new_right,
+                                           angle=angle_right)
     return rot_left, rot_right
 
 

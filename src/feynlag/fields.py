@@ -249,7 +249,15 @@ class WeylFermion(Fermion):
 
 
 class DiracFermion(Fermion):
-    """Four-component fermion (both chiralities)."""
+    """Four-component fermion (both chiralities).
+
+    Warning: this path is untested — its ``chirality=None`` default makes
+    :func:`~feynlag.vertices.bilinear.fermion_gauge_current` build
+    ``diracI*γ^μ`` structures that ``dirac_conjugate`` rejects (breaking
+    hermiticity checks).  Model a vector-like fermion as TWO
+    :class:`WeylFermion`\\ s with identical reps instead — see
+    ``examples/sm_vll.py``.
+    """
 
 
 class MajoranaFermion(Fermion):

@@ -23,8 +23,9 @@ from ..dirac import dirac_conjugate
 from ..fields import bar_partner
 from .extract import extract_interaction_coefficients, vertex_multiplicity
 
-__all__ = ["Bilinear", "extract_fermion_vertices", "fermion_gauge_current",
-           "fermion_mass_matrix", "fermion_feynman_rule"]
+__all__ = ["Bilinear", "expand_bilinear", "extract_fermion_vertices",
+           "fermion_gauge_current", "fermion_mass_matrix",
+           "fermion_feynman_rule"]
 
 
 class Bilinear(Function):
@@ -77,18 +78,74 @@ class Bilinear(Function):
         return Bilinear(new_bar, dirac_conjugate(self.gamma), new_field)
 
 
+def _split_indexed_term(term):
+    """Split ``coeff * Indexed(...)`` into ``(coeff, Indexed(...))``.
+
+    Unlike :meth:`~sympy.core.expr.Expr.as_coeff_Mul` (which, with its
+    default ``rational=True``, only pulls out a *Rational* coefficient and
+    leaves any Dummy/Symbol factors — such as the infinitesimal ``alpha``
+    from :func:`~feynlag.invariance._fermion_transform` — bundled into the
+    "atom" side), this finds the single ``Indexed`` factor explicitly and
+    treats everything else (numbers, ``I``, ``alpha``, generator matrix
+    entries, …) as the coefficient.
+    """
+    if isinstance(term, sp.Indexed):
+        return sp.S.One, term
+    factors = term.as_ordered_factors()
+    indexed = [f for f in factors if isinstance(f, sp.Indexed)]
+    if len(indexed) != 1:
+        raise ValueError(f"expected exactly one Indexed factor in {term!r}, "
+                         f"found {len(indexed)}")
+    atom = indexed[0]
+    coeff = sp.Mul(*[f for f in factors if f is not atom])
+    return coeff, atom
+
+
+def expand_bilinear(expr):
+    """Distribute ``Bilinear(bar, gamma, field)`` over ``Add``-valued
+    ``bar``/``field`` legs.
+
+    ``Bilinear`` is linear in each of those two slots (not in ``gamma``) but
+    is an opaque custom ``Function``, so ``sp.expand()`` alone won't
+    distribute it — the same "teach SymPy about a custom operator's
+    linearity" need as :func:`~feynlag.operators.D_linear` for
+    ``PartialMu``, here applied to two slots instead of one.
+
+    This is what makes fermion mass-basis rotations work: a
+    :class:`~feynlag.vacuum.Rotation` with ``Indexed`` old fields leaves
+    ``cosθ·ψ₁[i] + sinθ·ψ₂[i]`` sums trapped inside ``Bilinear`` slots after
+    ``xreplace``; without distributing them, extraction would group by the
+    un-split composite key.  Both :func:`extract_fermion_vertices` and
+    :func:`fermion_mass_matrix` apply it before grouping.
+    """
+    def _one(bar, gamma, field):
+        bar_terms = sp.Add.make_args(sp.expand(bar))
+        field_terms = sp.Add.make_args(sp.expand(field))
+        total = sp.S.Zero
+        for bt in bar_terms:
+            bc, ba = _split_indexed_term(bt)
+            for ft in field_terms:
+                fc, fa = _split_indexed_term(ft)
+                total += bc * fc * Bilinear(ba, gamma, fa)
+        return total
+
+    return expr.replace(Bilinear, _one)
+
+
 def extract_fermion_vertices(L, boson_fields):
     """Group a fermionic Lagrangian by bilinear and extract boson legs.
 
     Args:
         L: expanded Lagrangian sector; every term must contain exactly one
             :class:`Bilinear` factor (raises otherwise — no silent drops).
+            ``Add``-valued bilinear legs (e.g. from a mass-basis rotation)
+            are distributed first via :func:`expand_bilinear`.
         boson_fields: boson symbols for the coefficient extraction.
 
     Returns:
         dict ``{(bar, gamma, field): {n_bosons: {boson-tuple: coeff}}}``.
     """
-    L = sp.expand(L)
+    L = sp.expand(expand_bilinear(sp.expand(L)))
     grouped = {}
     terms = L.as_ordered_terms() if L.is_Add else ([L] if L != 0 else [])
     for term in terms:
@@ -178,7 +235,7 @@ def fermion_mass_matrix(L_fermionic, bar_base, field_base, vacuum, nflavors,
     Returns:
         ``nflavors × nflavors`` Matrix.
     """
-    L0 = vacuum.at_vacuum(sp.expand(L_fermionic))
+    L0 = sp.expand(expand_bilinear(vacuum.at_vacuum(sp.expand(L_fermionic))))
     i, j = indices
     coeff = sp.S.Zero
     terms = L0.as_ordered_terms() if L0.is_Add else ([L0] if L0 != 0 else [])
