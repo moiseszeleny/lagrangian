@@ -3,7 +3,7 @@
 import sympy as sp
 import pytest
 
-from feynlag import S3, SU2, SU3, U1, WeylFermion, ZN
+from feynlag import S3, SU2, SU3, U1, WeylFermion, ZN, structure_constants
 
 
 class TestSU2:
@@ -48,6 +48,29 @@ class TestSU3:
     def test_bad_rep_raises(self):
         with pytest.raises(ValueError):
             SU3("SU3c").rep_dim(5)
+
+    def test_adjoint_algebra(self):
+        """[T^a, T^b] = i f^abc T^c, cross-checked against the independently
+        coded structure_constants(group) (yangmills.py), not just re-deriving
+        gauge.py's own inline f from itself."""
+        g = SU3("SU3c")
+        T = g.generators(8)
+        f = structure_constants(g)
+        for a in range(8):
+            for b in range(8):
+                comm = T[a] * T[b] - T[b] * T[a]
+                expected = sum(
+                    (sp.I * f.get((a, b, c), sp.S.Zero) * T[c]
+                     for c in range(8)), sp.zeros(8, 8))
+                assert sp.simplify(comm - expected) == sp.zeros(8, 8)
+
+    def test_adjoint_normalization(self):
+        """Tr(T^a T^b) = C_A delta_ab = N delta_ab in the adjoint of SU(N)."""
+        T = SU3("SU3c").generators(8)
+        for a in range(8):
+            for b in range(8):
+                tr = sp.simplify(sp.trace(T[a] * T[b]))
+                assert tr == (3 if a == b else 0)
 
 
 class TestU1:

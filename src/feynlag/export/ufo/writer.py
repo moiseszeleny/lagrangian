@@ -1,9 +1,12 @@
 """UFO model directory writer.
 
 v1 scope (see plan): unitary-gauge tree-level UFO with the closed vertex
-catalog; color singlets; no form factors, NLO, ghosts or propagators.py.
-Coupling orders use a simple heuristic (``QED`` power = #legs − 2) — refine
-per-model if a generator needs the exact hierarchy.
+catalog; no form factors, NLO, ghosts or propagators.py. Colored (SU(3))
+vertices emit real color-tensor strings (T/f) — see add_vvv_vertex /
+add_vvvv_vertex / add_fermion_vertex; the SSS/SSSS/VSS/VVS/VVSS catalog
+(add_bosonic_vertex) remains color-singlet only. Coupling orders use a
+simple heuristic (``QED`` power = #legs − 2) — refine per-model if a
+generator needs the exact hierarchy.
 
 The bosonic vertices come straight from :meth:`Model.vertices`.  Fermion
 vertices must be flavor-resolved by the caller (each entry names concrete
@@ -113,7 +116,12 @@ class _UFOBuilder:
                 self.specs[p.antisymbol] = p
         self.particles = particles
         self.couplings = {}          # value string -> coupling name
-        self.vertex_entries = []     # (particles, lorentz names, couplings)
+        # (particles, lorentz names, couplings, color strings) — colors has
+        # either 1 entry (broadcast to every lorentz/coupling slot, the
+        # color-singlet default) or exactly len(lorentz names) entries (one
+        # color tensor per independent structure, e.g. the 3-way f*f
+        # decomposition of a 4-gluon vertex).
+        self.vertex_entries = []
         self.used_lorentz = set()
 
     # -------------------------------------------------------------- helpers
@@ -138,11 +146,26 @@ class _UFOBuilder:
     # -------------------------------------------------------------- vertices
 
     def add_bosonic_vertex(self, vertex):
-        """Add a feynlag Vertex (SSS/SSSS/VSS/VVS/VVSS)."""
+        """Add a feynlag Vertex (SSS/SSSS/VSS/VVS/VVSS).
+
+        This catalog is color-singlet only in v1 (Higgs/EW self-couplings
+        after EWSB) — raises if a non-singlet (color-charged) particle is
+        passed in, rather than silently emitting a wrong ``color=['1']`` for
+        a vertex this adder doesn't actually know how to color-tensor
+        (colored self-couplings go through :meth:`add_vvv_vertex` /
+        :meth:`add_vvvv_vertex`, colored fermion currents through
+        :meth:`add_fermion_vertex`).
+        """
         vtype = vertex.vertex_type
         particles = list(vertex.particles)
         coupling = vertex.coupling
         n = len(particles)
+        for p in particles:
+            if self.specs[p].color != 1:
+                raise ValueError(
+                    f"add_bosonic_vertex is color-singlet only; {p} has "
+                    f"color {self.specs[p].color} — use add_vvv_vertex/"
+                    f"add_vvvv_vertex for colored self-couplings")
 
         if vtype in ("SSS", "SSSS", "VVS", "VVSS"):
             spins = {p: self.specs[p].spin for p in particles}
@@ -163,28 +186,49 @@ class _UFOBuilder:
                              f"use the dedicated adders")
         self.used_lorentz.add(lorentz)
         self.vertex_entries.append(
-            ([self._particle_ref(p) for p in ordered], [lorentz], [cname]))
+            ([self._particle_ref(p) for p in ordered], [lorentz], [cname],
+             ["1"]))
 
-    def add_vvv_vertex(self, triple, coupling):
+    def add_vvv_vertex(self, triple, coupling, color="1"):
         """Yang–Mills cubic vertex: ``coupling`` multiplies the VVV1
-        structure (one representative ordering per set of three bosons)."""
+        structure (one representative ordering per set of three bosons).
+
+        Args:
+            color: UFO color-tensor string (default ``'1'``, singlet —
+                e.g. EW self-couplings after EWSB). An unbroken non-abelian
+                self-coupling (e.g. ggg) is ONE physical particle repeated
+                three times with ``color='f(1,2,3)'`` — never built by
+                iterating the group's full weak-basis component dict (that
+                dict is for internal verification only, see yangmills.py).
+        """
         self.used_lorentz.add("VVV1")
         cname = self._coupling(coupling, 3)
         self.vertex_entries.append(
-            ([self._particle_ref(p) for p in triple], ["VVV1"], [cname]))
+            ([self._particle_ref(p) for p in triple], ["VVV1"], [cname],
+             [color]))
 
-    def add_vvvv_vertex(self, quadruple, couplings):
-        """Quartic gauge vertex: dict ``{VVVV structure name: coupling}``."""
-        names, cnames = [], []
+    def add_vvvv_vertex(self, quadruple, couplings, colors=None):
+        """Quartic gauge vertex: dict ``{VVVV structure name: coupling}``.
+
+        Args:
+            colors: optional ``{VVVV structure name: color string}``, one
+                color tensor per independent Lorentz structure (e.g. the
+                three ``f*f`` color factors of a 4-gluon vertex, paired with
+                VVVV1/2/3 respectively — see export/ufo/vvvv.py). Defaults
+                to broadcasting the singlet ``'1'`` to every structure.
+        """
+        names, cnames, clist = [], [], []
         for lname, coupling in couplings.items():
             self.used_lorentz.add(lname)
             names.append(lname)
             cnames.append(self._coupling(coupling, 4))
+            clist.append((colors or {}).get(lname, "1"))
         self.vertex_entries.append(
-            ([self._particle_ref(p) for p in quadruple], names, cnames))
+            ([self._particle_ref(p) for p in quadruple], names, cnames,
+             clist))
 
     def add_fermion_vertex(self, bar_symbol, field_symbol, bosons,
-                           left_coupling=0, right_coupling=0):
+                           left_coupling=0, right_coupling=0, color="1"):
         """Flavor-resolved FFS/FFV vertex.
 
         Args:
@@ -193,6 +237,13 @@ class _UFOBuilder:
             bosons: tuple with the boson leg symbol(s) (length 1 in v1).
             left_coupling / right_coupling: coefficients of P_L / P_R
                 (or γ^μ P_L / γ^μ P_R).
+            color: UFO color-tensor string (default ``'1'``, singlet — e.g.
+                a lepton current). A qqg vertex uses ``'T(3,1,2)'`` (gluon
+                at the boson position, matching this adder's own
+                ``[bar, field, boson]`` leg order and
+                ``fermion_gauge_current``'s ``T[r,c]`` convention, where
+                ``r``=bar-leg index=position 1, ``c``=field-leg
+                index=position 2).
         """
         if len(bosons) != 1:
             raise ValueError("v1 fermion vertices have exactly one boson leg")
@@ -210,7 +261,8 @@ class _UFOBuilder:
         if not names:
             return
         self.vertex_entries.append(
-            ([self._particle_ref(p) for p in ordered], names, cnames))
+            ([self._particle_ref(p) for p in ordered], names, cnames,
+             [color]))
 
     # ----------------------------------------------------------------- write
 
@@ -311,15 +363,29 @@ class _UFOBuilder:
                  "from . import particles as P",
                  "from . import couplings as C",
                  "from . import lorentz as L", "", ""]
-        for n, (parts, lnames, cnames) in enumerate(self.vertex_entries,
-                                                    start=1):
+        for n, (parts, lnames, cnames, colors) in enumerate(
+                self.vertex_entries, start=1):
             lorentz = ", ".join(f"L.{ln}" for ln in lnames)
-            couplings = ", ".join(f"(0,{i}):C.{cn}"
-                                  for i, cn in enumerate(cnames))
+            if len(colors) == 1:
+                # single shared color structure — every lorentz/coupling
+                # slot pairs with color-tensor index 0 (UFO's (0,i) key).
+                couplings = ", ".join(f"(0,{i}):C.{cn}"
+                                      for i, cn in enumerate(cnames))
+            elif len(colors) == len(cnames):
+                # one color tensor per lorentz structure (e.g. the 3-way
+                # f*f decomposition of a 4-gluon vertex) — paired diagonally.
+                couplings = ", ".join(f"({i},{i}):C.{cn}"
+                                      for i, cn in enumerate(cnames))
+            else:
+                raise ValueError(
+                    f"vertex V_{n}: {len(colors)} color structures for "
+                    f"{len(cnames)} couplings — must be 1 (broadcast) or "
+                    f"match exactly")
+            color = "[" + ", ".join(f"'{c}'" for c in colors) + "]"
             lines.append(
                 f"V_{n} = Vertex(name='V_{n}',\n"
                 f"    particles=[{', '.join(parts)}],\n"
-                f"    color=['1'],\n"
+                f"    color={color},\n"
                 f"    lorentz=[{lorentz}],\n"
                 f"    couplings={{{couplings}}})")
             lines.append("")
@@ -327,7 +393,8 @@ class _UFOBuilder:
 
 
 def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
-              vvv=None, vvvv=None, fermion_vertices=()):
+              vvv=None, vvvv=None, fermion_vertices=(), vvv_colors=None,
+              vvvv_colors=None):
     """Write a UFO model directory.
 
     Args:
@@ -337,12 +404,26 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
             numeric values; internals need defined ``expr``).
         particles: iterable of :class:`UFOParticle`.
         bosonic_vertices: feynlag ``Vertex`` objects
-            (SSS/SSSS/VSS/VVS/VVSS).
+            (SSS/SSSS/VSS/VVS/VVSS) — color-singlet only (see
+            :meth:`_UFOBuilder.add_bosonic_vertex`).
         vvv: dict ``{(V1,V2,V3): coupling}`` (one representative ordering
-            per boson triple), e.g. from ``cubic_couplings``.
+            per boson triple), e.g. from ``cubic_couplings`` for an
+            EWSB-rotated, color-singlet physical basis (Wp/Wm/Z/A-style).
+            An unbroken non-abelian self-coupling (e.g. ggg) is instead ONE
+            physical particle repeated three times, still expressible as a
+            single-entry ``{(g,g,g): coupling}`` dict — pair it with
+            ``vvv_colors``.
         vvvv: dict ``{(V1,V2,V3,V4): {lorentz-name: coupling}}``.
+        vvv_colors / vvvv_colors: optional ``{key: color-string}`` /
+            ``{key: {lorentz-name: color-string}}`` matching ``vvv``/
+            ``vvvv``'s keys, for non-singlet (color-tensor) structures —
+            defaults to broadcasting the singlet ``'1'`` when a key is
+            absent (see :meth:`_UFOBuilder.add_vvv_vertex`/
+            :meth:`_UFOBuilder.add_vvvv_vertex`).
         fermion_vertices: iterable of dicts with keys ``bar``, ``field``,
-            ``bosons``, ``left``, ``right`` (flavor-resolved symbols).
+            ``bosons``, ``left``, ``right`` (flavor-resolved symbols), and
+            optionally ``color`` (default ``'1'``; e.g. ``'T(3,1,2)'`` for a
+            qqg vertex).
 
     Returns:
         the written path.
@@ -351,10 +432,13 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
     for v in bosonic_vertices:
         builder.add_bosonic_vertex(v)
     for triple, coupling in (vvv or {}).items():
-        builder.add_vvv_vertex(triple, coupling)
+        builder.add_vvv_vertex(triple, coupling,
+                               color=(vvv_colors or {}).get(triple, "1"))
     for quad, couplings in (vvvv or {}).items():
-        builder.add_vvvv_vertex(quad, couplings)
+        builder.add_vvvv_vertex(quad, couplings,
+                                colors=(vvvv_colors or {}).get(quad))
     for fv in fermion_vertices:
         builder.add_fermion_vertex(fv["bar"], fv["field"], fv["bosons"],
-                                   fv.get("left", 0), fv.get("right", 0))
+                                   fv.get("left", 0), fv.get("right", 0),
+                                   color=fv.get("color", "1"))
     return builder.write(path)

@@ -31,7 +31,7 @@ The library is organized around one linear physics pipeline; each stage lives in
 4. **Break the symmetry** — `vacuum/ewsb.py` (`Vacuum`: VEV shift maps `φ⁰→(v+h+ia)/√2`), `vacuum/tadpoles.py` (extract + solve, registers solutions on `InternalParameter`s), `vacuum/masses.py` (mass matrices: real, complex/charged via Dummy-conjugate trick, gauge-boson).
 5. **Diagonalize** — `vacuum/diagonalize.py`: `Rotation` (weak↔physical substitution + verification), 2×2 analytic (`tan 2θ`), SVD (Dirac), Takagi (Majorana).
 6. **Extract vertices** — `vertices/extract.py` (Poly-based commuting-symbol extractor, bosons only), `vertices/bilinear.py` (`Bilinear` — the fermion-sandwich track, separate from the extractor since fermions aren't commuting symbols), `vertices/yangmills.py` (cubic/quartic pure-gauge self-couplings from structure constants, not from the extractor), `vertices/vertex.py` (`Vertex` objects classified into the closed catalog SSS/SSSS/VSS/VVS/VVSS/VVV/VVVV/FFS/FFV).
-7. **Export** — `export/latex.py`, `export/ufo/` (writer + UFO `object_library`/`lorentz_map`/`pycode` for MadGraph-importable model directories).
+7. **Export** — `export/latex.py`, `export/ufo/` (writer + UFO `object_library`/`lorentz_map`/`pycode` for MadGraph-importable model directories; `vvvv.py` assembles the 4-boson self-coupling into the 3 UFO Lorentz structures, and colored (SU(3)) vertices get real `T`/`f` color-tensor strings — see writer.py's `add_vvv_vertex`/`add_vvvv_vertex`/`add_fermion_vertex`).
 
 `dirac.py` (Clifford algebra, chiral projectors `diracPL`/`diracPR`) and `verify/checks.py` (dual symbolic+numeric verification utilities, `numeric_equal`) are used across stages.
 
@@ -49,7 +49,11 @@ Fermion-bilinear **hermiticity** is checked via `Bilinear._eval_conjugate` (`ver
 
 ### v2-deferred (not implemented, not attempted)
 
-R_ξ gauge fixing and ghosts, four-fermion operators, SU(3) vertex dynamics (representation bookkeeping only, no vertex extraction), UFO NLO extensions.
+R_ξ gauge fixing and ghosts, four-fermion operators, UFO NLO extensions.
+
+### SU(3) / QCD vertex dynamics
+
+The group theory (`SU3` Gell-Mann generators/structure constants, `groups/gauge.py`) and the vertex-extraction machinery (`Dmu`, `fermion_gauge_current`, `cubic_couplings`/`quartic_couplings`) were already fully generic over gauge group — no SU(3)-specific code was needed there. What closed the gap: `examples/sm_scalar_gauge.py` now includes a quark sector (SU(2) doublet `QL` + `SU3c`-triplet singlets `uR`/`dR`, flavor-generic `Yu`/`Yd` Yukawas mirroring the lepton pattern — 3 generations, undiagonalized, no CKM: CKM mixing is physically orthogonal to SU(3) vertex dynamics and a fully generic 3-generation complex-Yukawa SVD doesn't resolve in closed symbolic form) and a gluon field; `export/ufo/vvvv.py`'s `assemble_vvvv` builds the 3-structure VVVV1/2/3 decomposition of the 4-boson self-coupling that `yangmills.py`'s `quartic_couplings()` docstring had deferred as unbuilt "Phase 5" (derived by direct functional differentiation of `-¼F^aF^a`, cross-checked against both SU(2) and SU(3) in `tests/test_yangmills.py`); `export/ufo/writer.py` emits real color-tensor strings (`T(3,1,2)` for qqg, `f(1,2,3)` for ggg, three `f*f` structures for gggg) instead of the hardcoded singlet `'1'` — gluons are exported as **one** UFO particle repeated (color summed via the tensor string), never as 8 separate weak-basis components.
 
 ### Conventions (all pinned by tests — see `CONVENTIONS.md` for the full list)
 
@@ -57,6 +61,6 @@ Metric `(+,−,−,−)`; `P_L=(1−γ₅)/2`; `D_μ=∂_μ−igT^aA^a_μ`; VEV 
 
 ## Tests and examples
 
-Tests are organized per-module/per-physics-topic (`test_invariance.py`, `test_fermion_sector.py`, `test_scalar_pipeline_sm.py`, `test_gauge_sector_sm.py`, `test_ufo_export.py`, etc.) and pin actual physics values (e.g. `hWW = igm_W`, `m_h²=2λv²`), not just code paths — when adding a feature, add a test that pins the expected physical result, following the existing pattern in the relevant `test_*.py` file.
+Tests are organized per-module/per-physics-topic (`test_invariance.py`, `test_fermion_sector.py`, `test_scalar_pipeline_sm.py`, `test_gauge_sector_sm.py`, `test_ufo_export.py`, `test_qcd.py`, `test_yangmills.py`, `test_ufo_qcd.py`, etc.) and pin actual physics values (e.g. `hWW = igm_W`, `m_h²=2λv²`, `ggg=-g_s`), not just code paths — when adding a feature, add a test that pins the expected physical result, following the existing pattern in the relevant `test_*.py` file. `test_qcd.py` pins the SU(3) sector (gauge invariance of a color-triplet current, qqg, ggg, gggg); `test_yangmills.py` is the group-generic ground-truth derivation of the VVVV quartic self-coupling assembly (SU(2) and SU(3)); `test_ufo_qcd.py` checks the emitted UFO color-tensor strings/values.
 
-`examples/` contains full worked models used as both documentation and manual smoke tests: `sm_scalar_gauge.py` (complete SM: Higgs + electroweak gauge + lepton sector), `thdm.py` (2HDM), `thdm_s3.py` (3HDM with S₃ flavor symmetry — the tadpole system there is deliberately over-constrained, forcing a vacuum alignment), and `SM_Feynman_Rules_Tutorial.ipynb` (an *executed* notebook — regenerate its outputs with `jupyter nbconvert --execute` after any edit that could change its results, don't hand-edit output cells).
+`examples/` contains full worked models used as both documentation and manual smoke tests: `sm_scalar_gauge.py` (complete SM: Higgs + electroweak gauge + lepton sector + quark/QCD sector), `thdm.py` (2HDM), `thdm_s3.py` (3HDM with S₃ flavor symmetry — the tadpole system there is deliberately over-constrained, forcing a vacuum alignment), and `SM_Feynman_Rules_Tutorial.ipynb` (an *executed* notebook — regenerate its outputs with `jupyter nbconvert --execute` after any edit that could change its results, don't hand-edit output cells).
