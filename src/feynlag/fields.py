@@ -129,6 +129,15 @@ class Field:
     def __repr__(self):
         return f"{type(self).__name__}({self.name!r})"
 
+    def _repr_latex_(self):
+        name = self.tex if self.tex != self.name else sp.latex(sp.Symbol(self.name))
+        if len(self.components) == 1:
+            body = sp.latex(self.components[0])
+        else:
+            comps = ", ".join(sp.latex(c) for c in self.components)
+            body = f"{name} = ({comps})"
+        return f"$\\displaystyle {body}$"
+
     def __getitem__(self, i):
         return self.components[i]
 

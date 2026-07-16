@@ -93,6 +93,12 @@ class Rotation:
                           zip(self.old_fields, self.new_fields))
         return f"Rotation({pairs}, kind={self.kind!r})"
 
+    def _repr_latex_(self):
+        new_vec = sp.Matrix(self.new_fields)
+        old_vec = sp.Matrix(self.old_fields)
+        eq = sp.Eq(new_vec, self.matrix * old_vec, evaluate=False)
+        return f"$\\displaystyle {sp.latex(eq)}$"
+
 
 def rotation_2x2(theta):
     """``R(θ) = [[cosθ, sinθ], [−sinθ, cosθ]]`` —

@@ -43,6 +43,10 @@ class Parameter:
     def __repr__(self):
         return f"{type(self).__name__}({self.name!r})"
 
+    def _repr_latex_(self):
+        tex = self.tex if self.tex != self.name else sp.latex(self.symbol)
+        return f"$\\displaystyle {tex}$"
+
     # Allow parameters to be used directly in SymPy arithmetic.
     def _sympy_(self):
         return self.symbol
@@ -147,6 +151,19 @@ class ParameterSet:
 
     def __len__(self):
         return len(self._by_name)
+
+    def _repr_latex_(self):
+        rows = []
+        for p in self:
+            tex = p.tex if p.tex != p.name else sp.latex(p.symbol)
+            value = p.value if isinstance(p, ExternalParameter) else p.expr
+            value_tex = sp.latex(sp.sympify(value)) if value is not None else "-"
+            rows.append(f"{p.name} & {tex} & {p.nature} & {value_tex} \\\\\n\\hline\n")
+        table = (r"\begin{array}{|c|c|c|c|}" + "\n\\hline\n"
+                 + r"\textbf{name} & \textbf{symbol} & \textbf{nature} & "
+                 r"\textbf{value/expr} \\" + "\n\\hline\n"
+                 + "".join(rows) + r"\end{array}")
+        return f"$\\displaystyle {table}$"
 
     @property
     def externals(self):

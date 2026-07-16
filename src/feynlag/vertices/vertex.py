@@ -89,3 +89,7 @@ class Vertex:
     def __repr__(self):
         names = " ".join(str(p) for p in self.particles)
         return f"Vertex({names} [{self.vertex_type}] : {self.coupling})"
+
+    def _repr_latex_(self):
+        fields_tex = "\\, ".join(sp.latex(p) for p in self.particles)
+        return f"$\\displaystyle {fields_tex} \\, : \\; {sp.latex(self.coupling)}$"

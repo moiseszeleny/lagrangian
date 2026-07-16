@@ -68,6 +68,9 @@ class Lagrangian:
     def total(self):
         return sp.Add(*[t.expr for t in self.terms])
 
+    def _repr_latex_(self):
+        return f"$\\displaystyle \\mathcal{{L}} = {sp.latex(self.total)}$"
+
     def __iter__(self):
         return iter(self.terms)
 
