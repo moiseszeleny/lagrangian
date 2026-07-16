@@ -13,7 +13,7 @@ authors = [{ name = "Moises Zeleny", email = "moiseszeleny@gmail.com" }]
 dependencies = ["sympy>=1.12"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "numpy"]
+dev = ["pytest>=7", "numpy", "nbstripout"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

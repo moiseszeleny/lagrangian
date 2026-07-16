@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pip install -e .[dev]              # sympy + pytest + numpy, editable install
+pip install -e .[dev]              # sympy + pytest + numpy + nbstripout, editable install
 pytest                             # full suite (~130s)
 pytest tests/test_invariance.py -q # single file
 pytest tests/test_invariance.py::TestFermionGaugeInvariance::test_yukawa_gauge_invariant -q  # single test
@@ -66,3 +66,13 @@ Metric `(+,−,−,−)`; `P_L=(1−γ₅)/2`; `D_μ=∂_μ−igT^aA^a_μ`; VEV 
 Tests are organized per-module/per-physics-topic (`test_invariance.py`, `test_fermion_sector.py`, `test_scalar_pipeline_sm.py`, `test_gauge_sector_sm.py`, `test_ufo_export.py`, `test_qcd.py`, `test_yangmills.py`, `test_ufo_qcd.py`, `test_vll.py`, etc.) and pin actual physics values (e.g. `hWW = igm_W`, `m_h²=2λv²`, `ggg=-g_s`), not just code paths — when adding a feature, add a test that pins the expected physical result, following the existing pattern in the relevant `test_*.py` file. `test_qcd.py` pins the SU(3) sector (gauge invariance of a color-triplet current, qqg, ggg, gggg); `test_yangmills.py` is the group-generic ground-truth derivation of the VVVV quartic self-coupling assembly (SU(2) and SU(3)); `test_ufo_qcd.py` checks the emitted UFO color-tensor strings/values; `test_vll.py` pins the vector-like-lepton mixing physics (RH-only Z-FCNC, h-coupling sum rule, SM decoupling).
 
 `examples/` contains full worked models used as both documentation and manual smoke tests: `sm_scalar_gauge.py` (complete SM: Higgs + electroweak gauge + lepton sector + quark/QCD sector), `sm_vll.py` (SM + vector-like lepton doublet: bare Dirac mass, biunitary 2×2 diagonalization, fermion mass-basis rotations, modified Z/W/h couplings), `thdm.py` (2HDM), `thdm_s3.py` (3HDM with S₃ flavor symmetry — the tadpole system there is deliberately over-constrained, forcing a vacuum alignment), and `SM_Feynman_Rules_Tutorial.ipynb` / `SM_VLL_Tutorial.ipynb` (both *executed* notebooks — regenerate their outputs with `jupyter nbconvert --execute` after any edit that could change results, don't hand-edit output cells; the VLL notebook walks `sm_vll.py` stage by stage, including a standalone demo of why `expand_bilinear` is needed for fermion mass-basis rotations).
+
+Both notebooks are tracked through a `nbstripout` git filter (`.gitattributes`, `*.ipynb filter=nbstripout diff=ipynb`), configured with `--keep-output` so real outputs (plots, printed Feynman rules) stay in git history and in diffs — only `execution_count` and volatile per-cell metadata get normalized away on `git add`/`git diff`, so re-executing a notebook without changing its actual results produces no diff noise. A fresh clone needs to activate the filter once (`.gitattributes` alone only declares the pattern, it doesn't install the filter driver):
+
+```bash
+nbstripout --install --attributes .gitattributes
+git config filter.nbstripout.clean "$(git config filter.nbstripout.clean) --keep-output"
+git config diff.ipynb.textconv "$(git config diff.ipynb.textconv) --keep-output"
+```
+
+(`nbstripout --install` itself does not persist CLI flags like `--keep-output` into the stored filter command — they have to be appended to `filter.nbstripout.clean`/`diff.ipynb.textconv` by hand, as above.)
