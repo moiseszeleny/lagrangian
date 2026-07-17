@@ -5,6 +5,7 @@ gamma matrices with a rule-based Clifford simplifier; chiral projectors with
 their algebra baked into ``__mul__``/``__add__``.
 
 Changes with respect to the original:
+
 - the ``diracPR = None`` forward-declaration wart is gone: projector algebra
   uses ``isinstance`` checks against the singleton classes;
 - no import-time dependency on the momentum function;

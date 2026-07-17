@@ -14,6 +14,8 @@ dependencies = ["sympy>=1.12"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "numpy", "nbstripout"]
+docs = ["sphinx>=7", "myst-nb", "furo", "sphinx-copybutton", "sphinx-design",
+        "sphinxcontrib-mermaid"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

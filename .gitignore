@@ -6,3 +6,5 @@ __pycache__/
 *.so
 build/
 dist/
+docs/_build/
+docs/api/generated/
