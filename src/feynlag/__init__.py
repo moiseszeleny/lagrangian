@@ -46,6 +46,9 @@ from .invariance import (
     check_mass_dimension, gauge_variation,
 )
 from .lagrangian import InvarianceReport, Lagrangian, LagrangianTerm, Model
+from .anomalies import (
+    AnomalyReport, anomaly_coefficients, check_anomaly_free,
+)
 from .suggest import (
     SuggestedTerm, build_lagrangian, suggest_kinetic, suggest_potential,
     suggest_yukawa,
@@ -81,4 +84,5 @@ __all__ = [
     "latex_feynman_table",
     "SuggestedTerm", "suggest_potential", "suggest_yukawa", "suggest_kinetic",
     "build_lagrangian",
+    "AnomalyReport", "anomaly_coefficients", "check_anomaly_free",
 ]

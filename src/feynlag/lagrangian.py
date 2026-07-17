@@ -377,3 +377,15 @@ class Model:
         if raise_on_failure:
             report.raise_on_failure()
         return report
+
+    def check_anomalies(self, raise_on_failure=False):
+        """Check that gauge anomalies cancel for the declared fermion content.
+
+        Returns an :class:`~feynlag.anomalies.AnomalyReport`; see
+        :mod:`feynlag.anomalies`.
+        """
+        from .anomalies import check_anomaly_free
+        report = check_anomaly_free(self)
+        if raise_on_failure:
+            report.raise_on_failure()
+        return report

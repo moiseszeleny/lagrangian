@@ -72,6 +72,7 @@ manual/vertices
 manual/export
 manual/verification
 manual/suggest
+manual/anomalies
 tutorials/index
 examples
 conventions
