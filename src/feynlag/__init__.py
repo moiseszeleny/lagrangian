@@ -19,8 +19,9 @@ from .vertices.yangmills import (
 )
 from .vacuum.masses import gauge_mass_matrix
 from .verify import (
-    check_dimension, is_hermitian, is_symmetric, numeric_equal,
-    round_trip_reconstruct, seesaw_light_mass,
+    UFORoundTripReport, check_dimension, is_hermitian, is_symmetric,
+    numeric_equal, round_trip_reconstruct, seesaw_light_mass,
+    verify_ufo_numeric,
 )
 from .export import latex_feynman_table
 from .parameters import (
@@ -81,6 +82,7 @@ __all__ = [
     "extract_interaction_coefficients", "feynman_rule", "vertex_multiplicity",
     "check_dimension", "is_hermitian", "is_symmetric", "numeric_equal",
     "round_trip_reconstruct", "seesaw_light_mass",
+    "UFORoundTripReport", "verify_ufo_numeric",
     "latex_feynman_table",
     "SuggestedTerm", "suggest_potential", "suggest_yukawa", "suggest_kinetic",
     "build_lagrangian",

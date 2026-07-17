@@ -123,3 +123,25 @@ from feynlag import numeric_equal
 ok, max_diff = numeric_equal(hWW_extracted, i * g * m_W_expr, [g, v])
 assert ok, f"symbolic and numeric routes disagree: {max_diff}"
 ```
+
+## Round-tripping the exported UFO
+
+Internal verification proves the *symbolic* result is right; it does not prove
+the *written UFO directory* is right — a writer bug can emit a coupling string
+that references an undefined symbol or divides by zero at run time. Traditional
+generators leave this to the author (the well-known irregular-validation
+problem). `verify_ufo_numeric` closes the gap by re-importing the written UFO,
+resolving the whole parameter chain, and evaluating every coupling string:
+
+```python
+from feynlag import verify_ufo_numeric
+
+write_ufo(path, "MyModel", params, particles, bosonic_vertices=verts)
+report = verify_ufo_numeric(path)
+assert report.ok, report.failures        # every coupling is a finite number
+```
+
+A non-finite input (or a malformed generated expression) is reported in
+`report.failures` rather than propagating as a silent `NaN`. Pinned in
+`test_ufo_export.py::test_ufo_roundtrip_evaluates_cleanly` /
+`::test_ufo_roundtrip_flags_nonfinite`.

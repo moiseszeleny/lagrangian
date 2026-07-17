@@ -20,6 +20,7 @@ from feynlag import (
     dag, rotation_2x2,
 )
 from feynlag.export.ufo import UFOParticle, write_ufo
+from feynlag import verify_ufo_numeric
 
 
 @pytest.fixture(scope="module")
@@ -118,6 +119,34 @@ def _import_ufo(path):
         return importlib.import_module(path.name)
     finally:
         sys.path.pop(0)
+
+
+def test_ufo_roundtrip_evaluates_cleanly(sm_ufo):
+    """Every exported parameter and coupling evaluates to a finite number —
+    the self-verification FeynRules-style generators cannot do."""
+    path, model, num = sm_ufo
+    report = verify_ufo_numeric(path)
+    assert report.ok, report.failures
+    assert report.couplings          # at least one coupling was evaluated
+    assert report.parameters
+
+
+def test_ufo_roundtrip_reproduces_pinned_hWW(sm_ufo):
+    """Some evaluated coupling equals the pinned hWW value i g² v/2."""
+    path, model, num = sm_ufo
+    report = verify_ufo_numeric(path)
+    g, v = num["g"], num["v"]
+    target = complex(0, 1) * g**2 * v / 2
+    assert any(abs(val - target) < 1e-9 for val in report.couplings.values()), \
+        sorted(report.couplings.items())
+
+
+def test_ufo_roundtrip_flags_nonfinite(sm_ufo):
+    """A non-finite external input propagates to a reported failure rather
+    than a silent NaN — the check has teeth."""
+    path, model, num = sm_ufo
+    report = verify_ufo_numeric(path, external_values={"v": float("inf")})
+    assert not report.ok
 
 
 def test_ufo_imports(sm_ufo):
