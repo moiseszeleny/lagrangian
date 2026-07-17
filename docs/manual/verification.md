@@ -145,3 +145,26 @@ A non-finite input (or a malformed generated expression) is reported in
 `report.failures` rather than propagating as a silent `NaN`. Pinned in
 `test_ufo_export.py::test_ufo_roundtrip_evaluates_cleanly` /
 `::test_ufo_roundtrip_flags_nonfinite`.
+
+## One umbrella: `Model.validate()`
+
+`Model.validate()` runs every applicable consistency check and returns a
+single {class}`~feynlag.lagrangian.ValidationReport` aggregating the
+sub-reports: the symmetry/hermiticity/dimension battery
+({doc}`invariance`), gauge-anomaly cancellation ({doc}`anomalies`, skipped
+when the model has no charged fermions), and — when handed a `ufo_path` — the
+UFO round-trip above.
+
+```python
+report = model.validate(ufo_path=exported_dir)   # ufo_path optional
+report.ok                                         # True iff every check ran clean
+print(report.summary())
+# ValidationReport [PASS]
+#   invariance: ok — InvarianceReport(27 checks, OK)
+#   anomalies: ok — AnomalyReport(7 coefficients, anomaly-free)
+#   ufo_roundtrip: ok — UFORoundTripReport(8 parameters, 12 couplings, ok)
+```
+
+`report.raise_on_failure()` turns any failure into a `ValueError` naming the
+checks that failed. Pinned in `test_validation.py`; `examples/sm_scalar_gauge.py`
+calls it as the first pipeline step.

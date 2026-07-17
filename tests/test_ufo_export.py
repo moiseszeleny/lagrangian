@@ -149,6 +149,17 @@ def test_ufo_roundtrip_flags_nonfinite(sm_ufo):
     assert not report.ok
 
 
+def test_validate_umbrella_includes_ufo_roundtrip(sm_ufo):
+    """Model.validate(ufo_path=...) runs invariance, skips anomalies (no
+    fermions), and round-trips the exported UFO — all in one report."""
+    path, model, num = sm_ufo
+    report = model.validate(ufo_path=path)
+    assert report.ok, report.summary()
+    assert report.checks["invariance"].ok
+    assert report.checks["anomalies"] is None          # scalar+gauge only
+    assert report.checks["ufo_roundtrip"].ok
+
+
 def test_ufo_imports(sm_ufo):
     path, model, num = sm_ufo
     ufo = _import_ufo(path)

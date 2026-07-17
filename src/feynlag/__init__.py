@@ -46,7 +46,9 @@ from .invariance import (
     check_discrete_invariance, check_gauge_invariance, check_hermiticity,
     check_mass_dimension, gauge_variation,
 )
-from .lagrangian import InvarianceReport, Lagrangian, LagrangianTerm, Model
+from .lagrangian import (
+    InvarianceReport, Lagrangian, LagrangianTerm, Model, ValidationReport,
+)
 from .anomalies import (
     AnomalyReport, anomaly_coefficients, check_anomaly_free,
 )
@@ -70,6 +72,7 @@ __all__ = [
     "gauge_variation", "check_gauge_invariance", "check_discrete_invariance",
     "check_hermiticity", "check_mass_dimension",
     "Lagrangian", "LagrangianTerm", "Model", "InvarianceReport",
+    "ValidationReport",
     "METRIC_SIGNATURE", "SQRT2", "tidy",
     "DiracGamma", "DiracGammaLower", "MetricTensor", "dirac0", "diracI",
     "diracPL", "diracPR", "dirac_conjugate", "gamma_simplify",

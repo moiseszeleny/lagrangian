@@ -131,7 +131,10 @@ def main():
                   parameters=[gw, g1, gs, v, lam, mu2], lagrangian=L)
 
     # --- pipeline -----------------------------------------------------------
-    print("invariance:", model.check_invariance())
+    # validate() is the umbrella: symmetry/hermiticity/dimension + gauge-anomaly
+    # cancellation in one report (the SM fermion content below is anomaly-free).
+    print("validation:")
+    print(model.validate().summary())
     print("tadpole:   ", model.solve_tadpoles([mu2]))
 
     h, G0 = sp.Symbol("H0_r", real=True), sp.Symbol("H0_i", real=True)

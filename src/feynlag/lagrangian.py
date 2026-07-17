@@ -102,6 +102,48 @@ class InvarianceReport:
         return f"InvarianceReport({self.checked} checks, {status})"
 
 
+class ValidationReport:
+    """Aggregate result of :meth:`Model.validate`.
+
+    Holds the named sub-reports of every consistency check that ran (each an
+    object with an ``.ok`` property and a ``raise_on_failure()`` method); a
+    ``None`` entry marks a check that was not applicable and was skipped.
+    """
+
+    def __init__(self, checks):
+        #: ``{name: sub-report or None}`` in run order
+        self.checks = checks
+
+    @property
+    def ok(self):
+        return all(r.ok for r in self.checks.values() if r is not None)
+
+    def raise_on_failure(self):
+        failed = [n for n, r in self.checks.items()
+                  if r is not None and not r.ok]
+        if failed:
+            raise ValueError(
+                "model validation failed: " + ", ".join(failed))
+        return self
+
+    def summary(self):
+        """Multi-line human-readable rundown of every check."""
+        lines = [f"ValidationReport [{'PASS' if self.ok else 'FAIL'}]"]
+        for name, r in self.checks.items():
+            if r is None:
+                lines.append(f"  {name}: skipped")
+            else:
+                mark = "ok" if r.ok else "FAILED"
+                lines.append(f"  {name}: {mark} — {r!r}")
+        return "\n".join(lines)
+
+    def __repr__(self):
+        run = [r for r in self.checks.values() if r is not None]
+        n_ok = sum(1 for r in run if r.ok)
+        status = "PASS" if self.ok else "FAIL"
+        return f"ValidationReport({n_ok}/{len(run)} checks passed, {status})"
+
+
 class Model:
     """A BSM model: symmetries + fields + parameters + Lagrangian.
 
@@ -386,6 +428,52 @@ class Model:
         """
         from .anomalies import check_anomaly_free
         report = check_anomaly_free(self)
+        if raise_on_failure:
+            report.raise_on_failure()
+        return report
+
+    def validate(self, invariance=True, hermiticity=True, dimension=True,
+                 anomalies=True, ufo_path=None, external_values=None,
+                 raise_on_failure=False):
+        """Run every applicable consistency check and aggregate the results.
+
+        The umbrella entry point: it runs the symmetry/hermiticity/dimension
+        checks ({meth}`check_invariance`), the gauge-anomaly check
+        ({meth}`check_anomalies`, skipped when the model has no charged
+        fermions), and — if ``ufo_path`` names a written UFO directory — the
+        numeric round-trip of the exported model
+        ({func}`~feynlag.verify.verify_ufo_numeric`).
+
+        Args:
+            invariance / hermiticity / dimension: toggle and configure the
+                :meth:`check_invariance` pass.
+            anomalies: run the gauge-anomaly check when applicable.
+            ufo_path: directory written by ``write_ufo`` to round-trip; skip
+                if ``None``.
+            external_values: optional external-parameter overrides forwarded to
+                the UFO round-trip.
+            raise_on_failure: raise ``ValueError`` if any check fails.
+
+        Returns:
+            :class:`ValidationReport`.
+        """
+        from .fields import Fermion
+
+        checks = {}
+        if invariance:
+            checks["invariance"] = self.check_invariance(
+                hermiticity=hermiticity, dimension=dimension)
+        if anomalies:
+            has_charged_fermions = bool(self.gauge_groups) and any(
+                isinstance(f, Fermion) and f.reps for f in self.fields)
+            checks["anomalies"] = (self.check_anomalies()
+                                   if has_charged_fermions else None)
+        if ufo_path is not None:
+            from .verify import verify_ufo_numeric
+            checks["ufo_roundtrip"] = verify_ufo_numeric(
+                ufo_path, external_values=external_values)
+
+        report = ValidationReport(checks)
         if raise_on_failure:
             report.raise_on_failure()
         return report
