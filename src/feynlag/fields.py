@@ -258,15 +258,23 @@ class WeylFermion(Fermion):
 
 
 class DiracFermion(Fermion):
-    """Four-component fermion (both chiralities).
+    """Four-component fermion (both chiralities) — **not yet supported**.
 
-    Warning: this path is untested — its ``chirality=None`` default makes
-    :func:`~feynlag.vertices.bilinear.fermion_gauge_current` build
-    ``diracI*γ^μ`` structures that ``dirac_conjugate`` rejects (breaking
-    hermiticity checks).  Model a vector-like fermion as TWO
-    :class:`WeylFermion`\\ s with identical reps instead — see
-    ``examples/sm_vll.py``.
+    A genuine 4-component field would need its own mass-sector and
+    diagonalization path validated against physics; the library deliberately
+    represents Dirac/vector-like fermions as TWO :class:`WeylFermion`\\ s with
+    identical reps (one ``chirality='L'``, one ``'R'``) so every stage reuses
+    the tested Weyl machinery — see ``examples/sm_vll.py``.  Constructing this
+    class raises rather than silently producing unverified vertices.
     """
+
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError(
+            "DiracFermion is not supported; model a Dirac or vector-like "
+            "fermion as two WeylFermions with identical reps (chirality='L' "
+            "and 'R') — see examples/sm_vll.py. This keeps every stage on the "
+            "tested Weyl path (mass matrix, SVD diagonalization, bilinear "
+            "extraction) instead of an unverified 4-component path.")
 
 
 class MajoranaFermion(Fermion):

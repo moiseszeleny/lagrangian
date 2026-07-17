@@ -110,6 +110,11 @@ class TestDiracConjugate:
     def test_bare_gamma_self_conjugate(self):
         assert dirac_conjugate(DiracGamma(mu)) == DiracGamma(mu)
 
+    def test_gamma_times_identity_self_conjugate(self):
+        """A stray diracI factor (e.g. from a vector current γ^μ·diracI) is
+        the multiplicative unit and must be stripped, not rejected."""
+        assert dirac_conjugate(DiracGamma(mu) * diracI) == DiracGamma(mu)
+
     def test_vector_current_self_conjugate(self):
         """gamma^mu P_L = P_R gamma^mu, so the two conjugation effects
         cancel: a V-A/V+A current conjugates to itself."""

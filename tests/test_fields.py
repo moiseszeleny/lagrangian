@@ -4,7 +4,8 @@ import sympy as sp
 import pytest
 
 from feynlag import (
-    ExternalParameter, GaugeBoson, Scalar, SU2, U1, WeylFermion, dag,
+    DiracFermion, ExternalParameter, GaugeBoson, Scalar, SU2, U1, WeylFermion,
+    dag,
 )
 
 
@@ -100,3 +101,9 @@ def test_weyl_fermion_declaration(groups):
     assert L.chirality == "L"
     assert isinstance(L.components[0], sp.IndexedBase)
     assert L.dim == 2
+
+
+def test_dirac_fermion_fails_fast(groups):
+    SU2L, U1Y = groups
+    with pytest.raises(NotImplementedError, match="two WeylFermions"):
+        DiracFermion("E", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)})

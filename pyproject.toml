@@ -10,7 +10,30 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Moises Zeleny", email = "moiseszeleny@gmail.com" }]
+keywords = [
+    "physics", "particle-physics", "high-energy-physics", "feynman-rules",
+    "lagrangian", "bsm", "beyond-standard-model", "sympy", "ufo", "madgraph",
+    "quantum-field-theory", "phenomenology",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Physics",
+]
 dependencies = ["sympy>=1.12"]
+
+[project.urls]
+Homepage = "https://github.com/moiseszeleny/lagrangian"
+Repository = "https://github.com/moiseszeleny/lagrangian"
+Documentation = "https://github.com/moiseszeleny/lagrangian"
+Issues = "https://github.com/moiseszeleny/lagrangian/issues"
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "numpy", "nbstripout"]

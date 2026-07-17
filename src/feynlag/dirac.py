@@ -503,14 +503,20 @@ def dirac_conjugate(gamma):
     if gamma == diracPR:
         return diracPL
 
-    factors = Mul.make_args(gamma)
+    # I₄ is the multiplicative unit; a stray diracI factor (e.g. from
+    # γ^μ·diracI built by a vector current) carries no conjugation, so strip
+    # it before pattern-matching the remaining structure.
+    factors = [f for f in Mul.make_args(gamma) if f != diracI]
+    if not factors:
+        return diracI
     gammas = [f for f in factors if isinstance(f, DiracGamma)]
     projectors = [f for f in factors if isinstance(f, (PL, PR))]
     rest = [f for f in factors if f not in gammas and f not in projectors]
     if len(gammas) == 1 and len(projectors) <= 1 and not rest:
         # exactly one gamma^mu, at most one projector: the two conjugation
-        # effects cancel (gamma^mu P_L = P_R gamma^mu), self-conjugate.
-        return gamma
+        # effects cancel (gamma^mu P_L = P_R gamma^mu), self-conjugate.  Return
+        # the identity-stripped product so a stray diracI does not leak out.
+        return Mul(*factors)
     raise NotImplementedError(
         f"dirac_conjugate: no rule for Γ = {gamma!r}; only diracI, diracPL, "
         f"diracPR, DiracGamma(mu), and DiracGamma(mu)*diracPL/diracPR are "
