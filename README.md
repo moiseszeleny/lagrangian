@@ -20,6 +20,14 @@ Parameters are split into **external** (fixed by experiment, e.g. `v`, `m_h`,
 `g`) and **internal** (derived: tadpole solutions, mixing angles, inverted
 quartics), forming a dependency chain that closes the UFO parameter card.
 
+## Documentation
+
+Full docs, including an **Algorithms Manual** deriving the physics and
+design of every pipeline stage (invariance checking, EWSB/tadpoles, mass
+matrices, diagonalization, vertex extraction, export), tutorial notebooks,
+an examples gallery, and the API reference:
+**https://moiseszeleny.github.io/lagrangian/**
+
 ## Install (development)
 
 ```bash
@@ -62,9 +70,14 @@ m.mass_matrix([sp.Symbol("H0_r", real=True)])   # [[2 lam v²]]
 m.feynman_rules([...])        # vertices, momentum-space, i × n! included
 ```
 
-See `examples/` for full runs: `sm_scalar_gauge.py` (SM electroweak sector),
+See `examples/` for full runs: `sm_scalar_gauge.py` (complete SM: Higgs +
+electroweak gauge + leptons + quark/QCD sector), `sm_vll.py` (SM + a
+vector-like lepton doublet, biunitary mass-matrix diagonalization),
+`sm_u1x.py` (SM × U(1)_X with a Z′, symbolic charges, chained rotations),
 `thdm.py` (2HDM with the α rotation), `thdm_s3.py` (3HDM+S₃, where the
-tadpole conditions force the √3 vacuum alignment).
+tadpole conditions force the √3 vacuum alignment). The
+[docs site](https://moiseszeleny.github.io/lagrangian/) walks the SM, VLL,
+and U(1)_X models stage by stage in three executed tutorial notebooks.
 
 ## Validation
 
@@ -88,7 +101,8 @@ symbolic difference **and** random-point numeric checks):
 Working: scalars, gauge bosons, chiral fermions (bilinear track), tadpoles,
 mass matrices (real/charged/gauge blocks), orthogonal/SVD/Takagi
 diagonalization, momentum-space vertices for the closed catalog
-(SSS SSSS VSS VVS VVSS VVV VVVV FFS FFV), LaTeX tables, UFO export.
+(SSS SSSS VSS VVS VVSS VVV VVVV FFS FFV), LaTeX tables, UFO export
+(including full SU(3) color-tensor strings for qqg/ggg/gggg).
 
-Deferred (v2): R_ξ gauge fixing and ghosts, four-fermion operators, SU(3)
-vertex dynamics (rep bookkeeping only), NLO/UFO 2.0 extensions.
+Deferred (v2): R_ξ gauge fixing and ghosts, four-fermion operators,
+NLO/UFO 2.0 extensions.
