@@ -85,3 +85,13 @@ def test_validate_can_disable_checks():
     report = model.validate(invariance=False, anomalies=True)
     assert "invariance" not in report.checks
     assert "anomalies" in report.checks
+
+
+def test_validate_omits_charge_checks_without_charges():
+    """Backward compatible: no charge/hermiticity entries unless charges given."""
+    SU3c, SU2L, U1Y = _groups()
+    model = Model("SM", gauge_groups=[SU3c, SU2L, U1Y],
+                  fields=_sm_fermions(SU3c, SU2L, U1Y))
+    report = model.validate()
+    assert "charge_conservation" not in report.checks
+    assert "hermiticity_pairing" not in report.checks

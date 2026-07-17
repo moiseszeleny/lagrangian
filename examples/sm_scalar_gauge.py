@@ -157,6 +157,18 @@ def main():
     Gm, cmap = conjugate_pair(Gp, "Gm")
     boson_fields = [h, G0, Gp, Gm, Z, A, Wp, Wm]
 
+    # charge-based validation now that the physical basis exists: every vertex
+    # conserves electric charge, the declared charges agree with the operator
+    # derived from the vacuum (Q ∝ T3+Y, W± = ±1 derived automatically), and
+    # every vertex pairs with its hermitian conjugate.
+    charge_report = model.validate(
+        invariance=False, anomalies=False,
+        charges={h: 0, G0: 0, Gp: 1, Gm: -1, Z: 0, A: 0, Wp: 1, Wm: -1},
+        fields=boson_fields, conjugate_map=cmap,
+        conjugates={Gp: Gm, Gm: Gp, Wp: Wm, Wm: Wp})
+    print("\ncharge / hermiticity validation:")
+    print(charge_report.summary())
+
     rules = model.feynman_rules(boson_fields, conjugate_map=cmap,
                                 simplifier=sp.simplify)
     print(f"\n{len(rules)} scalar/gauge vertices; a few highlights:")

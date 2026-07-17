@@ -434,7 +434,8 @@ class Model:
 
     def validate(self, invariance=True, hermiticity=True, dimension=True,
                  anomalies=True, ufo_path=None, external_values=None,
-                 raise_on_failure=False):
+                 charges=None, fields=None, conjugate_map=None,
+                 conjugates=None, fermion_table=None, raise_on_failure=False):
         """Run every applicable consistency check and aggregate the results.
 
         The umbrella entry point: it runs the symmetry/hermiticity/dimension
@@ -444,6 +445,12 @@ class Model:
         numeric round-trip of the exported model
         ({func}`~feynlag.verify.verify_ufo_numeric`).
 
+        When a declared ``charges`` map and the physical ``fields`` list are
+        supplied it also runs the charge-based checks
+        ({mod}`feynlag.charges`): per-vertex charge conservation, the
+        declared-vs-vacuum-derived charge-consistency cross-check (only when
+        the model has a vacuum), and vertex-level hermiticity pairing.
+
         Args:
             invariance / hermiticity / dimension: toggle and configure the
                 :meth:`check_invariance` pass.
@@ -452,6 +459,16 @@ class Model:
                 if ``None``.
             external_values: optional external-parameter overrides forwarded to
                 the UFO round-trip.
+            charges: declared ``{physical field: electric charge}`` map; enables
+                the charge-based checks (needs ``fields`` too).
+            fields: physical boson symbols to extract vertices from (as in
+                :meth:`feynman_rules`).
+            conjugate_map: ``{conjugate(sym): partner}`` for vertex extraction.
+            conjugates: full antiparticle pairing ``{field: partner}`` (both
+                directions) for hermiticity pairing; defaults to the pairs in
+                ``conjugate_map``.
+            fermion_table: optional ``extract_fermion_vertices`` output to add
+                the fermionic vertices to the charge/hermiticity checks.
             raise_on_failure: raise ``ValueError`` if any check fails.
 
         Returns:
@@ -472,6 +489,29 @@ class Model:
             from .verify import verify_ufo_numeric
             checks["ufo_roundtrip"] = verify_ufo_numeric(
                 ufo_path, external_values=external_values)
+        if charges is not None and fields is not None:
+            from .charges import (
+                ChargeRegistry, check_charge_conservation,
+                check_charge_consistency, check_hermiticity_pairing)
+            registry = ChargeRegistry(charges, conjugate_map=conjugate_map)
+            verts = self.vertices(fields, conjugate_map=conjugate_map,
+                                  simplifier=sp.simplify)
+            if conjugates is None:
+                conjugates = {}
+                for conj_node, partner in (conjugate_map or {}).items():
+                    base = conj_node.args[0] if conj_node.args else conj_node
+                    conjugates[base] = partner
+                    conjugates[partner] = base
+            checks["charge_conservation"] = check_charge_conservation(
+                registry, bosonic_vertices=verts, fermion_table=fermion_table)
+            has_vacuum = any(getattr(f, "vev_expansions", None)
+                             for f in self.fields)
+            checks["charge_consistency"] = (
+                check_charge_consistency(self, registry)
+                if has_vacuum and self.rotations else None)
+            checks["hermiticity_pairing"] = check_hermiticity_pairing(
+                bosonic_vertices=verts, conjugates=conjugates,
+                fermion_table=fermion_table)
 
         report = ValidationReport(checks)
         if raise_on_failure:

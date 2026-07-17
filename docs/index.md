@@ -73,6 +73,7 @@ manual/export
 manual/verification
 manual/suggest
 manual/anomalies
+manual/charges
 tutorials/index
 examples
 conventions

@@ -52,6 +52,12 @@ from .lagrangian import (
 from .anomalies import (
     AnomalyReport, anomaly_coefficients, check_anomaly_free,
 )
+from .charges import (
+    ChargeConservationReport, ChargeConsistencyReport, ChargeRegistry,
+    HermiticityPairingReport, check_charge_conservation,
+    check_charge_consistency, check_hermiticity_pairing,
+    derive_charge_operator, physical_charges,
+)
 from .suggest import (
     SuggestedTerm, build_lagrangian, suggest_kinetic, suggest_potential,
     suggest_yukawa,
@@ -90,4 +96,8 @@ __all__ = [
     "SuggestedTerm", "suggest_potential", "suggest_yukawa", "suggest_kinetic",
     "build_lagrangian",
     "AnomalyReport", "anomaly_coefficients", "check_anomaly_free",
+    "ChargeRegistry", "ChargeConservationReport", "ChargeConsistencyReport",
+    "HermiticityPairingReport", "check_charge_conservation",
+    "check_charge_consistency", "check_hermiticity_pairing",
+    "derive_charge_operator", "physical_charges",
 ]
