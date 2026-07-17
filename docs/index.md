@@ -71,6 +71,7 @@ manual/diagonalization
 manual/vertices
 manual/export
 manual/verification
+manual/suggest
 tutorials/index
 examples
 conventions

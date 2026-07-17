@@ -46,6 +46,10 @@ from .invariance import (
     check_mass_dimension, gauge_variation,
 )
 from .lagrangian import InvarianceReport, Lagrangian, LagrangianTerm, Model
+from .suggest import (
+    SuggestedTerm, build_lagrangian, suggest_kinetic, suggest_potential,
+    suggest_yukawa,
+)
 
 __all__ = [
     "Parameter", "ExternalParameter", "InternalParameter", "ParameterSet",
@@ -75,4 +79,6 @@ __all__ = [
     "check_dimension", "is_hermitian", "is_symmetric", "numeric_equal",
     "round_trip_reconstruct", "seesaw_light_mass",
     "latex_feynman_table",
+    "SuggestedTerm", "suggest_potential", "suggest_yukawa", "suggest_kinetic",
+    "build_lagrangian",
 ]

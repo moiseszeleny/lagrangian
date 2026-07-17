@@ -35,6 +35,11 @@ flowchart LR
 symbolic+numeric verification toolkit, {doc}`verification`) are used across
 every stage rather than owning one.
 
+Sitting *before* stage 2 is an optional exploration-branch helper,
+{doc}`suggest` — instead of hand-writing the Lagrangian, it enumerates every
+gauge/discrete-invariant term the declared field content admits, using the
+stage-3 invariance machinery as an oracle.
+
 ## Orchestration: `Model` is a lazy pipeline
 
 Every stage above is exposed as a method or cached property on
