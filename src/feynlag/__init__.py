@@ -41,6 +41,7 @@ from .vacuum import (
 from .vertices.bilinear import (
     Bilinear, expand_bilinear, extract_fermion_vertices,
     fermion_feynman_rule, fermion_gauge_current, fermion_mass_matrix,
+    four_fermion_feynman_rule,
 )
 from .invariance import (
     check_discrete_invariance, check_gauge_invariance, check_hermiticity,
@@ -76,6 +77,7 @@ __all__ = [
     "build_mass_matrix", "scalar_mass_matrix", "charged_mass_matrix",
     "Bilinear", "expand_bilinear", "extract_fermion_vertices",
     "fermion_feynman_rule", "fermion_gauge_current", "fermion_mass_matrix",
+    "four_fermion_feynman_rule",
     "gauge_variation", "check_gauge_invariance", "check_discrete_invariance",
     "check_hermiticity", "check_mass_dimension",
     "Lagrangian", "LagrangianTerm", "Model", "InvarianceReport",

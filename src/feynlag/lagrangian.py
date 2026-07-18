@@ -366,13 +366,17 @@ class Model:
 
     # ------------------------------------------------------------ invariance
 
-    def check_invariance(self, hermiticity=True, dimension=True,
+    def check_invariance(self, hermiticity=True, dimension=True, max_dim=4,
                          raise_on_failure=False):
         """Check every Lagrangian term against every declared symmetry.
 
         Args:
             hermiticity: also check ``L = L*`` per sector.
-            dimension: also check mass dimension ≤ 4 per term.
+            dimension: also check mass dimension ≤ ``max_dim`` per term.
+            max_dim: the mass-dimension ceiling for the dimension check.
+                Defaults to ``4`` (renormalisable); raise it to admit
+                higher-dimension effective operators — e.g. ``6`` for the
+                four-fermion (FFFF) operators, ``5`` for the Weinberg operator.
             raise_on_failure: raise ``ValueError`` instead of returning a
                 failing report.
 
@@ -397,11 +401,12 @@ class Model:
                         (term, f"discrete:{group.name}", violations))
             if dimension:
                 ok, worst = check_mass_dimension(
-                    term.expr, self.fields, self.parameters)
+                    term.expr, self.fields, self.parameters, max_dim=max_dim)
                 report.checked += 1
                 if not ok:
                     report.failures.append(
-                        (term, "mass-dimension", f"dimension {worst} > 4"))
+                        (term, "mass-dimension",
+                         f"dimension {worst} > {max_dim}"))
 
         if hermiticity:
             for sector in SECTORS:
@@ -433,7 +438,7 @@ class Model:
         return report
 
     def validate(self, invariance=True, hermiticity=True, dimension=True,
-                 anomalies=True, ufo_path=None, external_values=None,
+                 max_dim=4, anomalies=True, ufo_path=None, external_values=None,
                  charges=None, fields=None, conjugate_map=None,
                  conjugates=None, fermion_table=None, raise_on_failure=False):
         """Run every applicable consistency check and aggregate the results.
@@ -454,6 +459,9 @@ class Model:
         Args:
             invariance / hermiticity / dimension: toggle and configure the
                 :meth:`check_invariance` pass.
+            max_dim: mass-dimension ceiling forwarded to
+                :meth:`check_invariance` (default ``4``; set ``6`` for
+                four-fermion EFT operators, ``5`` for the Weinberg operator).
             anomalies: run the gauge-anomaly check when applicable.
             ufo_path: directory written by ``write_ufo`` to round-trip; skip
                 if ``None``.
@@ -479,7 +487,7 @@ class Model:
         checks = {}
         if invariance:
             checks["invariance"] = self.check_invariance(
-                hermiticity=hermiticity, dimension=dimension)
+                hermiticity=hermiticity, dimension=dimension, max_dim=max_dim)
         if anomalies:
             has_charged_fermions = bool(self.gauge_groups) and any(
                 isinstance(f, Fermion) and f.reps for f in self.fields)

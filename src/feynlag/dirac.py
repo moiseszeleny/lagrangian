@@ -509,17 +509,20 @@ def dirac_conjugate(gamma):
     factors = [f for f in Mul.make_args(gamma) if f != diracI]
     if not factors:
         return diracI
-    gammas = [f for f in factors if isinstance(f, DiracGamma)]
+    gammas = [f for f in factors if isinstance(f, (DiracGamma, DiracGammaLower))]
     projectors = [f for f in factors if isinstance(f, (PL, PR))]
     rest = [f for f in factors if f not in gammas and f not in projectors]
     if len(gammas) == 1 and len(projectors) <= 1 and not rest:
-        # exactly one gamma^mu, at most one projector: the two conjugation
-        # effects cancel (gamma^mu P_L = P_R gamma^mu), self-conjugate.  Return
-        # the identity-stripped product so a stray diracI does not leak out.
+        # exactly one gamma (upper γ^μ or lower γ_μ), at most one projector: the
+        # two conjugation effects cancel (γ^μ P_L = P_R γ^μ), self-conjugate.  A
+        # lowered γ_μ = g_{μν}γ^ν behaves identically since the metric is real
+        # (the lower index appears in a four-fermion vector-current contraction,
+        # e.g. (ψ̄γ^μP_Lψ)(χ̄γ_μP_Lχ)).  Return the identity-stripped product so
+        # a stray diracI does not leak out.
         return Mul(*factors)
     raise NotImplementedError(
         f"dirac_conjugate: no rule for Γ = {gamma!r}; only diracI, diracPL, "
-        f"diracPR, DiracGamma(mu), and DiracGamma(mu)*diracPL/diracPR are "
-        f"supported (e.g. products of two or more gamma matrices need "
-        f"{{γ^μ,γ^ν}}=2g^{{μν}} reduction first, and reverse order under "
-        f"conjugation — not handled here)")
+        f"diracPR, DiracGamma(mu)/DiracGammaLower(mu), and those times "
+        f"diracPL/diracPR are supported (e.g. products of two or more gamma "
+        f"matrices need {{γ^μ,γ^ν}}=2g^{{μν}} reduction first, and reverse "
+        f"order under conjugation — not handled here)")

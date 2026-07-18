@@ -346,15 +346,21 @@ def check_charge_conservation(registry, bosonic_vertices=(), fermion_table=None)
             failures.append((tuple(v.particles), sp.simplify(total)))
 
     if fermion_table:
-        for (bar, gamma, field), by_n in fermion_table.items():
-            base = registry.charge_of(bar) + registry.charge_of(field)
+        for key, by_n in fermion_table.items():
+            if isinstance(key[0], tuple):        # FFFF: two-bilinear key
+                fermion_legs = tuple(leg for (bar, gamma, field) in key
+                                     for leg in (bar, field))
+            else:                                 # FFS/FFV: one-bilinear key
+                bar, gamma, field = key
+                fermion_legs = (bar, field)
+            base = sum((registry.charge_of(f) for f in fermion_legs), sp.S.Zero)
             for boson_dict in by_n.values():
                 for boson_tuple in boson_dict:
                     n += 1
                     total = base + sum((registry.charge_of(b)
                                         for b in boson_tuple), sp.S.Zero)
                     if sp.simplify(total) != 0:
-                        legs = (bar, field) + tuple(boson_tuple)
+                        legs = fermion_legs + tuple(boson_tuple)
                         failures.append((legs, sp.simplify(total)))
     return ChargeConservationReport(n, failures)
 
@@ -478,22 +484,32 @@ def check_hermiticity_pairing(bosonic_vertices=(), conjugates=None,
     if fermion_table:
         keys = set(fermion_table)
         seen_f = set()
-        for (bar, gamma, field), by_n in fermion_table.items():
-            if (bar, gamma, field) in seen_f:
+
+        def conj_subkey(bar, gamma, field):
+            """``(ψ̄₁Γψ₂)† = ψ̄₂Γ̄ψ₁`` at the level of one bilinear subkey."""
+            gbar = dirac_conjugate(gamma)      # may raise NotImplementedError
+            return (_BAR_PARTNER[field.base][field.indices], gbar,
+                    _BAR_PARTNER[bar.base][bar.indices])
+
+        for key, by_n in fermion_table.items():
+            if key in seen_f:
                 continue
             n += 1
             try:
-                gbar = dirac_conjugate(gamma)
+                if isinstance(key[0], tuple):    # FFFF: two-bilinear key
+                    subpartners = [conj_subkey(*sub) for sub in key]
+                    subpartners.sort(
+                        key=lambda t: sp.default_sort_key(sp.Tuple(*t)))
+                    partner = tuple(subpartners)
+                else:                             # FFS/FFV: one-bilinear key
+                    partner = conj_subkey(*key)
             except NotImplementedError as exc:
                 # exotic Γ we can't conjugate — report as skipped, not a crash
-                skipped.append(((bar, gamma, field), str(exc)))
+                skipped.append((key, str(exc)))
                 continue
-            partner = (_BAR_PARTNER[field.base][field.indices], gbar,
-                       _BAR_PARTNER[bar.base][bar.indices])
-            seen_f.add((bar, gamma, field))
+            seen_f.add(key)
             if partner not in keys:
-                failures.append(((bar, gamma, field),
-                                 "no conjugate bilinear partner"))
+                failures.append((key, "no conjugate bilinear partner"))
                 continue
             seen_f.add(partner)
 

@@ -269,6 +269,47 @@ class _UFOBuilder:
             ([self._particle_ref(p) for p in ordered], names, cnames,
              [color]))
 
+    def add_four_fermion_vertex(self, bar1, field1, bar2, field2, couplings,
+                                color="1"):
+        """Four-fermion (FFFF) contact vertex, two Dirac chains.
+
+        Args:
+            bar1, field1: the ψ̄/ψ of the first Dirac chain (UFO legs 1, 2).
+            bar2, field2: the ψ̄/ψ of the second chain (UFO legs 3, 4).
+            couplings: dict ``{(chain1, chain2): coefficient}`` where each
+                ``chainN`` is one of ``'SL'``, ``'SR'`` (scalar bilinear,
+                P_L/P_R), ``'VL'``, ``'VR'`` (vector current, γ^μP_L/γ^μP_R).
+                Both chains must be the same *type* (both scalar or both
+                vector — the contracted-Lorentz FFFF catalog covers S⊗S and
+                V⊗V; a mixed S⊗V structure raises).  The **Lagrangian**
+                coefficient is passed; the UFO coupling value carries the
+                Feynman-rule ``i`` (added here, exactly as
+                :meth:`add_fermion_vertex` does — omitting it is invisible in
+                a single |M|² but breaks interference).
+            color: UFO color-tensor string (default ``'1'``, singlet).
+        """
+        ordered = [bar1, field1, bar2, field2]
+        names, cnames = [], []
+        for (c1, c2), coupling in couplings.items():
+            if coupling == 0:
+                continue
+            t1, p1 = c1[0], c1[1]
+            t2, p2 = c2[0], c2[1]
+            if t1 != t2:
+                raise ValueError(
+                    f"four-fermion chains must be the same type; got {c1!r} "
+                    f"and {c2!r} (mixed scalar⊗vector is outside the v1 "
+                    f"FFFF catalog)")
+            lname = f"FFFF{t1}{p1}{p2}"
+            self.used_lorentz.add(lname)
+            names.append(lname)
+            cnames.append(self._coupling(sp.I * coupling, 4))
+        if not names:
+            return
+        self.vertex_entries.append(
+            ([self._particle_ref(p) for p in ordered], names, cnames,
+             [color]))
+
     # ----------------------------------------------------------------- write
 
     def write(self, path):
@@ -402,8 +443,8 @@ class _UFOBuilder:
 
 
 def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
-              vvv=None, vvvv=None, fermion_vertices=(), vvv_colors=None,
-              vvvv_colors=None):
+              vvv=None, vvvv=None, fermion_vertices=(),
+              four_fermion_vertices=(), vvv_colors=None, vvvv_colors=None):
     """Write a UFO model directory.
 
     Args:
@@ -433,6 +474,11 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
             ``bosons``, ``left``, ``right`` (flavor-resolved symbols), and
             optionally ``color`` (default ``'1'``; e.g. ``'T(3,1,2)'`` for a
             qqg vertex).
+        four_fermion_vertices: iterable of dicts with keys ``bar1``,
+            ``field1``, ``bar2``, ``field2`` (the two Dirac chains' legs),
+            ``couplings`` (``{(chain1, chain2): coefficient}``, see
+            :meth:`_UFOBuilder.add_four_fermion_vertex`), and optionally
+            ``color`` (default ``'1'``).
 
     Returns:
         the written path.
@@ -450,4 +496,8 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
         builder.add_fermion_vertex(fv["bar"], fv["field"], fv["bosons"],
                                    fv.get("left", 0), fv.get("right", 0),
                                    color=fv.get("color", "1"))
+    for ffv in four_fermion_vertices:
+        builder.add_four_fermion_vertex(
+            ffv["bar1"], ffv["field1"], ffv["bar2"], ffv["field2"],
+            ffv["couplings"], color=ffv.get("color", "1"))
     return builder.write(path)
