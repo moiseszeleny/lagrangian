@@ -50,42 +50,26 @@ Completed (branch `explore/adoption-roadmap`, 244 tests green, `pytest` ~6 min):
 
 ## Remaining phases
 
-### C2 — four-fermion operators (medium effort)
+### ~~C2 — four-fermion operators~~ ✅ done
 
-Lifts the "exactly one `Bilinear` per term" restriction to support effective
-operators like `(ψ̄Γψ)(χ̄Γ′χ)`.
+Lifted the "exactly one `Bilinear` per term" restriction to support dim-6
+effective operators like `(ψ̄Γψ)(χ̄Γ′χ)` (Fermi theory, SMEFT contact terms).
+Delivered — see the Status section above and `CLAUDE.md`'s "The two-track
+extraction design" for the full account.
 
-- The guard is `vertices/bilinear.py:156-158`
-  (`extract_fermion_vertices` raises "four-fermion operators are outside v1
-  scope"); the `(bar, gamma, field)` grouping key at `bilinear.py:163-164`
-  becomes a **two-bilinear** key for FFFF.
-- `expand_bilinear` (`bilinear.py:104-132`) needs **no change** — it distributes
-  per-`Bilinear`-node already, so it handles a product of two independently.
-- `fermion_feynman_rule` (`bilinear.py:170-172`) needs a new rule combining
-  Γ⊗Γ′ and identical-fermion Wick/symmetry factors — not just the existing
-  boson-multiplicity factorial.
-- Catalog: add `"FFFF"` to `LORENTZ_CATALOG` (`vertices/vertex.py:18-28`).
-  `classify_spins` currently raises on four F's (`vertex.py:55-58`) because the
-  sorted-letter scheme can't distinguish which fermion pairs with which — carry
-  the pairing in `Vertex.meta`.
-- UFO export: add `FFFF*` Lorentz structures (four spinor indices, e.g.
-  `ProjM(2,1)*ProjM(4,3)` for a scalar-scalar current pair) to
-  `export/ufo/lorentz_map.py` + `structures_for`, plus a four-fermion vertex
-  adder and `write_ufo` kwarg in `export/ufo/writer.py`.
-- Gauge/discrete invariance checking needs **no change** — `invariance.py`
-  already transforms every fermion leg tree-wide regardless of bilinear count
-  (`:165, 173-175`). `sympy.conjugate` distributes over a product of two
-  `Bilinear`s automatically (`bilinear.py:65-78`), but the vertex-level
-  hermiticity-pairing check (`charges.py:478-488`) is keyed on a single
-  bilinear and needs extending to two-bilinear keys.
-- Mass-dimension: `check_mass_dimension`'s math already gives the correct `u**6`
-  for a four-fermion term, but `Model.check_invariance` hardcodes `max_dim=4`
-  when calling it (`lagrangian.py:398-400`; the parameter already exists at
-  `invariance.py:233`) — needs an EFT/`max_dim` flag threaded through.
-- **The open decision**: spinor-contraction ordering / Fierz-identity basis —
-  this is the actual physics reason the one-bilinear guard exists
-  (`bilinear.py:11-12`), not just an arbitrary restriction. Resolve this before
-  writing the extractor changes.
+- **The open decision (resolved)**: the as-written bilinear basis (no Fierz
+  canonicalisation) restricted to **four distinct fermion components**; a
+  repeated component raises `NotImplementedError` (cross-chain Wick
+  contractions would need spinor-index Fierz algebra the opaque-`Bilinear`
+  design can't express). With distinct legs there are no exchange
+  contractions, so no new Wick/symmetry factor was needed — the rule is the
+  plain scalar `i·coeff·∏(boson mult)!` with the two Dirac structures carried
+  separately.
+- Landed the **`max_dim` EFT flag** on `check_invariance`/`validate` (default
+  4; pass 6 for four-fermion, 5 for Weinberg) — this is what **D.2 reuses**.
+- `test_four_fermion.py` (22 tests), `examples/fermi_theory.py`. Optional
+  end-to-end MadGraph muon-decay-width cross-check:
+  `scripts/madgraph_fermi.py` (not in CI).
 
 ### C3 — R_ξ gauge fixing, Goldstone couplings, and ghosts (large effort — own plan)
 
@@ -118,14 +102,16 @@ single pass.
   and the writer's vertex-ordering/Lorentz-selection code assumes spin ∈
   {1,2,3}.
 
-### D.2 — dim-5 Weinberg operator (small effort; do after C2)
+### D.2 — dim-5 Weinberg operator (small effort; **now unblocked**)
 
 Extends `suggest.py`'s operator enumeration (currently ≤ dimension 4) to the
 dimension-5 `LLHH` operator, which generates a Majorana neutrino mass after
 EWSB — pairing naturally with the existing `diagonalize_takagi`
-(`vacuum/diagonalize.py`). Needs the EFT/`max_dim` opt-out that C2 introduces
-for its own dim-6 four-fermion operators, so sequence this after C2 (or after
-just that flag lands).
+(`vacuum/diagonalize.py`). The EFT/`max_dim` opt-out it needed **has landed**
+with C2 (`check_invariance(max_dim=5)` / `validate(max_dim=5)`), so this is now
+the next self-contained piece — the remaining work is the enumeration itself
+(`suggest_potential`/`suggest_yukawa` currently cap at dim 4) plus the Takagi
+wiring, no new plumbing.
 
 ### ~~D.3 — model-building tutorial notebook~~ ✅ done
 
@@ -133,8 +119,7 @@ Delivered — see the Status section above (`examples/ModelBuilding_Tutorial.ipy
 
 ## Suggested order
 
-**~~D.3~~ → C2 (+ its `max_dim` flag) → D.2 → C3.** D.3 is done; C2 is
-self-contained once the Fierz/ordering decision is made (resolved in the C2
-session plan: as-written bilinear basis, distinct-legs-only for v1); D.2 rides
-on C2's dimension-check plumbing; C3 is the long pole and deserves its own
-dedicated plan, informed by whichever `FieldStrength` decision gets made.
+**~~D.3~~ → ~~C2~~ → D.2 → C3.** D.3 and C2 are done. D.2 is next — it now rides
+on C2's already-landed `max_dim` dimension-check plumbing. C3 is the long pole
+and deserves its own dedicated plan, informed by whichever `FieldStrength`
+decision gets made.

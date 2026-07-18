@@ -225,9 +225,20 @@ dims.items()})` — but first rewrites `PartialMu(arg) → u*arg` (derivative
 adds one power of mass) and collapses every opaque `Bilinear(bar, gamma,
 field)` node to a bare $u^3$ (two spin-$\tfrac12$ legs, $\tfrac32+\tfrac32=3$
 — the internal Dirac/flavor structure carries no mass dimension of its
-own). The worst monomial's degree in $u$ (numerator minus denominator
-degree, via `sp.degree`) is the term's mass dimension; the check passes iff
-it's $\le 4$.
+own; a four-fermion operator is thus two `Bilinear`s $\to u^6$). The worst
+monomial's degree in $u$ (numerator minus denominator degree, via
+`sp.degree`) is the term's mass dimension; the check passes iff it's
+$\le\,$`max_dim`.
+
+The ceiling is the **`max_dim`** argument (default $4$, renormalizable),
+threaded through `Model.check_invariance(max_dim=…)` and `validate(max_dim=…)`.
+Raise it to admit higher-dimension effective operators — `max_dim=6` for the
+four-fermion (FFFF) operators of {doc}`vertices`, `max_dim=5` for a Weinberg
+operator. Note that a properly-written EFT term carries a Wilson coefficient
+whose dimension compensates the operator's (e.g. $G_F$ is $u^{-2}$), making the
+*term* dimension $4$ regardless; the flag matters under the operator-dimension
+convention, where the coefficient is kept dimensionless and the operator's
+field content ($u^6$ for four fermions) shows through.
 
 ## Design gotchas summary
 

@@ -86,36 +86,76 @@ own.
 
 ## 8.3 The fermion bilinear track
 
-`extract_fermion_vertices(L, boson_fields)` (`vertices/bilinear.py:135`)
+`extract_fermion_vertices(L, boson_fields)` (`vertices/bilinear.py`)
 first Leibniz/bilinear-expands `L`, then for every term in
-`L.as_ordered_terms()`: finds the (exactly one — more than one raises,
-since four-fermion operators are out of v1 scope) `Bilinear` atom, divides
-it out (`sp.cancel(term / bil)`) to get a pure-boson coefficient, and
-accumulates coefficients under the key `(bar, gamma, field)`. Each
-accumulated coefficient is then handed to the *same*
-`extract_interaction_coefficients` used for bosons, giving
-`{(bar, gamma, field): {n_bosons: {boson_tuple: coeff}}}`.
-`fermion_feynman_rule(coefficient, gamma, boson_tuple)`
-(`vertices/bilinear.py:170`) applies the identical $i\times c\times\prod n!$
-formula, now also carrying the Dirac structure $\Gamma$ along as an
-explicit factor of the returned rule (it's not itself part of the
-combinatorial counting — a `Bilinear` node counts as exactly one leg
-regardless of $\Gamma$'s internal gamma-matrix content).
+`L.as_ordered_terms()`: counts the `Bilinear` factors, divides them out
+(`sp.cancel(term / bil)`) to get a pure-boson coefficient, and accumulates
+coefficients under the bilinear key. Each accumulated coefficient is then
+handed to the *same* `extract_interaction_coefficients` used for bosons.
+`fermion_feynman_rule(coefficient, gamma, boson_tuple)` applies the
+identical $i\times c\times\prod n!$ formula, carrying the Dirac structure
+$\Gamma$ along as an explicit factor of the returned rule (it's not itself
+part of the combinatorial counting — a `Bilinear` node counts as exactly one
+leg regardless of $\Gamma$'s internal gamma-matrix content).
+
+A term with **one** `Bilinear` is the FFS/FFV (Yukawa / gauge-current) case,
+keyed by the flat `(bar, gamma, field)`. A term with **two** is the
+four-fermion (FFFF) case (§8.3.1).
+
+### 8.3.1 Four-fermion (FFFF) operators
+
+Dimension-6 effective operators like the Fermi muon-decay operator
+$-(4G_F/\sqrt2)(\bar\nu_\mu\gamma^\mu P_L\mu)(\bar e\,\gamma_\mu P_L\nu_e)$
+are the two-`Bilinear` case of the same track. The grouping key becomes a
+**nested** canonically-sorted pair
+`((bar,Γ,field), (bar',Γ′,field'))`, so consumers tell FFFF from FFS/FFV by
+`isinstance(key[0], tuple)`.
+
+Two design commitments (both pinned in `tests/test_four_fermion.py`):
+
+1. **As-written bilinear basis** — feynlag does *not* Fierz-rearrange; a
+   Fierz-equivalent rewriting is a *different input* (the same convention
+   SMEFT UFO models use). The two Dirac structures $(\Gamma,\Gamma')$ are
+   carried **separately**, never multiplied into one product — folding them
+   would wrongly invoke the Clifford algebra *across* the two independent
+   spinor chains (e.g. contract a shared $\gamma^\mu$).
+   `four_fermion_feynman_rule` therefore returns the plain scalar
+   $i\,c\,\prod n!$, with the chains riding on the key / `Vertex.meta`.
+2. **Four distinct fermion components only.** If any component repeats among
+   the four legs — including a squared bilinear $B^2$, which `atoms()` would
+   deduplicate, so `_bilinear_factors` counts multiplicity by walking the
+   factors — extraction raises `NotImplementedError`. This is not an
+   arbitrary limit: identical legs generate cross-chain Wick contractions
+   whose relative signs require genuine spinor-index Fierz algebra that the
+   opaque-`Bilinear` representation (a fully-contracted c-number) cannot
+   express. With four distinct legs there are no exchange contractions, so
+   no extra Wick/symmetry factor is needed at all.
+
+A vector-current contraction
+$(\bar\psi\gamma^\mu P_L\psi)(\bar\chi\gamma_\mu P_L\chi)$ is written with a
+**shared index symbol** — `DiracGamma(mu)` on one leg, `DiracGammaLower(mu)`
+on the other — the shared $\mu$ *is* the contraction (same convention as
+`fermion_gauge_current`). The admissibility of these operators under the
+mass-dimension check is governed by the `max_dim` flag ({doc}`invariance`);
+the UFO Lorentz strings and the four-fermion vertex adder are in
+{doc}`export`. Worked model: `examples/fermi_theory.py`.
 
 ## 8.4 The closed vertex catalog
 
 Every extracted `(field_tuple, coefficient)` pair is classified by
-`classify_spins` (`vertices/vertex.py:33`) into one of exactly nine catalog
-entries — `SSS, SSSS, VSS, VVS, VVSS, VVV, VVVV, FFS, FFV` — based purely on
-the spins of the legs (looked up in a `{symbol: spin}` map built by
+`classify_spins` (`vertices/vertex.py:33`) into one of exactly ten catalog
+entries — `SSS, SSSS, VSS, VVS, VVSS, VVV, VVVV, FFS, FFV, FFFF` — based
+purely on the spins of the legs (looked up in a `{symbol: spin}` map built by
 `Model.spin_map`). Any spin combination outside this list **raises**
 `ValueError` rather than returning a best-guess classification: the catalog
-is deliberately closed for v1 (R$_\xi$ ghosts, four-point fermion vertices,
-and other combinations are out of scope, {doc}`pipeline`), and silently
-mis-tagging an out-of-catalog vertex would be worse than refusing to
-extract it. Each catalog entry also carries the UFO Lorentz-structure
-name(s) it maps to (`LORENTZ_CATALOG`), consumed directly by
-{doc}`export`.
+is deliberately closed (R$_\xi$ ghosts and other combinations remain out of
+scope, {doc}`pipeline`), and silently mis-tagging an out-of-catalog vertex
+would be worse than refusing to extract it. `FFFF` is the one entry the
+sorted spin letters can't fully reconstruct — which fermion pairs into which
+Dirac chain is not visible from four `F`s — so a caller building a `Vertex`
+for it records the chain pairing in `Vertex.meta`. Each catalog entry also
+carries the UFO Lorentz-structure name(s) it maps to (`LORENTZ_CATALOG`),
+consumed directly by {doc}`export`.
 
 ## 8.5 Yang–Mills self-couplings
 
@@ -196,9 +236,10 @@ own docstring had left as an unbuilt "Phase 5" step.
   above only ever divide it out algebraically (`term / bil`) or match it
   structurally; see {doc}`invariance` for why differentiating through it
   is unsafe.
-- **At most one `Bilinear` per term.** `extract_fermion_vertices` raises if
-  it finds more than one — four-fermion operators are explicitly out of
-  v1 scope (`Model.interactions`, {doc}`pipeline`), not silently mishandled.
+- **One or two `Bilinear`s per term.** One is FFS/FFV; two is a four-fermion
+  operator (§8.3.1) — restricted to four *distinct* fermion components, with a
+  repeated leg (or three-plus bilinears) raising `NotImplementedError` rather
+  than being silently mishandled.
 - **`Model.interactions(..., min_legs=3)`** drops any extracted monomial
   with fewer than 3 legs by default — 1- and 2-point "interactions" are
   tadpole/mass terms, already handled in {doc}`ssb`/{doc}`masses`, and
@@ -213,6 +254,9 @@ own docstring had left as an unbuilt "Phase 5" step.
   convention, §8.2.
 - `tests/test_fermion_sector.py::TestGaugeCurrents` — the bilinear track,
   §8.3.
+- `tests/test_four_fermion.py` — the four-fermion (FFFF) track, §8.3.1
+  (Fermi-operator extraction/rule, the distinct-legs guard, and the
+  `FFFF*` UFO round-trip).
 - `tests/test_gauge_sector_sm.py::test_vertex_objects_classified` — the
   closed catalog, §8.4.
 - `tests/test_qcd.py::test_ggg_coupling_pinned`,
