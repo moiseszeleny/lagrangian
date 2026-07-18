@@ -61,6 +61,16 @@ scalar⊗vector structure is outside the v1 catalog and raises. As with the FFV
 path, the adder applies the Feynman-rule `i` to each Lagrangian coefficient (its
 omission is invisible in a single $|\mathcal M|^2$ but breaks interference).
 
+**Export the h.c. vertex too.** A Hermitian Lagrangian's `op + h.c.` is *two*
+four-fermion vertices (two distinct bilinear keys), and **MadGraph needs both**
+to route fermion-number flow through the contact interaction — a UFO carrying
+only one of the conjugate pair fails diagram generation with a
+`NoDiagramException`, even though the single vertex is otherwise well-formed.
+This is a MadGraph requirement, not a feynlag one (the exported Lorentz string
+is byte-for-byte the one MadGraph's own `taudecay_UFO` uses for τ decay). The
+validated recipe is in `scripts/madgraph_fermi.py`, which reproduces the muon
+lifetime Γ(μ→eνν) = $G_F^2 m_\mu^5/192\pi^3$ from the exported Fermi UFO.
+
 ## SU(3): real color-tensor strings, one particle per gluon
 
 Colored vertices need actual UFO color-tensor strings, not the hardcoded

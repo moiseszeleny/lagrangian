@@ -142,8 +142,18 @@ def main():
         UFOParticle(p_nue, 12, "ve", antiname="ve~", antisymbol=p_nueb, spin=2),
     ]
     params = ParameterSet(GF, MMU)
-    ffv = [{"bar1": p_numub, "field1": p_mm, "bar2": p_ep, "field2": p_nue,
-            "couplings": {("VL", "VL"): -4 * GF.s / sp.sqrt(2)}}]
+    c = -4 * GF.s / sp.sqrt(2)
+    # Export BOTH the operator vertex and its h.c. conjugate: a Hermitian
+    # Lagrangian's op + h.c. is two four-fermion vertices, and MadGraph needs
+    # the pair to route fermion-number flow through the contact interaction (a
+    # model with only one fails diagram generation).  scripts/madgraph_fermi.py
+    # uses exactly this UFO to reproduce Γ(μ→eνν) = G_F²m_μ⁵/192π³.
+    ffv = [
+        {"bar1": p_numub, "field1": p_mm, "bar2": p_ep, "field2": p_nue,
+         "couplings": {("VL", "VL"): c}},                      # (ν̄_μγμ)(ēγν_e)
+        {"bar1": p_mp, "field1": p_numu, "bar2": p_nueb, "field2": p_em,
+         "couplings": {("VL", "VL"): c}},                      # + h.c.
+    ]
     out = Path(tempfile.mkdtemp()) / "Fermi_UFO"
     write_ufo(out, "Fermi", params, particles, four_fermion_vertices=ffv)
     print(f"\nUFO written to {out}")

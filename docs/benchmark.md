@@ -70,3 +70,27 @@ is invisible to unit tests but breaks a real generator run:
 This is the payoff of feynlag's verification-first design: the round-trip is a
 harness that turns "the model looks right" into "the model computes the right
 cross section."
+
+## Four-fermion operators: the muon-decay width
+
+The four-fermion (FFFF) export is validated the same way, against an analytic
+result. `scripts/madgraph_fermi.py` exports a Fermi-theory UFO for
+
+$$\mathcal L \supset -\tfrac{4G_F}{\sqrt2}(\bar\nu_\mu\gamma^\mu P_L\mu)(\bar e\,\gamma_\mu P_L\nu_e) + \text{h.c.}$$
+
+and asks MadGraph for the muon partial width, comparing to the textbook
+
+$$\Gamma(\mu^-\to e^-\bar\nu_e\nu_\mu) = \frac{G_F^2 m_\mu^5}{192\pi^3} = 3.009\times10^{-19}\ \text{GeV}\quad(\tau_\mu = 2.19\ \mu\text{s}).$$
+
+| Quantity | feynlag UFO (MadGraph) | analytic | agreement |
+|---|---|---|---|
+| $\Gamma(\mu\to e\nu\nu)$ | $3.007\times10^{-19}$ GeV | $3.009\times10^{-19}$ GeV | 0.07% |
+
+This confirms the exported `FFFF*` Lorentz structure, the fermion-flow leg
+assignment, and the coupling normalization are all physically correct — the
+part unit tests (symbolic extraction + coupling round-trip) cannot see. It also
+surfaced a UFO-export requirement specific to contact interactions: **both the
+operator vertex and its Hermitian conjugate must be exported**, since MadGraph
+needs the conjugate pair to establish a consistent fermion-number flow through
+the four-fermion vertex (a UFO carrying only one fails diagram generation). Not
+in CI (each launch compiles Fortran).
