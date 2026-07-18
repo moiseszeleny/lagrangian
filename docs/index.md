@@ -77,6 +77,7 @@ manual/charges
 manual/flavor
 tutorials/index
 examples
+benchmark
 conventions
 api/index
 ```

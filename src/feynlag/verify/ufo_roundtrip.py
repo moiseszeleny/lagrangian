@@ -63,15 +63,33 @@ def _finite(value):
     return z
 
 
+class _UFONamespace:
+    """The parameter/coupling registries of a loaded UFO model."""
+
+    def __init__(self, all_parameters, all_couplings):
+        self.all_parameters = all_parameters
+        self.all_couplings = all_couplings
+
+
 def _import_ufo(path):
-    """Import a written UFO package directory by path."""
-    import os
+    """Load a UFO directory the way MadGraph does — the directory itself on
+    ``sys.path`` and its submodules imported by bare name (UFO modules use
+    absolute imports, e.g. ``from object_library import …``).
+    """
     path = str(path)
-    parent, name = os.path.split(os.path.normpath(path))
-    sys.path.insert(0, parent)
+    sys.path.insert(0, path)
+    # drop any cached UFO submodules from a previous load (names are generic)
+    for mod in ("object_library", "function_library", "parameters",
+                "couplings", "particles", "lorentz", "coupling_orders",
+                "vertices"):
+        sys.modules.pop(mod, None)
     try:
-        module = importlib.import_module(name)
-        return importlib.reload(module)
+        import object_library  # noqa: F401 — populated by the imports below
+        import function_library  # noqa: F401
+        import parameters  # noqa: F401 — constructing these fills registries
+        import couplings  # noqa: F401
+        return _UFONamespace(object_library.all_parameters,
+                             object_library.all_couplings)
     finally:
         sys.path.pop(0)
 

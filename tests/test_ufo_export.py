@@ -113,10 +113,22 @@ def sm_ufo(tmp_path_factory):
     return out, model, dict(g=0.6535, gp=0.3580, v=246.0, lam=0.129)
 
 
+_UFO_SUBMODULES = ("object_library", "function_library", "coupling_orders",
+                   "parameters", "couplings", "lorentz", "particles",
+                   "vertices")
+
+
 def _import_ufo(path):
-    sys.path.insert(0, str(path.parent))
+    """Load a UFO directory the MadGraph way (dir on sys.path, absolute
+    imports); return object_library holding the all_* registries."""
+    sys.path.insert(0, str(path))
+    for mod in _UFO_SUBMODULES:
+        sys.modules.pop(mod, None)
     try:
-        return importlib.import_module(path.name)
+        import object_library
+        for mod in _UFO_SUBMODULES[1:]:
+            importlib.import_module(mod)
+        return object_library
     finally:
         sys.path.pop(0)
 
@@ -129,6 +141,19 @@ def test_ufo_roundtrip_evaluates_cleanly(sm_ufo):
     assert report.ok, report.failures
     assert report.couplings          # at least one coupling was evaluated
     assert report.parameters
+
+
+def test_ufo_uses_absolute_imports(sm_ufo):
+    """UFO submodules must use absolute imports (``from object_library …``) so
+    MadGraph can run them as standalone scripts (param-card generation); a
+    relative ``from .object_library`` breaks with 'no known parent package'."""
+    path, model, num = sm_ufo
+    for fname in ("parameters.py", "couplings.py", "particles.py",
+                  "vertices.py", "lorentz.py", "function_library.py",
+                  "__init__.py"):
+        text = (path / fname).read_text()
+        assert "from ." not in text and "from . import" not in text, \
+            f"{fname} has a relative import"
 
 
 def test_ufo_roundtrip_reproduces_pinned_hWW(sm_ufo):

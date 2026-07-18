@@ -267,7 +267,7 @@ FUNCTION_LIBRARY = '''\
 ##
 
 import cmath
-from .object_library import all_functions, Function
+from object_library import all_functions, Function
 
 complexconjugate = Function(name='complexconjugate',
                             arguments=('z',),
@@ -305,14 +305,15 @@ cot = Function(name='cot',
 '''
 
 INIT_TEMPLATE = '''\
-from . import particles
-from . import couplings
-from . import lorentz
-from . import parameters
-from . import vertices
-from . import coupling_orders
-from . import function_library
-from .object_library import all_particles, all_vertices, all_couplings, \\
+import particles
+import couplings
+import lorentz
+import parameters
+import vertices
+import coupling_orders
+import function_library
+import object_library
+from object_library import all_particles, all_vertices, all_couplings, \\
     all_lorentz, all_parameters, all_orders, all_functions
 
 gauge = [0]

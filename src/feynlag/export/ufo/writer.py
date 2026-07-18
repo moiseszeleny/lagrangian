@@ -251,7 +251,12 @@ class _UFOBuilder:
         base = "FFV" if boson_spin == 3 else "FFS"
         ordered = [bar_symbol, field_symbol, bosons[0]]
         names, cnames = [], []
-        for suffix, coupling in (("L", left_coupling), ("R", right_coupling)):
+        # ``left/right`` are Lagrangian coefficients; the UFO coupling value
+        # carries the Feynman-rule ``i`` (as the bosonic/VVV couplings do), so
+        # apply it here — its omission is invisible to a single vertex but
+        # breaks FFV↔VVV interference (e.g. e+e- → W+W- gauge cancellation).
+        for suffix, coupling in (("L", sp.I * left_coupling),
+                                 ("R", sp.I * right_coupling)):
             if coupling == 0:
                 continue
             lname = base + suffix
@@ -285,7 +290,7 @@ class _UFOBuilder:
 
     def _coupling_orders_py(self):
         return (
-            "from .object_library import all_orders, CouplingOrder\n\n"
+            "from object_library import all_orders, CouplingOrder\n\n"
             "QCD = CouplingOrder(name='QCD', expansion_order=99, "
             "hierarchy=1)\n"
             "QED = CouplingOrder(name='QED', expansion_order=99, "
@@ -293,8 +298,10 @@ class _UFOBuilder:
 
     def _parameters_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_parameters, Parameter",
-                 "", ""]
+                 "import cmath",
+                 "from object_library import all_parameters, Parameter",
+                 "from function_library import (complexconjugate, re, im, "
+                 "csc, sec, acsc, asec, cot)", "", ""]
         lines.append("ZERO = Parameter(name='ZERO', nature='internal', "
                      "type='real', value='0.0', texname='0')")
         lines.append("")
@@ -318,8 +325,8 @@ class _UFOBuilder:
 
     def _particles_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_particles, Particle",
-                 "from . import parameters as Param", "", ""]
+                 "from object_library import all_particles, Particle",
+                 "import parameters as Param", "", ""]
         for spec in self.particles:
             mass = "Param.ZERO" if spec.mass == "ZERO" else f"Param.{spec.mass}"
             width = ("Param.ZERO" if spec.width == "ZERO"
@@ -339,7 +346,7 @@ class _UFOBuilder:
 
     def _lorentz_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_lorentz, Lorentz", "", ""]
+                 "from object_library import all_lorentz, Lorentz", "", ""]
         for name in sorted(self.used_lorentz):
             spins, structure = UFO_LORENTZ[name]
             lines.append(f"{name} = Lorentz(name='{name}', spins={spins}, "
@@ -349,8 +356,10 @@ class _UFOBuilder:
 
     def _couplings_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_couplings, Coupling", "",
-                 ""]
+                 "import cmath",
+                 "from object_library import all_couplings, Coupling",
+                 "from function_library import (complexconjugate, re, im, "
+                 "csc, sec, acsc, asec, cot)", "", ""]
         for value, (cname, order) in self.couplings.items():
             lines.append(f"{cname} = Coupling(name='{cname}', "
                          f"value={value!r}, order={order})")
@@ -359,10 +368,10 @@ class _UFOBuilder:
 
     def _vertices_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_vertices, Vertex",
-                 "from . import particles as P",
-                 "from . import couplings as C",
-                 "from . import lorentz as L", "", ""]
+                 "from object_library import all_vertices, Vertex",
+                 "import particles as P",
+                 "import couplings as C",
+                 "import lorentz as L", "", ""]
         for n, (parts, lnames, cnames, colors) in enumerate(
                 self.vertex_entries, start=1):
             lorentz = ", ".join(f"L.{ln}" for ln in lnames)

@@ -107,6 +107,10 @@ mixing via the mass-basis insertion route (`feynlag.standard_ckm`).
 Model consistency: `Model.validate()` aggregates gauge/discrete invariance,
 hermiticity, gauge-anomaly cancellation, electric-charge conservation +
 vacuum-derived consistency, vertex hermiticity pairing, and a UFO round-trip.
+The exported SM UFO is **cross-checked against MadGraph** (`e+e-→μ+μ-` and the
+gauge-cancelling `e+e-→W+W-` reproduce the stock `sm` cross sections to MC
+precision — see [`docs/benchmark.md`](docs/benchmark.md) and
+`scripts/madgraph_roundtrip.py`).
 
 Deferred (v2): R_ξ gauge fixing and ghosts, four-fermion operators,
 NLO/UFO 2.0 extensions.
