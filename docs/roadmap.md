@@ -35,6 +35,17 @@ Completed (branch `explore/adoption-roadmap`, 244 tests green, `pytest` ~6 min):
   charge), and `build_lagrangian` assembles a validated model before the full
   pipeline gives `m_ZD²=g_D²q_S²v_D²` and `Z_D χχ = i g_D q_χ γ^μ`. No library
   changes — pure showcase of the already-built `suggest`/`anomalies` tools.
+- **D.2 — Majorana infrastructure + the dim-5 Weinberg operator**
+  (`feynlag.dirac.diracC`, `MajoranaBilinear`, `majorana_mass_matrix`,
+  `extract_majorana_vertices`; `examples/sm_weinberg.py`, `tests/test_majorana.py`)
+  — the roadmap under-scoped this as "just enumeration + Takagi wiring"; it in
+  fact needed charge-conjugation machinery (`C=iγ²γ⁰`) and a same-chirality
+  `ψᵀCΓψ` Majorana bilinear, built as first-class support (also unlocks type-I
+  seesaw `½M_R ν_Rᵀ C ν_R` and triplet-LRSM masses). The Weinberg operator
+  `(LᵀCεL)(HH)` gives `m_ν=−c v²/Λ` (Takagi-diagonalized) + `ν̄νh`/`ν̄νhh`
+  couplings; `suggest_yukawa(max_dim=5)` enumerates it. **UFO export of the
+  Majorana vertices is deferred** (see below). Fixed a latent
+  `check_mass_dimension` bug (per-additive-term counting) en route.
 
 ### How to resume
 
@@ -102,16 +113,22 @@ single pass.
   and the writer's vertex-ordering/Lorentz-selection code assumes spin ∈
   {1,2,3}.
 
-### D.2 — dim-5 Weinberg operator (small effort; **now unblocked**)
+### ~~D.2 — dim-5 Weinberg operator~~ ✅ done (was mis-scoped as "small")
 
-Extends `suggest.py`'s operator enumeration (currently ≤ dimension 4) to the
-dimension-5 `LLHH` operator, which generates a Majorana neutrino mass after
-EWSB — pairing naturally with the existing `diagonalize_takagi`
-(`vacuum/diagonalize.py`). The EFT/`max_dim` opt-out it needed **has landed**
-with C2 (`check_invariance(max_dim=5)` / `validate(max_dim=5)`), so this is now
-the next self-contained piece — the remaining work is the enumeration itself
-(`suggest_potential`/`suggest_yukawa` currently cap at dim 4) plus the Takagi
-wiring, no new plumbing.
+Delivered as the **Majorana-infrastructure** phase (see the Status section) — it
+needed charge-conjugation support (`diracC`) and a same-chirality `ψᵀCΓψ`
+`MajoranaBilinear`, not just an enumeration tweak. `suggest_yukawa(max_dim=5)`
+enumerates `LᵀCεL HH`; `majorana_mass_matrix` + `diagonalize_takagi` give the
+physical Majorana ν masses.
+
+### E — UFO export of Majorana vertices (new follow-up, from D.2)
+
+The symbolic Majorana pipeline is complete, but `ν̄νh`/`ν̄νhh` Majorana vertices
+are **not yet emitted to UFO**. Needs MadGraph's Majorana-fermion conventions
+(`spin=2` self-conjugate particles, the `C`-carrying Lorentz structures, and the
+fermion-flow handling MadGraph applies to Majorana lines) — its own area, akin to
+the FFFF h.c.-pairing lesson (`docs/benchmark.md`). Until then
+`MajoranaFermion`/`MajoranaBilinear` are symbolic-only.
 
 ### ~~D.3 — model-building tutorial notebook~~ ✅ done
 
@@ -119,7 +136,7 @@ Delivered — see the Status section above (`examples/ModelBuilding_Tutorial.ipy
 
 ## Suggested order
 
-**~~D.3~~ → ~~C2~~ → D.2 → C3.** D.3 and C2 are done. D.2 is next — it now rides
-on C2's already-landed `max_dim` dimension-check plumbing. C3 is the long pole
-and deserves its own dedicated plan, informed by whichever `FieldStrength`
-decision gets made.
+**~~D.3~~ → ~~C2~~ → ~~D.2~~ → C3 / E.** D.3, C2, and D.2 are done. Remaining:
+**C3** (R_ξ gauge fixing + ghosts — the long pole, deserves its own dedicated
+plan, informed by the `FieldStrength` decision) and **E** (UFO Majorana export,
+a smaller self-contained follow-up to D.2).

@@ -24,7 +24,7 @@ import sympy as sp
 
 from .fields import Fermion
 from .operators import PartialMu, expand_derivatives
-from .vertices.bilinear import Bilinear, expand_bilinear
+from .vertices.bilinear import Bilinear, MajoranaBilinear, expand_bilinear
 
 __all__ = ["gauge_variation", "check_gauge_invariance",
            "check_discrete_invariance", "check_hermiticity",
@@ -162,7 +162,7 @@ def gauge_variation(term, fields, group):
     n = group.n_generators
     alphas = [sp.Dummy(f"alpha_{group.name}_{a}", real=True) for a in range(n)]
     sub = _transform_map(fields, group, alphas)
-    has_fermion_content = term.has(Bilinear)
+    has_fermion_content = term.has(Bilinear) or term.has(MajoranaBilinear)
     if not sub and not has_fermion_content:
         return [sp.S.Zero] * n
 
@@ -203,7 +203,7 @@ def check_discrete_invariance(term, group):
     """
     violations = []
     components = group.components()
-    has_fermion_content = term.has(Bilinear)
+    has_fermion_content = term.has(Bilinear) or term.has(MajoranaBilinear)
     for gen_index, sub in enumerate(group.generator_maps()):
         transformed = _apply_field_map(term, sub, components=components)
         if has_fermion_content:
@@ -255,19 +255,30 @@ def check_mass_dimension(term, fields, parameters=None, max_dim=4):
             dims[p.symbol] = p.unit_dim
 
     u = sp.Symbol("__mass_unit__", positive=True)
-    # ∂_μ adds one mass dimension
-    term = term.replace(PartialMu, lambda arg: u * arg)
-    # a fermion bilinear is two spin-1/2 legs (3/2 + 3/2 = 3); its internal
-    # Dirac/flavor structure is irrelevant to mass dimension, so collapse
-    # the whole opaque node to a bare power of u.
-    term = term.replace(Bilinear, lambda bar, gamma, field: u ** 3)
     subs = {s: u ** d for s, d in dims.items()}
-    powered = sp.expand(term.xreplace(subs))
 
+    def _replace(t):
+        # ∂_μ adds one mass dimension; a fermion bilinear is two spin-½ legs
+        # (3/2 + 3/2 = 3), a Majorana bilinear ψᵀCΓψ likewise — the internal
+        # Dirac/flavor structure carries no mass dimension, so collapse the
+        # opaque node to a bare power of u.
+        t = t.replace(PartialMu, lambda arg: u * arg)
+        t = t.replace(Bilinear, lambda bar, gamma, field: u ** 3)
+        t = t.replace(MajoranaBilinear, lambda f1, gamma, f2: u ** 3)
+        return t.xreplace(subs)
+
+    # Process each additive term *independently*: collapsing every bilinear to
+    # the same ``u**3`` erases the distinct legs, so two different-leg terms
+    # whose boson coefficients differ in sign (e.g. the (εH)(εH) Weinberg
+    # structure, H₀²−2H₀G⁺+G⁺²) would spuriously cancel to 0 if expanded
+    # together after substitution.  Per-term counting avoids that.
     worst = 0
-    for monomial in powered.as_ordered_terms():
-        poly = sp.together(monomial)
-        found = (sp.degree(sp.numer(poly), u) - sp.degree(sp.denom(poly), u)
-                 if poly.has(u) else 0)
-        worst = max(worst, found)
+    top_terms = sp.expand(term).as_ordered_terms()
+    for top in top_terms:
+        powered = sp.expand(_replace(top))
+        for monomial in powered.as_ordered_terms():
+            poly = sp.together(monomial)
+            found = (sp.degree(sp.numer(poly), u) - sp.degree(sp.denom(poly), u)
+                     if poly.has(u) else 0)
+            worst = max(worst, found)
     return (worst <= max_dim, worst)
