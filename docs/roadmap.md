@@ -26,6 +26,15 @@ Completed (branch `explore/adoption-roadmap`, 244 tests green, `pytest` ~6 min):
   caught and fixed two real UFO-export bugs (relative imports, a missing
   Feynman-rule `i` in fermion couplings) — see `CLAUDE.md`'s "MadGraph
   round-trip" section for the full account.
+- **D.3 — model-building tutorial** (`examples/ModelBuilding_Tutorial.ipynb`,
+  executed, symlinked into `docs/tutorials/`) — walks the *model-building*
+  workflow (as opposed to the analysis-pipeline tutorials): for a dark `U(1)_D`
+  sector with symbolic charges, `feynlag.anomalies` derives the anomaly-free
+  assignment (forcing the dark fermion vector-like), `feynlag.suggest`
+  enumerates the invariant operator basis (and returns empty on a mistuned
+  charge), and `build_lagrangian` assembles a validated model before the full
+  pipeline gives `m_ZD²=g_D²q_S²v_D²` and `Z_D χχ = i g_D q_χ γ^μ`. No library
+  changes — pure showcase of the already-built `suggest`/`anomalies` tools.
 
 ### How to resume
 
@@ -118,19 +127,14 @@ EWSB — pairing naturally with the existing `diagonalize_takagi`
 for its own dim-6 four-fermion operators, so sequence this after C2 (or after
 just that flag lands).
 
-### D.3 — model-building tutorial notebook (small effort; high visibility)
+### ~~D.3 — model-building tutorial notebook~~ ✅ done
 
-A new executed notebook (tracked via the `nbstripout --keep-output` filter
-described in `CLAUDE.md`) walking `feynlag.suggest` → `Model.check_anomalies()`
-→ the full pipeline for a new U(1) model, in the style of the existing
-`SM_Feynman_Rules_Tutorial.ipynb` / `SM_VLL_Tutorial.ipynb` /
-`SM_U1X_Tutorial.ipynb`. Lowest risk, good demonstration of the model-building
-tools built in this round of work.
+Delivered — see the Status section above (`examples/ModelBuilding_Tutorial.ipynb`).
 
 ## Suggested order
 
-**D.3 → C2 (+ its `max_dim` flag) → D.2 → C3.** D.3 is low-risk and showcases
-already-built features; C2 is self-contained once the Fierz/ordering decision
-is made; D.2 rides on C2's dimension-check plumbing; C3 is the long pole and
-deserves its own dedicated plan, informed by whichever `FieldStrength` decision
-gets made.
+**~~D.3~~ → C2 (+ its `max_dim` flag) → D.2 → C3.** D.3 is done; C2 is
+self-contained once the Fierz/ordering decision is made (resolved in the C2
+session plan: as-written bilinear basis, distinct-legs-only for v1); D.2 rides
+on C2's dimension-check plumbing; C3 is the long pole and deserves its own
+dedicated plan, informed by whichever `FieldStrength` decision gets made.
