@@ -78,6 +78,7 @@ manual/flavor
 tutorials/index
 examples
 benchmark
+roadmap
 conventions
 api/index
 ```
