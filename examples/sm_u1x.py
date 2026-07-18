@@ -154,7 +154,8 @@ def main():
                * Bilinear(nuRbar[j], diracPL, eL[i]))
 
     # quark Yukawas: verbatim from sm_scalar_gauge.py (color summed in
-    # Python; flavor-generic, undiagonalized — no CKM here)
+    # Python; flavor-generic, undiagonalized — no CKM here; the CKM
+    # insertion route is in examples/sm_ckm.py)
     Yu, Yd = sp.IndexedBase("Yu"), sp.IndexedBase("Yd")
     qL_u, qL_d = QL.components[:3], QL.components[3:]
     qLbar_u, qLbar_d = QL.bar_components[:3], QL.bar_components[3:]

@@ -74,6 +74,7 @@ manual/verification
 manual/suggest
 manual/anomalies
 manual/charges
+manual/flavor
 tutorials/index
 examples
 conventions

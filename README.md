@@ -102,7 +102,11 @@ Working: scalars, gauge bosons, chiral fermions (bilinear track), tadpoles,
 mass matrices (real/charged/gauge blocks), orthogonal/SVD/Takagi
 diagonalization, momentum-space vertices for the closed catalog
 (SSS SSSS VSS VVS VVSS VVV VVVV FFS FFV), LaTeX tables, UFO export
-(including full SU(3) color-tensor strings for qqg/ggg/gggg).
+(including full SU(3) color-tensor strings for qqg/ggg/gggg), CKM quark
+mixing via the mass-basis insertion route (`feynlag.standard_ckm`).
+Model consistency: `Model.validate()` aggregates gauge/discrete invariance,
+hermiticity, gauge-anomaly cancellation, electric-charge conservation +
+vacuum-derived consistency, vertex hermiticity pairing, and a UFO round-trip.
 
 Deferred (v2): R_ξ gauge fixing and ghosts, four-fermion operators,
 NLO/UFO 2.0 extensions.

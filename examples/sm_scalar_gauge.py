@@ -41,10 +41,11 @@ def main():
     # quark sector: SU(2) doublet Q_L + color-triplet singlets u_R, d_R.
     # flavor structure mirrors the lepton sector exactly — 3 generic,
     # flavor-indexed generations, undiagonalized Yukawas (Yu[i,j]/Yd[i,j]),
-    # no CKM: CKM mixing is physically orthogonal to SU(3) vertex dynamics
+    # no CKM here: CKM mixing is physically orthogonal to SU(3) vertex dynamics
     # (gluon vertices are flavor-diagonal/color-universal regardless of it),
     # and a fully generic 3-generation complex-Yukawa SVD doesn't resolve in
-    # closed symbolic form via diagonalize_svd — deferred, not attempted here.
+    # closed symbolic form via diagonalize_svd. The mass-basis + CKM-insertion
+    # route (the FeynRules-SM way) is demonstrated in examples/sm_ckm.py.
     QL = WeylFermion("QL", reps={SU2L: 2, U1Y: sp.Rational(1, 6), SU3c: 3},
                      chirality="L", nflavors=3,
                      component_names=["uL_1", "uL_2", "uL_3",

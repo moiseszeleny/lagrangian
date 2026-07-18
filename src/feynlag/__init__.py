@@ -58,6 +58,7 @@ from .charges import (
     check_charge_consistency, check_hermiticity_pairing,
     derive_charge_operator, physical_charges,
 )
+from .flavor import CKM_ELEMENT_NAMES, cabibbo_2x2, standard_ckm
 from .suggest import (
     SuggestedTerm, build_lagrangian, suggest_kinetic, suggest_potential,
     suggest_yukawa,
@@ -100,4 +101,5 @@ __all__ = [
     "HermiticityPairingReport", "check_charge_conservation",
     "check_charge_consistency", "check_hermiticity_pairing",
     "derive_charge_operator", "physical_charges",
+    "standard_ckm", "cabibbo_2x2", "CKM_ELEMENT_NAMES",
 ]
