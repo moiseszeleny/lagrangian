@@ -34,10 +34,11 @@ from .fields import (
     WeylFermion, bar_partner, conjugate_pair, dag, hc,
 )
 from .vacuum import (
-    Rotation, Vacuum, build_mass_matrix, charged_mass_matrix,
+    MajoranaRotation, Rotation, Vacuum, build_mass_matrix, charged_mass_matrix,
     diagonalize_orthogonal_2x2, diagonalize_svd, diagonalize_svd_2x2,
     diagonalize_takagi,
-    rotation_2x2, scalar_mass_matrix, solve_mixing_angle_2x2,
+    rotation_2x2, scalar_mass_matrix, seesaw_mass_matrix, seesaw_light_mass,
+    solve_mixing_angle_2x2,
 )
 from .vertices.bilinear import (
     Bilinear, MajoranaBilinear, expand_bilinear, extract_fermion_vertices,
@@ -73,10 +74,12 @@ __all__ = [
     "Field", "Scalar", "Fermion", "WeylFermion", "DiracFermion",
     "MajoranaFermion", "GaugeBoson", "dag", "hc", "conjugate_pair",
     "bar_partner",
-    "Vacuum", "Rotation", "rotation_2x2", "solve_mixing_angle_2x2",
+    "Vacuum", "Rotation", "MajoranaRotation", "rotation_2x2",
+    "solve_mixing_angle_2x2",
     "diagonalize_orthogonal_2x2", "diagonalize_svd", "diagonalize_svd_2x2",
     "diagonalize_takagi",
     "build_mass_matrix", "scalar_mass_matrix", "charged_mass_matrix",
+    "seesaw_mass_matrix", "seesaw_light_mass",
     "Bilinear", "MajoranaBilinear", "expand_bilinear",
     "extract_fermion_vertices", "extract_majorana_vertices",
     "fermion_feynman_rule", "fermion_gauge_current", "fermion_mass_matrix",

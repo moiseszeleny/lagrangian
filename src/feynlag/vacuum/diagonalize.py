@@ -17,7 +17,7 @@ import sympy as sp
 
 __all__ = ["Rotation", "rotation_2x2", "solve_mixing_angle_2x2",
            "diagonalize_orthogonal_2x2", "diagonalize_svd",
-           "diagonalize_svd_2x2", "diagonalize_takagi"]
+           "diagonalize_svd_2x2", "diagonalize_takagi", "MajoranaRotation"]
 
 
 class Rotation:
@@ -272,3 +272,85 @@ def diagonalize_takagi(M, old_fields=None, new_fields=None):
                        kind="unitary")
         return U, D_abs, rot
     return U, D_abs
+
+
+class MajoranaRotation:
+    """Rotate weak-basis neutrinos to physical Majorana mass eigenstates.
+
+    Given the Takagi factor ``U`` of a seesaw mass matrix (``M_ν = U D Uᵀ``, from
+    :func:`diagonalize_takagi` on :func:`~feynlag.vacuum.masses.seesaw_mass_matrix`)
+    in the left-handed basis ``n = (ν_L, ν_R^c)``, the ``N`` physical Majorana
+    fields ``χ_k`` (``χ_k = χ_k^c``) satisfy ``n = U^* χ``.  Because ``χ`` is
+    self-conjugate, ``(P_L χ)^c = P_R χ``, so the weak Weyl fields substitute as
+
+        ν_L[g]   → Σ_k U*[g, k]      χ_L[k]      ν̄_L[g] → Σ_k U[g, k]      χ̄_L[k]
+        ν_R[g]   → Σ_k U[n_L+g, k]   χ_R[k]      ν̄_R[g] → Σ_k U*[n_L+g, k] χ̄_R[k]
+
+    (rows ``0 … n_L−1`` of ``U`` are the ``ν_L`` generations, rows ``n_L …`` the
+    ``ν_R`` generations).  The convention is pinned in
+    ``tests/test_seesaw.py``: substituting these into the SM charged current
+    gives ``W ℓ̄ χ_k = (g/√2)·U*[g,k]`` — for the heavy states the light–heavy
+    mixing ``≈ m_D M_R⁻¹``, and → 0 as ``M_R → ∞`` (decoupling).
+
+    Args:
+        U: the ``N×N`` Takagi matrix (a concrete/analytic ``Matrix`` — **not** a
+            symbolic ``IndexedBase``, whose ``U[i,k]`` would collide with the
+            field leg in :func:`~feynlag.vertices.bilinear.expand_bilinear`).
+        nuL, nuR: the weak ``ν_L`` / ``ν_R`` component ``IndexedBase``\\ s.
+        nuLbar, nuRbar: their Dirac-adjoint ``IndexedBase``\\ s.
+        chiL, chiR, chiLbar, chiRbar: the physical Majorana ``IndexedBase``\\ s
+            (``χ_L[k]`` = ``P_L χ_k`` etc.).
+        n_L: number of left-handed neutrinos (the ``ν_R`` row offset).
+    """
+
+    def __init__(self, U, nuL, nuR, nuLbar, nuRbar,
+                 chiL, chiR, chiLbar, chiRbar, n_L):
+        self.U = sp.Matrix(U)
+        self.N = self.U.rows
+        self.n_L = n_L
+        self.nuL, self.nuR = nuL, nuR
+        self.nuLbar, self.nuRbar = nuLbar, nuRbar
+        self.chiL, self.chiR = chiL, chiR
+        self.chiLbar, self.chiRbar = chiLbar, chiRbar
+
+    def _leg(self, base, gen):
+        """Substitution value for one weak neutrino leg at generation ``gen``.
+
+        Compares by ``==`` (name), not identity: after a rotation's ``xreplace``
+        the Lagrangian's ``IndexedBase`` can be a name-equal but object-distinct
+        instance (SymPy does not intern ``IndexedBase``), so an ``is`` check
+        would silently miss it and leave the field un-rotated.
+        """
+        U, N = self.U, self.N
+        if base == self.nuL:
+            return sum(U[gen, k].conjugate() * self.chiL[k] for k in range(N))
+        if base == self.nuLbar:
+            return sum(U[gen, k] * self.chiLbar[k] for k in range(N))
+        if base == self.nuR:
+            return sum(U[self.n_L + gen, k] * self.chiR[k] for k in range(N))
+        if base == self.nuRbar:
+            return sum(U[self.n_L + gen, k].conjugate() * self.chiRbar[k]
+                       for k in range(N))
+        return None
+
+    def apply(self, expr, gen_indices, n_gen):
+        """Rewrite ``expr`` in the physical basis.
+
+        ``gen_indices`` is the flavour-index symbol (or tuple of symbols) the
+        weak fields carry; each is expanded over ``range(n_gen)`` (every
+        generation substituted with its ``U``-block combination of the
+        ``χ_k``).  Charged-lepton ``Indexed`` legs on the same indices keep
+        their concrete generation.
+        """
+        import itertools
+        if not isinstance(gen_indices, (list, tuple)):
+            gen_indices = (gen_indices,)
+        bases = {self.nuL, self.nuR, self.nuLbar, self.nuRbar}
+        total = sp.S.Zero
+        for combo in itertools.product(range(n_gen), repeat=len(gen_indices)):
+            term = expr.subs(dict(zip(gen_indices, combo)), simultaneous=True)
+            term = term.replace(
+                lambda x: isinstance(x, sp.Indexed) and x.base in bases,
+                lambda x: self._leg(x.base, int(x.indices[0])))
+            total += term
+        return sp.expand(total)

@@ -121,6 +121,18 @@ needed charge-conjugation support (`diracC`) and a same-chirality `ψᵀCΓψ`
 enumerates `LᵀCεL HH`; `majorana_mass_matrix` + `diagonalize_takagi` give the
 physical Majorana ν masses.
 
+### ✅ Type-I seesaw + heavy-neutrino couplings (done, on top of D.2)
+
+SM + 3 `ν_R` (Dirac Yukawa + large Majorana mass) end to end: `seesaw_mass_matrix`
+/ `seesaw_light_mass` (`vacuum/masses.py`) build the `[[0,m_D],[m_Dᵀ,M_R]]` block
+matrix and the `m_ν≈−m_D M_R⁻¹ m_Dᵀ` formula; `diagonalize_takagi` gives the
+light+heavy spectrum; and a new charge-conjugation-aware `MajoranaRotation`
+(`vacuum/diagonalize.py`) rotates the weak `ν_L`/`ν_R` into the physical Majorana
+mass eigenstates (mixing `ν_L` with `ν_R^c`), so `extract_fermion_vertices`
+yields the heavy-neutrino couplings `W ℓ̄ N=(g/√2)·V`, `Z ν̄ N∝(g_Z/2)V` with the
+light–heavy mixing `V≈m_D/M_R` and its decoupling `M_R→∞`. `examples/sm_seesaw.py`,
+`examples/SM_Seesaw_Tutorial.ipynb`, `tests/test_seesaw.py`.
+
 ### E — UFO export of Majorana vertices (new follow-up, from D.2)
 
 The symbolic Majorana pipeline is complete, but `ν̄νh`/`ν̄νhh` Majorana vertices
