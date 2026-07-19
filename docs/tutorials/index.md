@@ -1,6 +1,6 @@
 # Tutorials
 
-Three fully executed Jupyter notebooks, walking a worked model stage by
+Five fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -12,6 +12,8 @@ notebook produces.
 SM_Feynman_Rules_Tutorial
 SM_VLL_Tutorial
 SM_U1X_Tutorial
+ModelBuilding_Tutorial
+SM_Seesaw_Tutorial
 ```
 
 ## SM Feynman Rules Tutorial
@@ -32,3 +34,24 @@ extract correctly.
 Extends the SM by a second, symbolically-charged abelian gauge factor and
 walks the chained Weinberg → Z–Z′ rotation that results from tree-level
 kinetic/mass mixing.
+
+## Model Building Tutorial
+
+Goes one step earlier than the others: instead of analyzing a
+hand-written Lagrangian, it shows the *model-building* tools. For a dark
+`U(1)_D` sector with symbolic charges it uses `feynlag.anomalies` to derive
+the anomaly-free charge assignment (forcing the dark fermion to be
+vector-like), `feynlag.suggest` to enumerate the invariant operator basis
+(and catch a mistuned charge that admits no mass term), and
+`build_lagrangian` to assemble a validated model before running the full
+pipeline to the dark-photon mass and `Z_D χχ` coupling.
+
+## SM Seesaw Tutorial
+
+The Standard Model extended by right-handed neutrinos with a large Majorana
+mass — the **type-I seesaw**. Uses the Majorana machinery (`diracC`,
+`MajoranaBilinear`, `majorana_mass_matrix`) to build the `[[0, m_D], [m_Dᵀ,
+M_R]]` mass matrix, `diagonalize_takagi` for the light (sub-eV) + heavy (~M_R)
+spectrum, and the charge-conjugation-aware `MajoranaRotation` to extract the
+physical heavy-neutrino couplings — showing `W ℓ̄ N = (g/√2)·V` with the
+light–heavy mixing `V ≈ m_D/M_R`, and its decoupling as `M_R → ∞`.

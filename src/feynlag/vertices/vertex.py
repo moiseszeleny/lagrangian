@@ -1,9 +1,16 @@
 """Vertex objects and the closed Lorentz-structure catalog.
 
-The v1 vertex catalog is CLOSED: SSS, SSSS, VSS, VVS, VVSS, VVV, VVVV, FFS,
-FFV.  Classification is rule-based on the spin content of the legs; anything
-outside the catalog raises loudly (no silent drops).  Each catalog entry
-carries the UFO ``lorentz.py`` structure name used at export.
+The vertex catalog is CLOSED: SSS, SSSS, VSS, VVS, VVSS, VVV, VVVV, FFS,
+FFV, and FFFF (four-fermion, dim-6 effective operators).  Classification is
+rule-based on the spin content of the legs; anything outside the catalog raises
+loudly (no silent drops).  Each catalog entry carries the UFO ``lorentz.py``
+structure name used at export.
+
+``FFFF`` cannot be reconstructed from the sorted spin letters alone — the four
+letters don't say which fermion pairs into which Dirac chain.  A caller that
+builds a :class:`Vertex` for a four-fermion operator must record the chain
+pairing in ``Vertex.meta['pairing']`` (the two ``(bar, gamma, field)`` subkeys
+produced by :func:`~feynlag.vertices.bilinear.extract_fermion_vertices`).
 """
 
 from dataclasses import dataclass, field as dc_field
@@ -25,6 +32,10 @@ LORENTZ_CATALOG = {
     "VVVV": ["VVVV1", "VVVV2", "VVVV3"],
     "FFS": ["FFS1", "FFS2"],      # P_L / P_R slots
     "FFV": ["FFV1", "FFV2"],      # γ^μ P_L / γ^μ P_R slots
+    # four-fermion: two Dirac chains, each scalar (S) or vector (V), each with a
+    # L/R projector → the 2×(2×2) chain-structure pairs (see export/ufo)
+    "FFFF": ["FFFFSLL", "FFFFSLR", "FFFFSRL", "FFFFSRR",
+             "FFFFVLL", "FFFFVLR", "FFFFVRL", "FFFFVRR"],
 }
 
 _SPIN_LETTER = {0: "S", sp.Rational(1, 2): "F", 1: "V"}

@@ -8,3 +8,7 @@ build/
 dist/
 docs/_build/
 docs/api/generated/
+
+# generated UFO models from scripts
+scripts/FEYNLAG_SM_UFO/
+scripts/*_UFO/

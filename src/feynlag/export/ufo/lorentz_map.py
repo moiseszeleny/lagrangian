@@ -29,6 +29,23 @@ UFO_LORENTZ = {
     "FFSR":  ([2, 2, 1], "ProjP(2,1)"),
     "FFVL":  ([2, 2, 3], "Gamma(3,2,-1)*ProjM(-1,1)"),
     "FFVR":  ([2, 2, 3], "Gamma(3,2,-1)*ProjP(-1,1)"),
+    # four-fermion (FFFF): two Dirac chains, chain 1 on legs (1,2), chain 2 on
+    # legs (3,4).  Each chain mirrors the single-fermion FFSL/FFVL spinor
+    # pattern above (spinor index of the bar leg last, ``ProjM(field,bar)``);
+    # for the vector case the two chains share the contracted Lorentz index
+    # ``-1`` (``γ^μ⊗γ_μ``), with ``-2``/``-3`` the per-chain spinor dummies.
+    "FFFFSLL": ([2, 2, 2, 2], "ProjM(2,1)*ProjM(4,3)"),
+    "FFFFSLR": ([2, 2, 2, 2], "ProjM(2,1)*ProjP(4,3)"),
+    "FFFFSRL": ([2, 2, 2, 2], "ProjP(2,1)*ProjM(4,3)"),
+    "FFFFSRR": ([2, 2, 2, 2], "ProjP(2,1)*ProjP(4,3)"),
+    "FFFFVLL": ([2, 2, 2, 2],
+                "Gamma(-1,2,-2)*ProjM(-2,1)*Gamma(-1,4,-3)*ProjM(-3,3)"),
+    "FFFFVLR": ([2, 2, 2, 2],
+                "Gamma(-1,2,-2)*ProjM(-2,1)*Gamma(-1,4,-3)*ProjP(-3,3)"),
+    "FFFFVRL": ([2, 2, 2, 2],
+                "Gamma(-1,2,-2)*ProjP(-2,1)*Gamma(-1,4,-3)*ProjM(-3,3)"),
+    "FFFFVRR": ([2, 2, 2, 2],
+                "Gamma(-1,2,-2)*ProjP(-2,1)*Gamma(-1,4,-3)*ProjP(-3,3)"),
 }
 
 
@@ -39,5 +56,7 @@ def structures_for(vertex_type):
         "VVS": ["VVS1"], "VVSS": ["VVSS1"], "VVV": ["VVV1"],
         "VVVV": ["VVVV1", "VVVV2", "VVVV3"],
         "FFS": ["FFSL", "FFSR"], "FFV": ["FFVL", "FFVR"],
+        "FFFF": ["FFFFSLL", "FFFFSLR", "FFFFSRL", "FFFFSRR",
+                 "FFFFVLL", "FFFFVLR", "FFFFVRL", "FFFFVRR"],
     }
     return mapping[vertex_type]

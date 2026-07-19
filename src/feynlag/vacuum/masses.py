@@ -14,7 +14,7 @@ from sympy import derive_by_array
 from ..operators import PartialMu
 
 __all__ = ["build_mass_matrix", "scalar_mass_matrix", "charged_mass_matrix",
-           "gauge_mass_matrix"]
+           "gauge_mass_matrix", "seesaw_mass_matrix", "seesaw_light_mass"]
 
 
 def build_mass_matrix(potential, fields1, fields2=None):
@@ -95,3 +95,45 @@ def gauge_mass_matrix(kinetic, vacuum, gauge_components, tadpole_subs=None):
         M = M.applyfunc(lambda e: sp.expand(e.subs(tadpole_subs)))
     return M.applyfunc(lambda e: sp.factor(sp.expand(e))
                        if e != 0 else sp.S.Zero)
+
+
+def seesaw_mass_matrix(m_D, M_R):
+    """The type-I-seesaw neutral-fermion Majorana mass matrix.
+
+    In the left-handed basis ``n = (ν_L, ν_R^c)`` the mass term is
+    ``−½ nᵀ C M n + h.c.`` with the symmetric block matrix
+
+        M = [[ 0  ,  m_D ],
+             [ m_Dᵀ, M_R ]]
+
+    where ``m_D`` (``n_L × n_R``) is the Dirac mass (``= Y_ν v/√2``, e.g. from
+    :func:`~feynlag.vertices.bilinear.fermion_mass_matrix` on the ``L̄ H̃ ν_R``
+    Yukawa) and ``M_R`` (``n_R × n_R``, symmetric) the right-handed Majorana
+    mass (from :func:`~feynlag.vertices.bilinear.majorana_mass_matrix`).  The
+    result is symmetric and ready for
+    :func:`~feynlag.vacuum.diagonalize.diagonalize_takagi`.
+    """
+    m_D = sp.Matrix(m_D)
+    M_R = sp.Matrix(M_R)
+    if M_R.rows != M_R.cols or m_D.cols != M_R.rows:
+        raise ValueError("shape mismatch: m_D is n_L×n_R, M_R is n_R×n_R")
+    n = m_D.rows
+    top = sp.zeros(n, n).row_join(m_D)
+    bot = m_D.T.row_join(M_R)
+    return top.col_join(bot)
+
+
+def seesaw_light_mass(m_D, M_R):
+    """Light-neutrino mass matrix in the seesaw approximation ``M_R ≫ m_D``.
+
+    Block-diagonalising :func:`seesaw_mass_matrix` for a heavy ``M_R`` gives the
+    standard type-I result
+
+        m_ν ≈ − m_D M_R⁻¹ m_Dᵀ    (symmetric, ``n_L × n_L``),
+
+    which matches the light block of the exact Takagi diagonalisation to
+    ``O(m_D²/M_R²)`` — verify both (dual, per CONVENTIONS.md).
+    """
+    m_D = sp.Matrix(m_D)
+    M_R = sp.Matrix(M_R)
+    return -m_D * M_R.inv() * m_D.T

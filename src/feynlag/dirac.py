@@ -23,8 +23,9 @@ from .conventions import METRIC_SIGNATURE
 
 __all__ = [
     "MetricTensor", "minkowski_metric", "DiracGamma", "DiracGammaLower",
-    "DiracIdentity", "DiracZero", "PL", "PR", "diracI", "dirac0",
-    "diracPL", "diracPR", "gamma_simplify", "dirac_conjugate",
+    "DiracIdentity", "DiracZero", "PL", "PR", "DiracC", "diracI", "dirac0",
+    "diracPL", "diracPR", "diracC", "gamma_simplify", "dirac_conjugate",
+    "majorana_symmetry_sign",
 ]
 
 #: Symbolic metric tensor head used inside expressions: ``MetricTensor(mu, nu)``.
@@ -148,13 +149,15 @@ class DiracIdentity(Expr):
 
     def __mul__(self, other):
         if isinstance(other, (DiracGamma, DiracGammaLower)) or \
-                getattr(other, "is_projector", False):
+                getattr(other, "is_projector", False) or \
+                getattr(other, "is_charge_conj", False):
             return other
         return super().__mul__(other)
 
     def __rmul__(self, other):
         if isinstance(other, (DiracGamma, DiracGammaLower)) or \
-                getattr(other, "is_projector", False):
+                getattr(other, "is_projector", False) or \
+                getattr(other, "is_charge_conj", False):
             return other
         return super().__mul__(other)
 
@@ -343,11 +346,120 @@ class PL(Expr):
         return r"P_L"
 
 
+class DiracC(Expr):
+    """Charge-conjugation matrix ``C = iγ²γ⁰`` (singleton ``diracC``).
+
+    Appears in Majorana bilinears ``ψ₁ᵀ C Γ ψ₂`` (same-chirality, e.g. the
+    dim-5 Weinberg operator's ``ν_Lᵀ C ν_L``).  In the standard Dirac basis it
+    satisfies ``Cᵀ = C† = C⁻¹ = −C``, ``C γ_μᵀ C⁻¹ = −γ_μ``, and
+    ``C P_{L/R}ᵀ C⁻¹ = P_{L/R}`` (all pinned in ``tests/test_majorana.py``).
+    The Clifford/transpose algebra is not applied on multiplication; use
+    :func:`majorana_symmetry_sign` / :func:`dirac_conjugate`.
+    """
+
+    is_commutative = False
+    is_charge_conj = True
+
+    def __new__(cls):
+        if not hasattr(cls, "_instance"):
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self):
+        return "DiracC()"
+
+    def _sympystr(self, printer):
+        return "C"
+
+    def _latex(self, printer):
+        return r"\mathcal{C}"
+
+
 # --- Singleton instances -----------------------------------------------------
 diracI = DiracIdentity()
 dirac0 = DiracZero()
 diracPR = PR()
 diracPL = PL()
+diracC = DiracC()
+
+
+# --- Explicit Dirac-basis representation (for transpose/symmetry signs) -------
+
+def _dirac_rep():
+    """Standard Dirac-basis 4×4 matrices, built once and cached.
+
+    Used only to *derive* transpose/symmetry signs of Majorana structures
+    (:func:`majorana_symmetry_sign`) and to pin the ``C`` identities — never
+    on the symbolic hot path.
+    """
+    from sympy import BlockMatrix, Matrix, eye, zeros
+    cache = _dirac_rep.__dict__.get("_cache")
+    if cache is not None:
+        return cache
+    I2, Z2 = eye(2), zeros(2)
+    sig = [Matrix([[0, 1], [1, 0]]), Matrix([[0, -S.ImaginaryUnit],
+                                             [S.ImaginaryUnit, 0]]),
+           Matrix([[1, 0], [0, -1]])]
+
+    def blk(a, b, c, d):
+        return Matrix(BlockMatrix([[a, b], [c, d]]))
+
+    g0 = blk(I2, Z2, Z2, -I2)
+    gk = [blk(Z2, sig[k], -sig[k], Z2) for k in range(3)]
+    g = [g0] + gk
+    g5 = S.ImaginaryUnit * g[0] * g[1] * g[2] * g[3]
+    rep = {"I": eye(4), "g5": g5,
+           "C": S.ImaginaryUnit * g[2] * g[0],
+           "PL": (eye(4) - g5) / 2, "PR": (eye(4) + g5) / 2}
+    for m in range(4):
+        rep[("g", m)] = g[m]
+    _dirac_rep.__dict__["_cache"] = rep
+    return rep
+
+
+def _structure_matrix(gamma):
+    """Explicit 4×4 matrix of a Majorana middle structure ``C·Γ``.
+
+    Supports the structures the Weinberg operator produces — products of
+    ``diracC``, ``diracI``, ``diracPL``/``diracPR`` (no free Lorentz gamma,
+    which has no single-matrix form: a Majorana *current* ``Cγ^μP_L`` is
+    outside D.2 scope and raises).
+    """
+    rep = _dirac_rep()
+    M = rep["I"]
+    for f in Mul.make_args(gamma):
+        if isinstance(f, DiracC):
+            M = M * rep["C"]
+        elif isinstance(f, PL):
+            M = M * rep["PL"]
+        elif isinstance(f, PR):
+            M = M * rep["PR"]
+        elif isinstance(f, DiracIdentity) or f == S.One:
+            continue
+        else:
+            raise NotImplementedError(
+                f"majorana structure {gamma!r}: factor {f!r} has no explicit "
+                f"matrix form (a Majorana current Cγ^μP is outside D.2 scope)")
+    return M
+
+
+def majorana_symmetry_sign(gamma):
+    """Sign ``s`` with ``ψ₁ᵀ (C Γ) ψ₂ = s · ψ₂ᵀ (C Γ) ψ₁`` for Grassmann ψ.
+
+    Anticommutation gives ``ψ₁ᵀ M ψ₂ = −ψ₂ᵀ Mᵀ ψ₁``, so a **symmetric** matrix
+    ``M`` yields ``s = −1`` and an **antisymmetric** one ``s = +1``.  The
+    Majorana mass structure ``C P_L`` is antisymmetric as a matrix, hence
+    ``s = +1`` — the neutrino mass matrix comes out symmetric in flavour, as it
+    must.  Raises if ``M`` is neither (an unsupported structure).
+    """
+    M = _structure_matrix(gamma)
+    if expand(M.T - M) == M.T * 0:
+        return -1
+    if expand(M.T + M) == M.T * 0:
+        return 1
+    raise NotImplementedError(
+        f"majorana structure {gamma!r} is neither symmetric nor antisymmetric "
+        f"as a matrix; only C·P_L / C·P_R (and identity) are supported in D.2")
 
 
 def gamma_simplify(expr, metric_func=minkowski_metric, identity=diracI, zero=dirac0):
@@ -503,17 +615,26 @@ def dirac_conjugate(gamma):
     if gamma == diracPR:
         return diracPL
 
-    factors = Mul.make_args(gamma)
-    gammas = [f for f in factors if isinstance(f, DiracGamma)]
+    # I₄ is the multiplicative unit; a stray diracI factor (e.g. from
+    # γ^μ·diracI built by a vector current) carries no conjugation, so strip
+    # it before pattern-matching the remaining structure.
+    factors = [f for f in Mul.make_args(gamma) if f != diracI]
+    if not factors:
+        return diracI
+    gammas = [f for f in factors if isinstance(f, (DiracGamma, DiracGammaLower))]
     projectors = [f for f in factors if isinstance(f, (PL, PR))]
     rest = [f for f in factors if f not in gammas and f not in projectors]
     if len(gammas) == 1 and len(projectors) <= 1 and not rest:
-        # exactly one gamma^mu, at most one projector: the two conjugation
-        # effects cancel (gamma^mu P_L = P_R gamma^mu), self-conjugate.
-        return gamma
+        # exactly one gamma (upper γ^μ or lower γ_μ), at most one projector: the
+        # two conjugation effects cancel (γ^μ P_L = P_R γ^μ), self-conjugate.  A
+        # lowered γ_μ = g_{μν}γ^ν behaves identically since the metric is real
+        # (the lower index appears in a four-fermion vector-current contraction,
+        # e.g. (ψ̄γ^μP_Lψ)(χ̄γ_μP_Lχ)).  Return the identity-stripped product so
+        # a stray diracI does not leak out.
+        return Mul(*factors)
     raise NotImplementedError(
         f"dirac_conjugate: no rule for Γ = {gamma!r}; only diracI, diracPL, "
-        f"diracPR, DiracGamma(mu), and DiracGamma(mu)*diracPL/diracPR are "
-        f"supported (e.g. products of two or more gamma matrices need "
-        f"{{γ^μ,γ^ν}}=2g^{{μν}} reduction first, and reverse order under "
-        f"conjugation — not handled here)")
+        f"diracPR, DiracGamma(mu)/DiracGammaLower(mu), and those times "
+        f"diracPL/diracPR are supported (e.g. products of two or more gamma "
+        f"matrices need {{γ^μ,γ^ν}}=2g^{{μν}} reduction first, and reverse "
+        f"order under conjugation — not handled here)")

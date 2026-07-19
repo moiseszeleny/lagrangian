@@ -123,3 +123,48 @@ from feynlag import numeric_equal
 ok, max_diff = numeric_equal(hWW_extracted, i * g * m_W_expr, [g, v])
 assert ok, f"symbolic and numeric routes disagree: {max_diff}"
 ```
+
+## Round-tripping the exported UFO
+
+Internal verification proves the *symbolic* result is right; it does not prove
+the *written UFO directory* is right — a writer bug can emit a coupling string
+that references an undefined symbol or divides by zero at run time. Traditional
+generators leave this to the author (the well-known irregular-validation
+problem). `verify_ufo_numeric` closes the gap by re-importing the written UFO,
+resolving the whole parameter chain, and evaluating every coupling string:
+
+```python
+from feynlag import verify_ufo_numeric
+
+write_ufo(path, "MyModel", params, particles, bosonic_vertices=verts)
+report = verify_ufo_numeric(path)
+assert report.ok, report.failures        # every coupling is a finite number
+```
+
+A non-finite input (or a malformed generated expression) is reported in
+`report.failures` rather than propagating as a silent `NaN`. Pinned in
+`test_ufo_export.py::test_ufo_roundtrip_evaluates_cleanly` /
+`::test_ufo_roundtrip_flags_nonfinite`.
+
+## One umbrella: `Model.validate()`
+
+`Model.validate()` runs every applicable consistency check and returns a
+single {class}`~feynlag.lagrangian.ValidationReport` aggregating the
+sub-reports: the symmetry/hermiticity/dimension battery
+({doc}`invariance`), gauge-anomaly cancellation ({doc}`anomalies`, skipped
+when the model has no charged fermions), and — when handed a `ufo_path` — the
+UFO round-trip above.
+
+```python
+report = model.validate(ufo_path=exported_dir)   # ufo_path optional
+report.ok                                         # True iff every check ran clean
+print(report.summary())
+# ValidationReport [PASS]
+#   invariance: ok — InvarianceReport(27 checks, OK)
+#   anomalies: ok — AnomalyReport(7 coefficients, anomaly-free)
+#   ufo_roundtrip: ok — UFORoundTripReport(8 parameters, 12 couplings, ok)
+```
+
+`report.raise_on_failure()` turns any failure into a `ValueError` naming the
+checks that failed. Pinned in `test_validation.py`; `examples/sm_scalar_gauge.py`
+calls it as the first pipeline step.

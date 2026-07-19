@@ -102,6 +102,48 @@ class InvarianceReport:
         return f"InvarianceReport({self.checked} checks, {status})"
 
 
+class ValidationReport:
+    """Aggregate result of :meth:`Model.validate`.
+
+    Holds the named sub-reports of every consistency check that ran (each an
+    object with an ``.ok`` property and a ``raise_on_failure()`` method); a
+    ``None`` entry marks a check that was not applicable and was skipped.
+    """
+
+    def __init__(self, checks):
+        #: ``{name: sub-report or None}`` in run order
+        self.checks = checks
+
+    @property
+    def ok(self):
+        return all(r.ok for r in self.checks.values() if r is not None)
+
+    def raise_on_failure(self):
+        failed = [n for n, r in self.checks.items()
+                  if r is not None and not r.ok]
+        if failed:
+            raise ValueError(
+                "model validation failed: " + ", ".join(failed))
+        return self
+
+    def summary(self):
+        """Multi-line human-readable rundown of every check."""
+        lines = [f"ValidationReport [{'PASS' if self.ok else 'FAIL'}]"]
+        for name, r in self.checks.items():
+            if r is None:
+                lines.append(f"  {name}: skipped")
+            else:
+                mark = "ok" if r.ok else "FAILED"
+                lines.append(f"  {name}: {mark} — {r!r}")
+        return "\n".join(lines)
+
+    def __repr__(self):
+        run = [r for r in self.checks.values() if r is not None]
+        n_ok = sum(1 for r in run if r.ok)
+        status = "PASS" if self.ok else "FAIL"
+        return f"ValidationReport({n_ok}/{len(run)} checks passed, {status})"
+
+
 class Model:
     """A BSM model: symmetries + fields + parameters + Lagrangian.
 
@@ -324,13 +366,17 @@ class Model:
 
     # ------------------------------------------------------------ invariance
 
-    def check_invariance(self, hermiticity=True, dimension=True,
+    def check_invariance(self, hermiticity=True, dimension=True, max_dim=4,
                          raise_on_failure=False):
         """Check every Lagrangian term against every declared symmetry.
 
         Args:
             hermiticity: also check ``L = L*`` per sector.
-            dimension: also check mass dimension ≤ 4 per term.
+            dimension: also check mass dimension ≤ ``max_dim`` per term.
+            max_dim: the mass-dimension ceiling for the dimension check.
+                Defaults to ``4`` (renormalisable); raise it to admit
+                higher-dimension effective operators — e.g. ``6`` for the
+                four-fermion (FFFF) operators, ``5`` for the Weinberg operator.
             raise_on_failure: raise ``ValueError`` instead of returning a
                 failing report.
 
@@ -355,11 +401,12 @@ class Model:
                         (term, f"discrete:{group.name}", violations))
             if dimension:
                 ok, worst = check_mass_dimension(
-                    term.expr, self.fields, self.parameters)
+                    term.expr, self.fields, self.parameters, max_dim=max_dim)
                 report.checked += 1
                 if not ok:
                     report.failures.append(
-                        (term, "mass-dimension", f"dimension {worst} > 4"))
+                        (term, "mass-dimension",
+                         f"dimension {worst} > {max_dim}"))
 
         if hermiticity:
             for sector in SECTORS:
@@ -374,6 +421,107 @@ class Model:
                     report.failures.append(
                         (fake_term, "hermiticity", residual))
 
+        if raise_on_failure:
+            report.raise_on_failure()
+        return report
+
+    def check_anomalies(self, raise_on_failure=False):
+        """Check that gauge anomalies cancel for the declared fermion content.
+
+        Returns an :class:`~feynlag.anomalies.AnomalyReport`; see
+        :mod:`feynlag.anomalies`.
+        """
+        from .anomalies import check_anomaly_free
+        report = check_anomaly_free(self)
+        if raise_on_failure:
+            report.raise_on_failure()
+        return report
+
+    def validate(self, invariance=True, hermiticity=True, dimension=True,
+                 max_dim=4, anomalies=True, ufo_path=None, external_values=None,
+                 charges=None, fields=None, conjugate_map=None,
+                 conjugates=None, fermion_table=None, raise_on_failure=False):
+        """Run every applicable consistency check and aggregate the results.
+
+        The umbrella entry point: it runs the symmetry/hermiticity/dimension
+        checks ({meth}`check_invariance`), the gauge-anomaly check
+        ({meth}`check_anomalies`, skipped when the model has no charged
+        fermions), and — if ``ufo_path`` names a written UFO directory — the
+        numeric round-trip of the exported model
+        ({func}`~feynlag.verify.verify_ufo_numeric`).
+
+        When a declared ``charges`` map and the physical ``fields`` list are
+        supplied it also runs the charge-based checks
+        ({mod}`feynlag.charges`): per-vertex charge conservation, the
+        declared-vs-vacuum-derived charge-consistency cross-check (only when
+        the model has a vacuum), and vertex-level hermiticity pairing.
+
+        Args:
+            invariance / hermiticity / dimension: toggle and configure the
+                :meth:`check_invariance` pass.
+            max_dim: mass-dimension ceiling forwarded to
+                :meth:`check_invariance` (default ``4``; set ``6`` for
+                four-fermion EFT operators, ``5`` for the Weinberg operator).
+            anomalies: run the gauge-anomaly check when applicable.
+            ufo_path: directory written by ``write_ufo`` to round-trip; skip
+                if ``None``.
+            external_values: optional external-parameter overrides forwarded to
+                the UFO round-trip.
+            charges: declared ``{physical field: electric charge}`` map; enables
+                the charge-based checks (needs ``fields`` too).
+            fields: physical boson symbols to extract vertices from (as in
+                :meth:`feynman_rules`).
+            conjugate_map: ``{conjugate(sym): partner}`` for vertex extraction.
+            conjugates: full antiparticle pairing ``{field: partner}`` (both
+                directions) for hermiticity pairing; defaults to the pairs in
+                ``conjugate_map``.
+            fermion_table: optional ``extract_fermion_vertices`` output to add
+                the fermionic vertices to the charge/hermiticity checks.
+            raise_on_failure: raise ``ValueError`` if any check fails.
+
+        Returns:
+            :class:`ValidationReport`.
+        """
+        from .fields import Fermion
+
+        checks = {}
+        if invariance:
+            checks["invariance"] = self.check_invariance(
+                hermiticity=hermiticity, dimension=dimension, max_dim=max_dim)
+        if anomalies:
+            has_charged_fermions = bool(self.gauge_groups) and any(
+                isinstance(f, Fermion) and f.reps for f in self.fields)
+            checks["anomalies"] = (self.check_anomalies()
+                                   if has_charged_fermions else None)
+        if ufo_path is not None:
+            from .verify import verify_ufo_numeric
+            checks["ufo_roundtrip"] = verify_ufo_numeric(
+                ufo_path, external_values=external_values)
+        if charges is not None and fields is not None:
+            from .charges import (
+                ChargeRegistry, check_charge_conservation,
+                check_charge_consistency, check_hermiticity_pairing)
+            registry = ChargeRegistry(charges, conjugate_map=conjugate_map)
+            verts = self.vertices(fields, conjugate_map=conjugate_map,
+                                  simplifier=sp.simplify)
+            if conjugates is None:
+                conjugates = {}
+                for conj_node, partner in (conjugate_map or {}).items():
+                    base = conj_node.args[0] if conj_node.args else conj_node
+                    conjugates[base] = partner
+                    conjugates[partner] = base
+            checks["charge_conservation"] = check_charge_conservation(
+                registry, bosonic_vertices=verts, fermion_table=fermion_table)
+            has_vacuum = any(getattr(f, "vev_expansions", None)
+                             for f in self.fields)
+            checks["charge_consistency"] = (
+                check_charge_consistency(self, registry)
+                if has_vacuum and self.rotations else None)
+            checks["hermiticity_pairing"] = check_hermiticity_pairing(
+                bosonic_vertices=verts, conjugates=conjugates,
+                fermion_table=fermion_table)
+
+        report = ValidationReport(checks)
         if raise_on_failure:
             report.raise_on_failure()
         return report

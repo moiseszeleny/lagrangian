@@ -72,8 +72,13 @@ manual/vertices
 manual/export
 manual/verification
 manual/suggest
+manual/anomalies
+manual/charges
+manual/flavor
 tutorials/index
 examples
+benchmark
+roadmap
 conventions
 api/index
 ```

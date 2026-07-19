@@ -17,10 +17,22 @@ import importlib
 import sys
 
 
+_UFO_SUBMODULES = ("object_library", "function_library", "coupling_orders",
+                   "parameters", "couplings", "lorentz", "particles",
+                   "vertices")
+
+
 def _import_ufo(path):
-    sys.path.insert(0, str(path.parent))
+    """Load a UFO directory the MadGraph way (dir on sys.path, absolute
+    imports); return object_library holding the all_* registries."""
+    sys.path.insert(0, str(path))
+    for mod in _UFO_SUBMODULES:
+        sys.modules.pop(mod, None)
     try:
-        return importlib.import_module(path.name)
+        import object_library
+        for mod in _UFO_SUBMODULES[1:]:
+            importlib.import_module(mod)
+        return object_library
     finally:
         sys.path.pop(0)
 

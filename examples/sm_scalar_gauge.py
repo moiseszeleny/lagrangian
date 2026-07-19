@@ -41,10 +41,11 @@ def main():
     # quark sector: SU(2) doublet Q_L + color-triplet singlets u_R, d_R.
     # flavor structure mirrors the lepton sector exactly — 3 generic,
     # flavor-indexed generations, undiagonalized Yukawas (Yu[i,j]/Yd[i,j]),
-    # no CKM: CKM mixing is physically orthogonal to SU(3) vertex dynamics
+    # no CKM here: CKM mixing is physically orthogonal to SU(3) vertex dynamics
     # (gluon vertices are flavor-diagonal/color-universal regardless of it),
     # and a fully generic 3-generation complex-Yukawa SVD doesn't resolve in
-    # closed symbolic form via diagonalize_svd — deferred, not attempted here.
+    # closed symbolic form via diagonalize_svd. The mass-basis + CKM-insertion
+    # route (the FeynRules-SM way) is demonstrated in examples/sm_ckm.py.
     QL = WeylFermion("QL", reps={SU2L: 2, U1Y: sp.Rational(1, 6), SU3c: 3},
                      chirality="L", nflavors=3,
                      component_names=["uL_1", "uL_2", "uL_3",
@@ -131,7 +132,10 @@ def main():
                   parameters=[gw, g1, gs, v, lam, mu2], lagrangian=L)
 
     # --- pipeline -----------------------------------------------------------
-    print("invariance:", model.check_invariance())
+    # validate() is the umbrella: symmetry/hermiticity/dimension + gauge-anomaly
+    # cancellation in one report (the SM fermion content below is anomaly-free).
+    print("validation:")
+    print(model.validate().summary())
     print("tadpole:   ", model.solve_tadpoles([mu2]))
 
     h, G0 = sp.Symbol("H0_r", real=True), sp.Symbol("H0_i", real=True)
@@ -153,6 +157,18 @@ def main():
     # --- scalar Feynman rules -----------------------------------------------
     Gm, cmap = conjugate_pair(Gp, "Gm")
     boson_fields = [h, G0, Gp, Gm, Z, A, Wp, Wm]
+
+    # charge-based validation now that the physical basis exists: every vertex
+    # conserves electric charge, the declared charges agree with the operator
+    # derived from the vacuum (Q ∝ T3+Y, W± = ±1 derived automatically), and
+    # every vertex pairs with its hermitian conjugate.
+    charge_report = model.validate(
+        invariance=False, anomalies=False,
+        charges={h: 0, G0: 0, Gp: 1, Gm: -1, Z: 0, A: 0, Wp: 1, Wm: -1},
+        fields=boson_fields, conjugate_map=cmap,
+        conjugates={Gp: Gm, Gm: Gp, Wp: Wm, Wm: Wp})
+    print("\ncharge / hermiticity validation:")
+    print(charge_report.summary())
 
     rules = model.feynman_rules(boson_fields, conjugate_map=cmap,
                                 simplifier=sp.simplify)

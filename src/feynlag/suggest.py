@@ -36,7 +36,7 @@ from .invariance import (
 from .operators import Dmu
 from .parameters import ExternalParameter
 from .vertices.bilinear import (
-    Bilinear, expand_bilinear, fermion_gauge_current,
+    Bilinear, MajoranaBilinear, expand_bilinear, fermion_gauge_current,
 )
 from .vertices.extract import extract_interaction_coefficients
 
@@ -135,7 +135,7 @@ def reynolds_project(expr, discrete_groups):
     invariant linear combinations that no single monomial realizes alone.
     """
     for group in discrete_groups:
-        has_fermion = expr.has(Bilinear)
+        has_fermion = expr.has(Bilinear) or expr.has(MajoranaBilinear)
         components = group.components()
         elements = _group_elements(group)
         total = sp.S.Zero
@@ -166,7 +166,7 @@ def _normalize_atoms(expr, registry):
     expr = sp.expand(expr)
     for node in expr.atoms(sp.conjugate):
         registry.setdefault(node, sp.Dummy(f"conj_{len(registry)}"))
-    for node in expr.atoms(Bilinear):
+    for node in expr.atoms(Bilinear, MajoranaBilinear):
         registry.setdefault(node, sp.Dummy(f"bil_{len(registry)}"))
     return expr.xreplace(registry)
 
@@ -551,9 +551,44 @@ def _scalar_leg_options(FL, FR, scalars, gauge_groups):
                        f"{FL.name}̄·{S.name}̃ {FR.name}")
 
 
+def _majorana_leg_options(FL, scalars, gauge_groups):
+    """Yield ``(builder, dim, charges, label)`` for the dim-5 Weinberg
+    contraction of a same-chirality SU(2) doublet with two doublet scalars.
+
+    The operator is ``(ε_ab F^a H^b)(ε_cd F^c H^d)`` with the Majorana
+    ``C P_L`` between the two fermion legs — ``builder(i, j)`` returns the
+    coefficient-free :class:`~feynlag.vertices.bilinear.MajoranaBilinear`
+    expression.  Only doublet ``F`` and doublet scalars qualify (raises are
+    avoided by the ``_is_su2_doublet`` guards); its U(1) charge is
+    ``2 q_F + 2 q_S``.
+    """
+    from .dirac import diracC, diracPL
+
+    u1s = _u1_groups(gauge_groups)
+    if not _is_su2_doublet(FL, gauge_groups):
+        return
+    CPL = diracC * diracPL
+    for S in scalars:
+        if not _is_su2_doublet(S, gauge_groups):
+            continue
+
+        def builder(i, j, FL=FL, S=S):
+            # (εX)_a = ε_ab X^b with ε_12 = 1, ε_21 = −1  →  (εX) = [X^2, −X^1]
+            epsS = [S.components[1], -S.components[0]]
+            total = sp.S.Zero
+            for a in (0, 1):
+                for c in (0, 1):
+                    total += epsS[a] * epsS[c] * MajoranaBilinear(
+                        FL.components[a][i], CPL, FL.components[c][j])
+            return total
+
+        charges = {g: 2 * FL.charge(g) + 2 * S.charge(g) for g in u1s}
+        yield builder, 5, charges, f"({FL.name}·ε{S.name})² [Weinberg]"
+
+
 def suggest_yukawa(fermions, scalars, gauge_groups, discrete_groups=(),
-                   flavor_indices=None, verify=True):
-    """Enumerate Yukawa / bare-mass invariants over fermion pairs.
+                   flavor_indices=None, max_dim=4, verify=True):
+    """Enumerate Yukawa / bare-mass / Weinberg invariants over fermion pairs.
 
     Pairs run over ordered ``(F_L, F_R)`` of opposite chirality (two
     :class:`~feynlag.fields.WeylFermion`\\ s — vector-like fermions are two
@@ -563,9 +598,17 @@ def suggest_yukawa(fermions, scalars, gauge_groups, discrete_groups=(),
     ``+ h.c.`` partner is generated (``Bilinear._eval_conjugate`` produces
     the correct P_L partner).
 
+    With ``max_dim >= 5`` it also enumerates the **dim-5 Weinberg operator**
+    ``(F ε H)(F ε H)`` — a *same-chirality* Majorana contraction of a doublet
+    fermion with two doublet scalars, generating a Majorana neutrino mass after
+    EWSB (:func:`~feynlag.vertices.bilinear.majorana_mass_matrix` +
+    :func:`~feynlag.vacuum.diagonalize.diagonalize_takagi`).
+
     Args:
         flavor_indices: ``(i, j)`` symbols for the bar/field legs
             (default fresh ``i``, ``j``).
+        max_dim: mass-dimension ceiling (default ``4``; ``5`` admits the
+            Weinberg operator).
 
     Returns:
         list of :class:`SuggestedTerm` (sector ``"yukawa"``), a minimal basis.
@@ -578,10 +621,18 @@ def suggest_yukawa(fermions, scalars, gauge_groups, discrete_groups=(),
     right = [f for f in fermions if getattr(f, "chirality", None) == "R"]
     u1s = _u1_groups(gauge_groups)
 
+    # (F_L, F_R) options + (F, F) same-chirality Majorana options (dim ≥ 5)
+    option_sets = [_scalar_leg_options(FL, FR, scalars, gauge_groups)
+                   for FL, FR in itertools.product(left, right)]
+    if max_dim >= 5:
+        for F in left + right:
+            option_sets.append(_majorana_leg_options(F, scalars, gauge_groups))
+
     candidates = []
-    for FL, FR in itertools.product(left, right):
-        for builder, dim, charges, label in _scalar_leg_options(
-                FL, FR, scalars, gauge_groups):
+    for options in option_sets:
+        for builder, dim, charges, label in options:
+            if dim > max_dim:
+                continue
             if not _charge_is_zero(charges, u1s):
                 continue
             expr = sp.expand(builder(i, j))
@@ -591,7 +642,7 @@ def suggest_yukawa(fermions, scalars, gauge_groups, discrete_groups=(),
                 expr = reynolds_project(expr, discrete_groups)
                 if expr == 0:
                     continue
-            # h.c. completion (Bilinear knows its Dirac conjugate)
+            # h.c. completion (both bilinears know their conjugate)
             hc = sp.expand(sp.conjugate(expr))
             full = expand_bilinear(sp.expand(expr + hc))
             candidates.append(SuggestedTerm(full, dim, label, "yukawa", True))
@@ -601,7 +652,7 @@ def suggest_yukawa(fermions, scalars, gauge_groups, discrete_groups=(),
 
     if verify:
         _verify_terms(basis, list(fermions) + list(scalars), gauge_groups,
-                      discrete_groups)
+                      discrete_groups, max_dim=max_dim)
     return basis
 
 
@@ -647,7 +698,7 @@ def suggest_kinetic(fields, flavor_index=None):
 # oracle
 # --------------------------------------------------------------------------
 
-def _verify_terms(terms, fields, gauge_groups, discrete_groups):
+def _verify_terms(terms, fields, gauge_groups, discrete_groups, max_dim=4):
     """Assert every suggested term passes the full invariance battery."""
     for t in terms:
         for g in gauge_groups:
@@ -656,7 +707,8 @@ def _verify_terms(terms, fields, gauge_groups, discrete_groups):
         for g in discrete_groups:
             ok, viol = check_discrete_invariance(t.expr, g)
             assert ok, f"suggested term {t.label} fails discrete:{g.name}: {viol}"
-        ok, worst = check_mass_dimension(t.expr, fields)
-        assert ok, f"suggested term {t.label} has dimension {worst} > 4"
+        ok, worst = check_mass_dimension(t.expr, fields, max_dim=max_dim)
+        assert ok, (f"suggested term {t.label} has dimension {worst} > "
+                    f"{max_dim}")
         ok, _ = check_hermiticity(t.expr)
         assert ok, f"suggested term {t.label} is not hermitian"

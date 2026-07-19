@@ -251,13 +251,59 @@ class _UFOBuilder:
         base = "FFV" if boson_spin == 3 else "FFS"
         ordered = [bar_symbol, field_symbol, bosons[0]]
         names, cnames = [], []
-        for suffix, coupling in (("L", left_coupling), ("R", right_coupling)):
+        # ``left/right`` are Lagrangian coefficients; the UFO coupling value
+        # carries the Feynman-rule ``i`` (as the bosonic/VVV couplings do), so
+        # apply it here — its omission is invisible to a single vertex but
+        # breaks FFV↔VVV interference (e.g. e+e- → W+W- gauge cancellation).
+        for suffix, coupling in (("L", sp.I * left_coupling),
+                                 ("R", sp.I * right_coupling)):
             if coupling == 0:
                 continue
             lname = base + suffix
             self.used_lorentz.add(lname)
             names.append(lname)
             cnames.append(self._coupling(coupling, 3))
+        if not names:
+            return
+        self.vertex_entries.append(
+            ([self._particle_ref(p) for p in ordered], names, cnames,
+             [color]))
+
+    def add_four_fermion_vertex(self, bar1, field1, bar2, field2, couplings,
+                                color="1"):
+        """Four-fermion (FFFF) contact vertex, two Dirac chains.
+
+        Args:
+            bar1, field1: the ψ̄/ψ of the first Dirac chain (UFO legs 1, 2).
+            bar2, field2: the ψ̄/ψ of the second chain (UFO legs 3, 4).
+            couplings: dict ``{(chain1, chain2): coefficient}`` where each
+                ``chainN`` is one of ``'SL'``, ``'SR'`` (scalar bilinear,
+                P_L/P_R), ``'VL'``, ``'VR'`` (vector current, γ^μP_L/γ^μP_R).
+                Both chains must be the same *type* (both scalar or both
+                vector — the contracted-Lorentz FFFF catalog covers S⊗S and
+                V⊗V; a mixed S⊗V structure raises).  The **Lagrangian**
+                coefficient is passed; the UFO coupling value carries the
+                Feynman-rule ``i`` (added here, exactly as
+                :meth:`add_fermion_vertex` does — omitting it is invisible in
+                a single |M|² but breaks interference).
+            color: UFO color-tensor string (default ``'1'``, singlet).
+        """
+        ordered = [bar1, field1, bar2, field2]
+        names, cnames = [], []
+        for (c1, c2), coupling in couplings.items():
+            if coupling == 0:
+                continue
+            t1, p1 = c1[0], c1[1]
+            t2, p2 = c2[0], c2[1]
+            if t1 != t2:
+                raise ValueError(
+                    f"four-fermion chains must be the same type; got {c1!r} "
+                    f"and {c2!r} (mixed scalar⊗vector is outside the v1 "
+                    f"FFFF catalog)")
+            lname = f"FFFF{t1}{p1}{p2}"
+            self.used_lorentz.add(lname)
+            names.append(lname)
+            cnames.append(self._coupling(sp.I * coupling, 4))
         if not names:
             return
         self.vertex_entries.append(
@@ -285,7 +331,7 @@ class _UFOBuilder:
 
     def _coupling_orders_py(self):
         return (
-            "from .object_library import all_orders, CouplingOrder\n\n"
+            "from object_library import all_orders, CouplingOrder\n\n"
             "QCD = CouplingOrder(name='QCD', expansion_order=99, "
             "hierarchy=1)\n"
             "QED = CouplingOrder(name='QED', expansion_order=99, "
@@ -293,8 +339,10 @@ class _UFOBuilder:
 
     def _parameters_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_parameters, Parameter",
-                 "", ""]
+                 "import cmath",
+                 "from object_library import all_parameters, Parameter",
+                 "from function_library import (complexconjugate, re, im, "
+                 "csc, sec, acsc, asec, cot)", "", ""]
         lines.append("ZERO = Parameter(name='ZERO', nature='internal', "
                      "type='real', value='0.0', texname='0')")
         lines.append("")
@@ -318,8 +366,8 @@ class _UFOBuilder:
 
     def _particles_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_particles, Particle",
-                 "from . import parameters as Param", "", ""]
+                 "from object_library import all_particles, Particle",
+                 "import parameters as Param", "", ""]
         for spec in self.particles:
             mass = "Param.ZERO" if spec.mass == "ZERO" else f"Param.{spec.mass}"
             width = ("Param.ZERO" if spec.width == "ZERO"
@@ -339,7 +387,7 @@ class _UFOBuilder:
 
     def _lorentz_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_lorentz, Lorentz", "", ""]
+                 "from object_library import all_lorentz, Lorentz", "", ""]
         for name in sorted(self.used_lorentz):
             spins, structure = UFO_LORENTZ[name]
             lines.append(f"{name} = Lorentz(name='{name}', spins={spins}, "
@@ -349,8 +397,10 @@ class _UFOBuilder:
 
     def _couplings_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_couplings, Coupling", "",
-                 ""]
+                 "import cmath",
+                 "from object_library import all_couplings, Coupling",
+                 "from function_library import (complexconjugate, re, im, "
+                 "csc, sec, acsc, asec, cot)", "", ""]
         for value, (cname, order) in self.couplings.items():
             lines.append(f"{cname} = Coupling(name='{cname}', "
                          f"value={value!r}, order={order})")
@@ -359,10 +409,10 @@ class _UFOBuilder:
 
     def _vertices_py(self):
         lines = ["# This file was automatically created by feynlag",
-                 "from .object_library import all_vertices, Vertex",
-                 "from . import particles as P",
-                 "from . import couplings as C",
-                 "from . import lorentz as L", "", ""]
+                 "from object_library import all_vertices, Vertex",
+                 "import particles as P",
+                 "import couplings as C",
+                 "import lorentz as L", "", ""]
         for n, (parts, lnames, cnames, colors) in enumerate(
                 self.vertex_entries, start=1):
             lorentz = ", ".join(f"L.{ln}" for ln in lnames)
@@ -393,8 +443,8 @@ class _UFOBuilder:
 
 
 def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
-              vvv=None, vvvv=None, fermion_vertices=(), vvv_colors=None,
-              vvvv_colors=None):
+              vvv=None, vvvv=None, fermion_vertices=(),
+              four_fermion_vertices=(), vvv_colors=None, vvvv_colors=None):
     """Write a UFO model directory.
 
     Args:
@@ -424,6 +474,11 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
             ``bosons``, ``left``, ``right`` (flavor-resolved symbols), and
             optionally ``color`` (default ``'1'``; e.g. ``'T(3,1,2)'`` for a
             qqg vertex).
+        four_fermion_vertices: iterable of dicts with keys ``bar1``,
+            ``field1``, ``bar2``, ``field2`` (the two Dirac chains' legs),
+            ``couplings`` (``{(chain1, chain2): coefficient}``, see
+            :meth:`_UFOBuilder.add_four_fermion_vertex`), and optionally
+            ``color`` (default ``'1'``).
 
     Returns:
         the written path.
@@ -441,4 +496,8 @@ def write_ufo(path, model_name, parameters, particles, bosonic_vertices=(),
         builder.add_fermion_vertex(fv["bar"], fv["field"], fv["bosons"],
                                    fv.get("left", 0), fv.get("right", 0),
                                    color=fv.get("color", "1"))
+    for ffv in four_fermion_vertices:
+        builder.add_four_fermion_vertex(
+            ffv["bar1"], ffv["field1"], ffv["bar2"], ffv["field2"],
+            ffv["couplings"], color=ffv.get("color", "1"))
     return builder.write(path)

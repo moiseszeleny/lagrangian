@@ -154,11 +154,13 @@ rather than raising.
   field" without threading a `Fermion` reference through every call site —
   a convenience that only works because component names are unique per
   model.
-- **`DiracFermion` is untested and known-broken**: its `chirality=None`
-  default makes `fermion_gauge_current` build `diracI*γ^μ` gauge-current
-  structures that `dirac_conjugate` has no rule for (see {doc}`invariance`).
-  Model a vector-like fermion as **two** `WeylFermion`s with identical reps
-  instead (`examples/sm_vll.py`).
+- **`DiracFermion` is not supported and raises on construction**: a genuine
+  4-component field would need its own mass-sector and diagonalization path
+  validated against physics, so the class fails fast with a pointer instead
+  of emitting unverified vertices. Model a Dirac or vector-like fermion as
+  **two** `WeylFermion`s with identical reps (one `chirality='L'`, one
+  `'R'`) — every stage then reuses the tested Weyl machinery
+  (`examples/sm_vll.py`).
 - **`GaugeBoson.reps`** only ever contains its *own* group in the adjoint —
   a `W` boson's `reps` don't record that it's also an SU(3) singlet, because
   singlet transformation is the default (`Field.generators` returns zero
