@@ -90,7 +90,7 @@ def _fundamental_label(group):
     ``n_generators = N²−1``, so the fundamental dimension ``N = √(n+1)`` is also
     its label.
     """
-    return math.isqrt(group.n_generators + 1)
+    return getattr(group, "N", math.isqrt(group.n_generators + 1))
 
 
 def _cartan_indices(group):
