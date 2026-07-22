@@ -75,6 +75,7 @@ manual/suggest
 manual/anomalies
 manual/charges
 manual/flavor
+manual/decays
 tutorials/index
 examples
 benchmark

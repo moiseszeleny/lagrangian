@@ -32,5 +32,10 @@ page lists its public classes and functions with full signatures; cross-refs
    feynlag.export.ufo.writer
    feynlag.export.ufo.vvvv
    feynlag.export.ufo.lorentz_map
+   feynlag.pheno.lorentz
+   feynlag.pheno.kinematics
+   feynlag.pheno.amplitudes
+   feynlag.pheno.vertices
+   feynlag.pheno.calculator
    feynlag.verify.checks
 ```
