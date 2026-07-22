@@ -158,27 +158,41 @@ def gauge_variation(term, fields, group):
 
     Returns a list (length = number of generators) of expressions; all must
     vanish for invariance.
+
+    Each generator's coefficient is computed from an *independent* single-α
+    transformation (the α-vector is zero except for the generator under test).
+    This is mathematically identical to expanding the full multi-α variation
+    and picking out one α — the O(α²) cross-terms between generators vanish
+    when the other α's are set to zero anyway — but it keeps every intermediate
+    expression small: only one generator matrix enters at a time.  That matters
+    for large / radical-valued representations (a general SU(N) irrep built in
+    the Gelfand–Tsetlin basis), where the all-generators-at-once expansion of a
+    covariant-derivative kinetic term is intractable.
     """
     n = group.n_generators
-    alphas = [sp.Dummy(f"alpha_{group.name}_{a}", real=True) for a in range(n)]
-    sub = _transform_map(fields, group, alphas)
     has_fermion_content = term.has(Bilinear) or term.has(MajoranaBilinear)
-    if not sub and not has_fermion_content:
+
+    probe = [sp.Dummy() for _ in range(n)]
+    if not _transform_map(fields, group, probe) and not has_fermion_content:
         return [sp.S.Zero] * n
 
     components = [c for f in fields for c in getattr(f, "components", ())
                  if not isinstance(f, Fermion)]
-    transformed = (_apply_field_map(term, sub, components=components)
-                  if sub else term)
-    if has_fermion_content:
-        transformed = _fermion_transform(transformed, fields, group, alphas)
-        transformed = expand_bilinear(transformed)
+    # Leibniz-expand derivatives once; the per-generator xreplace reuses it.
+    base = expand_derivatives(term, components) if components else term
 
-    delta = sp.expand(transformed - term)
     coeffs = []
-    zero_all = {a: 0 for a in alphas}
-    for alpha in alphas:
-        coeffs.append(sp.expand(sp.diff(delta, alpha).subs(zero_all)))
+    for a in range(n):
+        alpha = sp.Dummy(f"alpha_{group.name}_{a}", real=True)
+        alphas = [sp.S.Zero] * n
+        alphas[a] = alpha
+        sub = _transform_map(fields, group, alphas)
+        transformed = base.xreplace(sub) if sub else base
+        if has_fermion_content:
+            transformed = _fermion_transform(transformed, fields, group, alphas)
+            transformed = expand_bilinear(transformed)
+        delta = transformed - base
+        coeffs.append(sp.expand(sp.diff(delta, alpha).subs({alpha: 0})))
     return coeffs
 
 

@@ -1,6 +1,6 @@
 # Tutorials
 
-Five fully executed Jupyter notebooks, walking a worked model stage by
+Six fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -9,12 +9,25 @@ notebook produces.
 ```{toctree}
 :maxdepth: 1
 
+SUN_Groups_Tutorial
 SM_Feynman_Rules_Tutorial
 SM_VLL_Tutorial
 SM_U1X_Tutorial
 ModelBuilding_Tutorial
 SM_Seesaw_Tutorial
 ```
+
+## SU(N) Groups Tutorial
+
+A gentle, self-contained introduction to gauge representations for a reader
+new to particle physics (linear algebra + basic QM only). Builds up from
+"what is a generator?" through the Lie algebra and representations to
+`feynlag`'s dynamic any-SU(N)/any-irrep machinery: Dynkin labels and the Weyl
+dimension formula, a peek at the highest-weight/ladder (Gelfand–Tsetlin)
+construction (with the tell-tale `√2` ladder entries of the **6** of SU(3)),
+conjugate representations `T̄ = −T*`, and anomaly coefficients — culminating in
+the SU(5) `5̄ + 10` anomaly cancellation and a gauge-invariance check of a
+scalar in the fundamental of SU(4).
 
 ## SM Feynman Rules Tutorial
 

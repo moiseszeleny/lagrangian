@@ -300,7 +300,9 @@ class GaugeBoson(Field):
             component_names = [f"{name}_{i + 1}" for i in range(n)]
         reps = {}
         if not group.abelian:
-            # adjoint rep label: dimension == number of generators
+            # adjoint rep, labelled by its dimension (= number of generators);
+            # SUN.generators resolves the int ``N²−1`` to the adjoint Dynkin
+            # labels and returns the structure-constant basis ``(T^a)_{bc}=−if``.
             reps = {group: n}
         super().__init__(name, reps=reps,
                          component_names=component_names if n > 1 else [name],

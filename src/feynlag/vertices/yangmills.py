@@ -33,6 +33,9 @@ def structure_constants(group):
     """
     if group.abelian:
         return {}
+    # SU(N) groups compute + cache f from the fundamental themselves.
+    if hasattr(group, "structure_constants"):
+        return group.structure_constants()
     T = group.generators(_fundamental_label(group))
     n = group.n_generators
     f = {}
@@ -50,12 +53,10 @@ def structure_constants(group):
 
 
 def _fundamental_label(group):
-    """Label of the fundamental representation (2 for SU2, 3 for SU3)."""
-    from ..groups.gauge import SU2, SU3
-    if isinstance(group, SU2):
-        return 2
-    if isinstance(group, SU3):
-        return 3
+    """Label of the fundamental representation (its dimension ``N``)."""
+    N = getattr(group, "N", None)
+    if N is not None:
+        return N
     raise TypeError(f"no fundamental representation known for {group!r}")
 
 
