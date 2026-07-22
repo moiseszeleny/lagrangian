@@ -28,7 +28,7 @@ from .export import latex_feynman_table
 from .parameters import (
     ExternalParameter, InternalParameter, Parameter, ParameterSet,
 )
-from .groups import SU2, SU3, U1, S3, ZN, DiscreteSymmetry, GaugeGroup
+from .groups import SU2, SU3, SUN, U1, S3, ZN, DiscreteSymmetry, GaugeGroup
 from .fields import (
     DiracFermion, Field, Fermion, GaugeBoson, MajoranaFermion, Scalar,
     WeylFermion, bar_partner, conjugate_pair, dag, hc,
@@ -70,7 +70,7 @@ from .suggest import (
 
 __all__ = [
     "Parameter", "ExternalParameter", "InternalParameter", "ParameterSet",
-    "GaugeGroup", "U1", "SU2", "SU3", "DiscreteSymmetry", "ZN", "S3",
+    "GaugeGroup", "U1", "SUN", "SU2", "SU3", "DiscreteSymmetry", "ZN", "S3",
     "Field", "Scalar", "Fermion", "WeylFermion", "DiracFermion",
     "MajoranaFermion", "GaugeBoson", "dag", "hc", "conjugate_pair",
     "bar_partner",

@@ -53,18 +53,74 @@ def _dynkin_index(group, rep):
     return sp.simplify(total / n)
 
 
-def _cubic_index(group, rep):
-    """Cubic-anomaly index ``A(R)`` for a fundamental of SU(3).
+_ANOM_REF_CACHE = {}
 
-    Real/pseudoreal representations (all SU(2) reps, every adjoint, singlets)
-    have ``A=0``.  Among the representations this library supports the only
-    complex one is the SU(3) fundamental, normalised to ``A(3)=1``; its
-    conjugate ``3̄`` (a right-handed triplet reduced to left-handed) is ``-1``,
-    handled by the chirality sign in :func:`anomaly_coefficients`.
+
+def _anomaly_triples(group):
+    """Up to two symmetric index triples ``(a, b, c)`` for which the
+    fundamental trace ``t_F = Tr(T^a{T^b, T^c})`` is non-zero, with their
+    ``t_F`` values (cached per group N).  Empty for SU(2) (all reps real)."""
+    N = getattr(group, "N", None)
+    if N in _ANOM_REF_CACHE:
+        return _ANOM_REF_CACHE[N]
+    TF = group.generators(N)
+    n = len(TF)
+    triples = []
+    for a in range(n):
+        for b in range(a, n):
+            for c in range(b, n):
+                anti = TF[b] * TF[c] + TF[c] * TF[b]
+                val = sp.nsimplify(sp.expand(sp.trace(TF[a] * anti)))
+                if val != 0:
+                    triples.append((a, b, c, val))
+                    if len(triples) >= 2:
+                        _ANOM_REF_CACHE[N] = triples
+                        return triples
+    _ANOM_REF_CACHE[N] = triples
+    return triples
+
+
+def _cubic_index(group, rep):
+    """Cubic-anomaly index ``A(R)`` of an SU(N) representation.
+
+    Computed from the fully symmetric trace ``Tr_R(T^a{T^b,T^c})`` normalised
+    to the fundamental (``A(fund)=1``); real/pseudoreal reps (all SU(2) reps,
+    every adjoint, singlets) come out ``0`` and a conjugate rep gives
+    ``A(R̄)=−A(R)`` automatically (its generators are ``−(T^a)^*``).  Dual
+    verification: the ratio is checked at a second independent triple.
     """
-    if getattr(group, "n_generators", 0) == 8 and int(rep) == 3:
-        return sp.S.One
-    return sp.S.Zero
+    N = getattr(group, "N", None)
+    if not N or N < 3:
+        return sp.S.Zero
+    triples = _anomaly_triples(group)
+    if not triples:
+        return sp.S.Zero
+    T = group.generators(rep)
+    if not T or all(m.is_zero_matrix for m in T):
+        return sp.S.Zero
+
+    def A_from(triple):
+        a, b, c, t_F = triple
+        num = sp.nsimplify(sp.expand(sp.trace(T[a] * (T[b] * T[c] + T[c] * T[b]))))
+        return sp.simplify(num / t_F)
+
+    A = A_from(triples[0])
+    if len(triples) > 1:
+        assert sp.simplify(A - A_from(triples[1])) == 0, \
+            f"cubic-anomaly index inconsistent across triples for {group!r} {rep}"
+    return sp.nsimplify(A)
+
+
+def _is_fundamental(group, rep):
+    """Whether ``rep`` of ``group`` is the (2-dim) fundamental — robust to the
+    label form (int ``2`` or the Dynkin tuple ``(1,)``)."""
+    N = getattr(group, "N", None)
+    if N is None:
+        return False
+    try:
+        return group.rep_dim(rep) == N and N == 2
+    except (ValueError, TypeError):
+        return False
 
 
 def _nonabelian_dim(field, groups):
@@ -145,7 +201,7 @@ def anomaly_coefficients(model):
         if getattr(G, "n_generators", 0) == 3:
             doublets = sp.S.Zero
             for f, sign, nf, charges, full_dim in reduced:
-                if f.reps.get(G) == 2:
+                if G in f.reps and _is_fundamental(G, f.reps[G]):
                     doublets += nf * _nonabelian_dim(f, spectators)
             coeffs[f"Witten-{G.name}"] = sp.expand(doublets)
 
