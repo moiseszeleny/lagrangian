@@ -1,6 +1,6 @@
 # Tutorials
 
-Six fully executed Jupyter notebooks, walking a worked model stage by
+Seven fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -9,6 +9,7 @@ notebook produces.
 ```{toctree}
 :maxdepth: 1
 
+Particle_Decays_Tutorial
 SUN_Groups_Tutorial
 SM_Feynman_Rules_Tutorial
 SM_VLL_Tutorial
@@ -16,6 +17,23 @@ SM_U1X_Tutorial
 ModelBuilding_Tutorial
 SM_Seesaw_Tutorial
 ```
+
+## Particle Decays Tutorial
+
+How to get from a Lagrangian to a measured lifetime, for a student who has
+met Feynman rules and Dirac spinors but never carried a decay calculation
+through to a number. Derives everything by hand first — two-body phase space
+and the Källén function, the spin sums that turn $|\mathcal{M}|^2$ into a
+Dirac trace, the trace theorems, polarisation sums — and only then reveals
+`DecayCalculator` as the automation of exactly those steps. Lands on
+$\Gamma(h\to f\bar f) = N_c m_h m_f^2\beta^3/8\pi v^2$ (with the $\beta^3$
+explained as the P-wave signature of a CP-even scalar), $\Gamma(Z\to\nu\bar\nu)$
+and $\Gamma(W\to\ell\nu)$ within ~1% of the PDG, and the familiar Higgs
+branching-ratio-versus-mass plot. Closes with the two mistakes that fail
+*silently* — forgetting that a Dirac fermion is two Weyl fields (an error that
+vanishes in the massless limit), and closed channels turning $\sqrt\lambda$
+imaginary — and then builds a $Z'$ from scratch to show the same machinery on
+a new model.
 
 ## SU(N) Groups Tutorial
 
