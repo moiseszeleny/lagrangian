@@ -18,6 +18,7 @@ page lists its public classes and functions with full signatures; cross-refs
    feynlag.lagrangian
    feynlag.operators
    feynlag.invariance
+   feynlag.models
    feynlag.suggest
    feynlag.dirac
    feynlag.vacuum.ewsb

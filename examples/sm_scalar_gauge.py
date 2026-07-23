@@ -7,31 +7,24 @@ Run:  python examples/sm_scalar_gauge.py
 import sympy as sp
 
 from feynlag import (
-    Bilinear, DiracGamma, Dmu, ExternalParameter, InternalParameter,
-    Lagrangian, Model, Rotation, SU2, SU3, Scalar, U1, WeylFermion,
-    conjugate_pair, cubic_couplings, dag, diracPL, diracPR,
-    extract_fermion_vertices, fermion_feynman_rule, fermion_gauge_current,
-    fermion_mass_matrix, latex_feynman_table, quartic_couplings, rotation_2x2,
+    Bilinear, DiracGamma, Dmu, ExternalParameter, Lagrangian, Model, SU3,
+    WeylFermion, charged_current_rotation, conjugate_pair, cubic_couplings,
+    dag, diracPL, diracPR, electroweak_scaffold, extract_fermion_vertices,
+    fermion_feynman_rule, fermion_gauge_current, fermion_mass_matrix,
+    latex_feynman_table, quartic_couplings, weinberg_rotation,
 )
 from feynlag.export.ufo.vvvv import assemble_vvvv
 
 
 def main():
     # --- symmetries and parameters -------------------------------------
-    gw = ExternalParameter("gw", 0.6535, positive=True)
-    g1 = ExternalParameter("g1", 0.3580, positive=True)
+    # electroweak scaffold (SU(2)×U(1), Higgs) from feynlag.models; the QCD
+    # colour sector is this example's own addition.
+    ew = electroweak_scaffold(lam=0.129)
+    SU2L, U1Y, H = ew.SU2L, ew.U1Y, ew.H
+    gw, g1, v, lam, mu2 = ew.gw, ew.g1, ew.v, ew.lam, ew.mu2
     gs = ExternalParameter("gs", 1.22, positive=True)
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
     SU3c = SU3("SU3c", coupling=gs)
-
-    v = ExternalParameter("v", 246.0, positive=True, unit_dim=1)
-    lam = ExternalParameter("lam", 0.129)
-    mu2 = InternalParameter("mu2", unit_dim=2)
-
-    # --- fields -----------------------------------------------------------
-    H = Scalar("H", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
-               component_names=["Gp", "H0"])
-    H.expand_vev({H.components[1]: v})
 
     Ll = WeylFermion("Ll", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
                      chirality="L", nflavors=3, component_names=["nuL", "eL"])
@@ -57,12 +50,10 @@ def main():
                      chirality="R", nflavors=3,
                      component_names=["dR_1", "dR_2", "dR_3"])
 
-    W, B = SU2L.bosons("W"), U1Y.bosons("B")
+    W, B = ew.W, ew.B
     G = SU3c.bosons("G")
 
     # --- Lagrangian (user-written, FeynRules style) ------------------------
-    HdH = (dag(H) * H.mat)[0]
-    V = -mu2.s * HdH + lam.s * HdH**2
     DH = Dmu(H)
 
     i, j = sp.symbols("i j", integer=True)
@@ -120,8 +111,7 @@ def main():
                       + fermion_gauge_current(dR, i))
 
     L = Lagrangian()
-    L.add((dag(DH) * DH)[0], sector="kinetic")
-    L.add(-V, sector="potential")
+    ew.add_higgs(L)                                    # kinetic + potential
     L.add(LYuk, sector="yukawa")
     L.add(current, sector="yukawa")
     L.add(LYuk_d + LYuk_u, sector="yukawa")
@@ -147,12 +137,8 @@ def main():
     print("gauge M² =")
     sp.pprint(model.gauge_mass_matrix([W1, W2, W3, B0]))
 
-    Z, A = sp.symbols("Z A", real=True)
-    thetaW = sp.atan(g1.s / gw.s)
-    model.rotate(Rotation([W3, B0], [Z, A], rotation_2x2(-thetaW)))
-    Wp, Wm = sp.symbols("Wp Wm")
-    Umix = sp.Matrix([[1, -sp.I], [1, sp.I]]) / sp.sqrt(2)
-    model.rotate(Rotation([W1, W2], [Wp, Wm], Umix, kind="unitary"))
+    Z, A = weinberg_rotation(model, SU2L, U1Y)
+    Wp, Wm = charged_current_rotation(model, SU2L)
 
     # --- scalar Feynman rules -----------------------------------------------
     Gm, cmap = conjugate_pair(Gp, "Gm")

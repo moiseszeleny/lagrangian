@@ -18,8 +18,8 @@ Run with::
 import sympy as sp
 
 from feynlag import (
-    Bilinear, Dmu, ExternalParameter, InternalParameter, Lagrangian, Model,
-    SU2, Scalar, U1, WeylFermion, dag, diracPR,
+    Bilinear, ExternalParameter, Lagrangian, Model, SU2, U1, WeylFermion,
+    diracPR, electroweak_scaffold,
 )
 from feynlag.pheno import DecayCalculator, DiracParticle
 
@@ -40,24 +40,13 @@ FERMIONS = [
 def build_model():
     """Higgs + one down-type-like Weyl pair per fermion, colour-diagonal
     single-component Yukawas.  Returns ``(model, h, particles, yukawas)``."""
-    gw = ExternalParameter("gw", 0.6535, positive=True)
-    g1 = ExternalParameter("g1", 0.3580, positive=True)
-    v = ExternalParameter("v", VEV, positive=True, unit_dim=1)
-    lam = ExternalParameter("lam", MH**2 / (2 * VEV**2))
-    mu2 = InternalParameter("mu2", unit_dim=2)
-
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
-    H = Scalar("H", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
-               component_names=["Gp", "H0"])
-    H.expand_vev({H.components[1]: v})
+    ew = electroweak_scaffold(v=VEV, mh=MH)
+    SU2L, U1Y, H = ew.SU2L, ew.U1Y, ew.H
     H0 = H.components[1]
     i = sp.Symbol("i", integer=True)
 
-    HdH = (dag(H) * H.mat)[0]
-    DH = Dmu(H)
     L = Lagrangian()
-    L.add((dag(DH) * DH)[0], sector="kinetic")
-    L.add(-(-mu2.s * HdH + lam.s * HdH**2), sector="potential")
+    ew.add_higgs(L)                                    # kinetic + potential
 
     fields = [H]
     particles, yukawas = [], {}
@@ -79,13 +68,13 @@ def build_model():
         particles.append((name, nc, QL.components[1], fR.components[0], y))
         yukawas[name] = y
 
-    fields += [SU2L.bosons("W"), U1Y.bosons("B")]
-    params = [gw, g1, v, lam, mu2] + list(yukawas.values())
-    model = Model("SM_higgs_decays", gauge_groups=[SU2L, U1Y],
+    fields += [ew.W, ew.B]
+    params = ew.parameters + list(yukawas.values())
+    model = Model("SM_higgs_decays", gauge_groups=ew.gauge_groups,
                   fields=fields, parameters=params, lagrangian=L)
-    model.solve_tadpoles([mu2])
+    model.solve_tadpoles([ew.mu2])
 
-    h = sp.Symbol("H0_r", real=True)
+    h = H.vev_expansions[H0][1]                        # physical CP-even Higgs
     return model, h, particles, yukawas
 
 

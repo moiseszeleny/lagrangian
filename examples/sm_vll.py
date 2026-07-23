@@ -35,31 +35,26 @@ Run:  python examples/sm_vll.py
 import sympy as sp
 
 from feynlag import (
-    Bilinear, DiracGamma, Dmu, ExternalParameter, InternalParameter,
-    Lagrangian, Model, Rotation, SU2, Scalar, U1, WeylFermion, dag,
-    diagonalize_svd_2x2, diracPL, diracPR, extract_fermion_vertices,
+    Bilinear, DiracGamma, ExternalParameter, Lagrangian, Model, Rotation, SU2,
+    U1, WeylFermion, charged_current_rotation, diagonalize_svd_2x2, diracPL,
+    diracPR, electroweak_scaffold, extract_fermion_vertices,
     fermion_gauge_current, fermion_mass_matrix, rotation_2x2,
+    weinberg_rotation,
 )
 
 
 def main():
     # --- symmetries and parameters -------------------------------------
-    gw = ExternalParameter("gw", 0.6535, positive=True)
-    g1 = ExternalParameter("g1", 0.3580, positive=True)
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
-
-    v = ExternalParameter("v", 246.0, positive=True, unit_dim=1)
-    lam = ExternalParameter("lam", 0.129)
-    mu2 = InternalParameter("mu2", unit_dim=2)
+    # the SM electroweak scaffold (gauge groups, Higgs, potential); this
+    # example's subject is the vector-like lepton added below.
+    ew = electroweak_scaffold(lam=0.129)
+    SU2L, U1Y, H = ew.SU2L, ew.U1Y, ew.H
+    gw, g1, v, lam, mu2 = ew.gw, ew.g1, ew.v, ew.lam, ew.mu2
     ye = ExternalParameter("ye", 0.01, positive=True)
     lamE = ExternalParameter("lamE", 0.4, positive=True)
     MPsi = ExternalParameter("MPsi", 1000.0, positive=True, unit_dim=1)
 
     # --- fields -----------------------------------------------------------
-    H = Scalar("H", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
-               component_names=["Gp", "H0"])
-    H.expand_vev({H.components[1]: v})
-
     Ll = WeylFermion("Ll", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
                      chirality="L", nflavors=1, component_names=["nuL", "eL"])
     eRf = WeylFermion("eRf", reps={U1Y: -1}, chirality="R", nflavors=1,
@@ -68,7 +63,7 @@ def main():
                        chirality="L", nflavors=1, component_names=["NL", "EL"])
     PsiR = WeylFermion("PsiR", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
                        chirality="R", nflavors=1, component_names=["NR", "ER"])
-    W, B = SU2L.bosons("W"), U1Y.bosons("B")
+    W, B = ew.W, ew.B
 
     Gp, H0 = H.components
     nuL, eL = Ll.components
@@ -106,19 +101,14 @@ def main():
                + fermion_gauge_current(PsiL, i)
                + fermion_gauge_current(PsiR, i))
 
-    HdH = (dag(H) * H.mat)[0]
-    V = -mu2.s * HdH + lam.s * HdH**2
-    DH = Dmu(H)
-
     L = Lagrangian()
-    L.add((dag(DH) * DH)[0], sector="kinetic")
-    L.add(-V, sector="potential")
+    ew.add_higgs(L)                                    # kinetic + potential
     L.add(LYuk, sector="yukawa")
     L.add(current, sector="yukawa")
 
-    model = Model("SM-VLL", gauge_groups=[SU2L, U1Y],
-                  fields=[H, Ll, eRf, PsiL, PsiR, W, B],
-                  parameters=[gw, g1, v, lam, mu2, ye, lamE, MPsi],
+    model = Model("SM-VLL", gauge_groups=ew.gauge_groups,
+                  fields=ew.fields + [Ll, eRf, PsiL, PsiR],
+                  parameters=ew.parameters + [ye, lamE, MPsi],
                   lagrangian=L)
 
     # --- pipeline -----------------------------------------------------------
@@ -127,15 +117,9 @@ def main():
     report.raise_on_failure()
     print("tadpole:   ", model.solve_tadpoles([mu2]))
 
-    # gauge rotations (Weinberg + W±), as in sm_scalar_gauge.py
-    W1, W2, W3 = W.components
-    B0 = B.components[0]
-    Z, A = sp.symbols("Z A", real=True)
-    thetaW = sp.atan(g1.s / gw.s)
-    model.rotate(Rotation([W3, B0], [Z, A], rotation_2x2(-thetaW)))
-    Wp, Wm = sp.symbols("Wp Wm")
-    Umix = sp.Matrix([[1, -sp.I], [1, sp.I]]) / sp.sqrt(2)
-    model.rotate(Rotation([W1, W2], [Wp, Wm], Umix, kind="unitary"))
+    # gauge rotations (Weinberg + W±) from feynlag.models
+    Z, A = weinberg_rotation(model, SU2L, U1Y)
+    Wp, Wm = charged_current_rotation(model, SU2L)
 
     # --- charged-lepton mass matrix ------------------------------------------
     j = sp.Symbol("fl_j", integer=True)
