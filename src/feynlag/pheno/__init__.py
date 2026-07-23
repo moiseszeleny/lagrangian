@@ -27,15 +27,24 @@ from .kinematics import (
     TwoBodyKinematics, is_allowed, kallen, two_body_momentum,
     two_body_phase_space,
 )
+from .kinematics import ThreeBodyKinematics
 from .lorentz import contract_to_dots, dirac_trace, reduce_projectors
 from .particles import DiracParticle, expand_particles
+from .propagator import breit_wigner, vector_propagator_numerator
+from .integrate import dalitz_integral, have_scipy
+from .offshell import (
+    offshell_scalar_vv_width, scalar_offshell_vv_width, scalar_vv_squared,
+)
 from .vertices import DecayVertex, classify_gamma, collect_decay_vertices
 
 __all__ = [
     "DecayCalculator", "DecayChannel", "DecayVertex", "DiracParticle",
-    "TwoBodyKinematics", "amplitude_squared", "classify_gamma",
-    "collect_decay_vertices", "contract_to_dots", "dirac_trace",
-    "expand_particles", "ffs_squared", "ffv_squared", "is_allowed", "kallen",
-    "partial_width", "polarization_sum", "reduce_projectors", "spin_sum",
-    "sss_squared", "two_body_momentum", "two_body_phase_space", "vvs_squared",
+    "TwoBodyKinematics", "ThreeBodyKinematics", "amplitude_squared",
+    "breit_wigner", "classify_gamma", "collect_decay_vertices",
+    "contract_to_dots", "dalitz_integral", "dirac_trace", "expand_particles",
+    "ffs_squared", "ffv_squared", "have_scipy", "is_allowed", "kallen",
+    "offshell_scalar_vv_width", "partial_width", "polarization_sum",
+    "reduce_projectors", "scalar_offshell_vv_width", "scalar_vv_squared",
+    "spin_sum", "sss_squared", "two_body_momentum", "two_body_phase_space",
+    "vector_propagator_numerator", "vvs_squared",
 ]

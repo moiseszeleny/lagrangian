@@ -129,10 +129,12 @@ choice (feed the running value), not new machinery; the roadmap notes it so
 the Tier-1 numbers land near the canonical table rather than mysteriously
 high.
 
-## 16.2 Tier 2 — off-shell $WW^*$ and $ZZ^*$
+## 16.2 Tier 2 — off-shell $WW^*$ and $ZZ^*$  ✅ (V–V\* delivered)
 
 **Channels**: $h\to WW^*\to W f\bar f'$ (21.4%), $h\to ZZ^*\to Z f\bar f$
-(2.6%). **Effort: large** — this is the architectural jump.
+(2.6%). **Effort: large** — this is the architectural jump. **Delivered** in
+`feynlag.pheno.offshell` (see the end of this section); the FFFF and
+$t\to bW^*$ topologies remain.
 
 The on-shell `VVS` width is exactly zero at $m_h=125$ GeV because the
 two-body channel is closed; the physical decay proceeds through *one*
@@ -164,6 +166,37 @@ then the full $q^2$ integration. The same machinery immediately gives
 three-body decays generally (e.g. $\mu\to e\nu\bar\nu$ through the FFFF
 track, top decays $t\to bW^*$ below threshold in BSM spectra), so it earns
 its cost beyond the Higgs.
+
+### What was built
+
+`feynlag.pheno` gained four pieces, each general but exercised here on V–V\*:
+
+- {mod}`~feynlag.pheno.propagator` — the massive-vector Breit–Wigner
+  propagator (numerator $g_{\alpha\beta}-q_\alpha q_\beta/m^2$ + the
+  $|q^2-m^2+im\Gamma|^{-2}$ factor).
+- {class}`~feynlag.pheno.kinematics.ThreeBodyKinematics` — the Dalitz
+  invariants $s_{12},s_{23}$, the $s_{12}$ bounds, and the on-shell `dot` map
+  that reduces the covariant $|M|^2$ (the internal $q=p_2+p_3$ is just a tensor
+  sum the existing engine contracts — no new trace machinery).
+- {mod}`~feynlag.pheno.integrate` — the numerical layer: SciPy when the
+  `[numeric]` extra is installed, else a numpy Gauss–Legendre fallback (SciPy
+  lives in this one module).
+- {mod}`~feynlag.pheno.offshell` — `scalar_vv_squared` (the covariant $|M|^2$),
+  `offshell_scalar_vv_width` (analytic inner $s_{12}$ integral + numeric $q^2$
+  integral), and `scalar_offshell_vv_width` (summed over the $V^*$ fermion
+  channels, with the factor 2 for distinct $W^\pm$ vs. no factor for identical
+  $ZZ$).
+
+**Verified** against the Keung–Marciano closed form
+$\Gamma(h\to VV^*)=\frac{3g_V^4 m_h}{512\pi^3}\delta_V R(x)$, $x=m_V^2/m_h^2$:
+$\Gamma(h\to WW^*)=0.80$ MeV and $\Gamma(h\to ZZ^*)=0.089$ MeV, and by
+narrow-width factorisation (a heavy scalar's $1\to3$ width → the Tier-1
+$\Gamma(S\to VV)\times\mathrm{BR}$). The parity-violating $\gamma_5$/ε term
+drops against the *symmetric* propagator + polarisation structure (the 1→3
+analogue of the $\gamma_5$ argument in {doc}`decays` §15) — no ε-tensor algebra
+needed for this topology. Worked model: `examples/sm_higgs_decays.py` (the BR
+table now includes WW\*/ZZ\*). **Not yet built**: the FFFF and $t\to bW^*$
+topologies (same infrastructure, a new assembler each).
 
 ## 16.3 Tier 3 — loop-induced $gg$, $\gamma\gamma$, $Z\gamma$
 
@@ -209,8 +242,17 @@ should stay there until someone wants NLO for its own sake.
 | tier | channels | new machinery | BR gained | effort | ethos |
 |---|---|---|---|---|---|
 | 1 ✅ | $b\bar b,c\bar c,s\bar s,\mu\mu$ | `DiracParticle` abstraction (**done**); model content; running-mass inputs | → 67% | small | tree-level, in ethos |
-| 2 | $WW^*, ZZ^*$ | propagators + $1\to3$ numeric phase space + diagram assembly | → 91% | large | tree-level, in ethos |
+| 2 ✅ | $WW^*, ZZ^*$ | propagators + $1\to3$ phase space + diagram assembly (**done**); FFFF/$t\to bW^*$ topologies remain | → 91% | large | tree-level, in ethos |
 | 3 | $gg,\gamma\gamma,Z\gamma$ | effective one-loop vertices ($A_{1/2}, A_1$) | → 100% | moderate | documented exception (CKM precedent) |
+
+**Tier 2 status**: the $V$–$V^*$ topology ($h\to WW^*$, $h\to ZZ^*$) is delivered
+— `feynlag.pheno.offshell` reproduces the Keung–Marciano widths
+($\Gamma(h\to WW^*)\approx0.80$ MeV, $\Gamma(h\to ZZ^*)\approx0.089$ MeV) and the
+Higgs BR table is now $b\bar b$-dominated with $WW^*$ second (~25%), the canonical
+shape. The general-$1\to3$ *topologies* the roadmap also names — the FFFF track
+($\mu\to e\nu\nu$) and the fermionic $t\to bW^*$ — reuse the same propagator +
+Dalitz infrastructure but are not yet assembled; they are the remaining Tier-2
+generality.
 
 The recommended order is the table order: Tier 1 fixes the qualitatively
 wrong plot for the cost of a dataclass; Tier 2 is where the architecture

@@ -126,8 +126,43 @@ def main():
     print("\nΓ(h→b̄b) = 3 y_b² m_h β³/16π  ✓  (colour N_c = 3, applied once)")
     print(f"b̄b share of the tree-level fermionic width: "
           f"{numeric[(bbar, b)] / total:.1%}")
-    print("\nMissing from the *total* Higgs width (see decays_roadmap.md):")
-    print("  off-shell WW*/ZZ* (Tier 2), loop-induced gg/γγ (Tier 3).")
+
+    # --- Tier 2: off-shell WW*/ZZ* -------------------------------------------
+    import numpy as np
+    from feynlag.pheno import scalar_offshell_vv_width
+    MW, MZ, GW, GZ = 80.377, 91.1876, 2.085, 2.4952
+    gw, g1 = 0.6535, 0.3580
+    gZ = np.sqrt(gw**2 + g1**2)
+    sw2 = g1**2 / (gw**2 + g1**2)
+    # h→WW*: 9 channels (3 lepton + 2 quark gen × 3 colour), V−A coupling g/√2,
+    # factor 2 for which W is on-shell
+    gWW = scalar_offshell_vv_width(MH, MW, GW, gw * MW,
+                                   [(gw / np.sqrt(2), 0.0, 9)], identical=False)
+    # h→ZZ*: real chiral Z→ff couplings, identical Z's (no factor 2)
+    zchan = [(gZ * (T3 - Q * sw2), gZ * (-Q * sw2), Nc * cnt)
+             for T3, Q, Nc, cnt in [(0.5, 0, 1, 3), (-0.5, -1, 1, 3),
+                                    (0.5, 2/3, 3, 2), (-0.5, -1/3, 3, 3)]]
+    gZZ = scalar_offshell_vv_width(MH, MZ, GZ, gZ * MZ, zchan, identical=True)
+
+    print("\n" + "=" * 60)
+    print("Higgs off-shell vector decays (feynlag.pheno, Tier 2)")
+    print("=" * 60)
+    print(f"  h -> WW*  Γ = {gWW * 1e3:8.4f} MeV   (Keung–Marciano ~0.80)")
+    print(f"  h -> ZZ*  Γ = {gZZ * 1e3:8.4f} MeV   (Keung–Marciano ~0.089)")
+
+    grand = total + gWW + gZZ
+    print(f"\n{'channel':<12}{'Γ [MeV]':>12}{'BR':>10}")
+    print("-" * 34)
+    rows = [(f"{n}{n}" if False else k, v) for k, v in
+            [("WW*", gWW), ("ZZ*", gZZ)]]
+    for children in ordered:
+        rows.append(("".join(str(c) for c in children), numeric[children]))
+    for name, w in sorted(rows, key=lambda r: -r[1]):
+        print(f"h -> {name:<7}{w * 1e3:>12.4f}{w / grand:>10.3f}")
+    print("-" * 34)
+    print(f"{'total (tree)':<12}{grand * 1e3:>12.4f} MeV")
+    print("\nb̄b dominant, WW* second — the canonical Higgs picture (still tree,")
+    print("1→2 + 1→3; loop-induced gg/γγ is Tier 3, see decays_roadmap.md).")
 
 
 if __name__ == "__main__":

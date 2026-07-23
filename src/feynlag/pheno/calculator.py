@@ -326,3 +326,50 @@ class DecayCalculator:
         if total == 0:
             return {k: 0.0 for k in widths}
         return {k: w / total for k, w in widths.items()}
+
+    # ----------------------------------------------------------- off-shell
+
+    def offshell_vv_width(self, parent, vector, m_parent, m_V, width_V,
+                          channels, identical=False, coupling=None,
+                          backend="auto"):
+        """Off-shell ``parent → V (V^* → f f̄')`` width (Tier 2).
+
+        The on-shell ``VVS`` channel is zero below threshold (``2m_V >
+        m_parent``); this returns the physical $1\\to3$ width through one
+        on-shell and one off-shell ``V``, via
+        :func:`~feynlag.pheno.offshell.scalar_offshell_vv_width`.
+
+        Args:
+            parent, vector: the scalar and vector physical symbols (used to look
+                up the ``SVV`` coupling from the extracted vertices).
+            m_parent, m_V, width_V: numeric masses and the vector total width
+                ``Γ_V`` (the Breit–Wigner width — itself a Tier-1 output).
+            channels: ``[(g_L, g_R, multiplicity)]`` per ``V^*→f f̄'`` channel.
+            identical: ``False`` for distinct ``V₁V₂`` (``WW``, overall factor
+                2), ``True`` for identical (``ZZ``).
+            coupling: the ``SVV`` coupling value; if ``None`` it is read from the
+                extracted ``VVS`` vertex ``(parent, vector, vector)``.
+            backend: numeric integration backend.
+
+        Returns:
+            the off-shell width (float).
+        """
+        from .offshell import scalar_offshell_vv_width
+        if coupling is None:
+            coupling = self._svv_coupling(parent, vector)
+        return scalar_offshell_vv_width(
+            float(m_parent), float(m_V), float(width_V),
+            abs(complex(coupling)), channels, identical=identical,
+            backend=backend)
+
+    def _svv_coupling(self, parent, vector):
+        """The ``SVV`` coupling magnitude (``i`` stripped) from the VVS vertex
+        containing ``parent`` and ``vector`` — e.g. ``(h, W⁺, W⁻)`` for
+        ``h→WW*`` or ``(h, Z, Z)`` for ``h→ZZ*``."""
+        for v in self.vertices():
+            if (v.vertex_type == "VVS" and parent in v.particles
+                    and vector in v.particles):
+                c = sp.simplify(v.coupling / sp.I)      # strip the Feynman i
+                sub = self._substitutions()
+                return complex(sp.sympify(c).subs(sub).evalf())
+        raise KeyError(f"no VVS vertex containing ({parent}, {vector})")

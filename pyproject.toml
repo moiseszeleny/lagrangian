@@ -36,9 +36,10 @@ Documentation = "https://github.com/moiseszeleny/lagrangian"
 Issues = "https://github.com/moiseszeleny/lagrangian/issues"
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "numpy", "nbstripout", "matplotlib"]
+dev = ["pytest>=7", "numpy", "nbstripout", "matplotlib", "scipy"]
 docs = ["sphinx>=7", "myst-nb", "furo", "sphinx-copybutton", "sphinx-design",
         "sphinxcontrib-mermaid"]
+numeric = ["scipy"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
