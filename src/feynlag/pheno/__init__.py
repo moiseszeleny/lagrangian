@@ -28,13 +28,14 @@ from .kinematics import (
     two_body_phase_space,
 )
 from .lorentz import contract_to_dots, dirac_trace, reduce_projectors
+from .particles import DiracParticle, expand_particles
 from .vertices import DecayVertex, classify_gamma, collect_decay_vertices
 
 __all__ = [
-    "DecayCalculator", "DecayChannel", "DecayVertex", "TwoBodyKinematics",
-    "amplitude_squared", "classify_gamma", "collect_decay_vertices",
-    "contract_to_dots", "dirac_trace", "ffs_squared", "ffv_squared",
-    "is_allowed", "kallen", "partial_width", "polarization_sum",
-    "reduce_projectors", "spin_sum", "sss_squared", "two_body_momentum",
-    "two_body_phase_space", "vvs_squared",
+    "DecayCalculator", "DecayChannel", "DecayVertex", "DiracParticle",
+    "TwoBodyKinematics", "amplitude_squared", "classify_gamma",
+    "collect_decay_vertices", "contract_to_dots", "dirac_trace",
+    "expand_particles", "ffs_squared", "ffv_squared", "is_allowed", "kallen",
+    "partial_width", "polarization_sum", "reduce_projectors", "spin_sum",
+    "sss_squared", "two_body_momentum", "two_body_phase_space", "vvs_squared",
 ]
