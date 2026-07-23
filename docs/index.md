@@ -76,6 +76,7 @@ manual/anomalies
 manual/charges
 manual/flavor
 manual/decays
+manual/decays_roadmap
 tutorials/index
 examples
 benchmark
