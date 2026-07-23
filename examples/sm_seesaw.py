@@ -30,11 +30,12 @@ Run:  python examples/sm_seesaw.py
 import sympy as sp
 
 from feynlag import (
-    Bilinear, DiracGamma, Dmu, ExternalParameter, InternalParameter, Lagrangian,
-    MajoranaBilinear, MajoranaRotation, Model, Rotation, SU2, Scalar, U1,
-    WeylFermion, dag, diagonalize_takagi, diracC, diracPL, diracPR,
-    extract_fermion_vertices, fermion_gauge_current, fermion_mass_matrix,
-    majorana_mass_matrix, rotation_2x2, seesaw_light_mass, seesaw_mass_matrix,
+    Bilinear, DiracGamma, ExternalParameter, Lagrangian,
+    MajoranaBilinear, MajoranaRotation, Model, SU2, U1,
+    WeylFermion, diagonalize_takagi, diracC, diracPL, diracPR,
+    electroweak_scaffold, extract_fermion_vertices, fermion_gauge_current,
+    fermion_mass_matrix, majorana_mass_matrix, seesaw_light_mass,
+    seesaw_mass_matrix, to_physical_basis,
 )
 
 
@@ -44,18 +45,12 @@ def _num(x):
 
 def main():
     # --- symmetries, parameters, fields (1 generation) ------------------
-    gw = ExternalParameter("gw", 0.6535, positive=True)
-    g1 = ExternalParameter("g1", 0.3580, positive=True)
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
-    v = ExternalParameter("v", 246.0, positive=True, unit_dim=1)
-    lam = ExternalParameter("lam", 0.129)
-    mu2 = InternalParameter("mu2", unit_dim=2)
+    ew = electroweak_scaffold(lam=0.129)
+    SU2L, U1Y, H = ew.SU2L, ew.U1Y, ew.H
+    gw, g1, v, lam, mu2 = ew.gw, ew.g1, ew.v, ew.lam, ew.mu2
     yv = ExternalParameter("yv", 0.01, positive=True)          # Dirac Yukawa
     MR = ExternalParameter("MR", 1.0e3, positive=True, unit_dim=1)  # seesaw scale
 
-    H = Scalar("H", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
-               component_names=["Gp", "H0"])
-    H.expand_vev({H.components[1]: v})
     Ll = WeylFermion("Ll", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
                      chirality="L", nflavors=1, component_names=["nuL", "eL"])
     eR = WeylFermion("eR", reps={U1Y: -1}, chirality="R", nflavors=1,
@@ -81,31 +76,21 @@ def main():
     current = fermion_gauge_current(Ll, i) + fermion_gauge_current(eR, i)
 
     L = Lagrangian()
-    L.add((dag(Dmu(H)) * Dmu(H))[0], sector="kinetic")
-    L.add(-(-mu2.s * (dag(H) * H.mat)[0] + lam.s * (dag(H) * H.mat)[0]**2),
-          sector="potential")
+    ew.add_higgs(L)                                    # kinetic + potential
     L.add(LYukD + current, sector="yukawa")
     L.add(LMaj, sector="other")     # kept separate: the Majorana mass, not a vertex
 
-    model = Model("SM-seesaw", gauge_groups=[SU2L, U1Y],
-                  fields=[H, Ll, eR, nuR, SU2L.bosons("W"), U1Y.bosons("B")],
-                  parameters=[gw, g1, v, lam, mu2, yv, MR], lagrangian=L)
+    model = Model("SM-seesaw", gauge_groups=ew.gauge_groups,
+                  fields=ew.fields + [Ll, eR, nuR],
+                  parameters=ew.parameters + [yv, MR], lagrangian=L)
 
     print("invariance:", model.check_invariance())
     model.check_invariance().raise_on_failure()
     print("tadpole:   ", model.solve_tadpoles([mu2]))
 
-    # gauge rotations (Weinberg + W±)
-    W, B = SU2L.bosons(), U1Y.bosons()
-    W1, W2, W3 = W.components
-    B0 = B.components[0]
-    Z, A = sp.symbols("Z A", real=True)
-    thetaW = sp.atan(g1.s / gw.s)
-    model.rotate(Rotation([W3, B0], [Z, A], rotation_2x2(-thetaW)))
-    Wp, Wm = sp.symbols("Wp Wm")
-    model.rotate(Rotation([W1, W2], [Wp, Wm],
-                          sp.Matrix([[1, -sp.I], [1, sp.I]]) / sp.sqrt(2),
-                          kind="unitary"))
+    # gauge rotations (Weinberg + W±) from feynlag.models
+    phys = to_physical_basis(model, ew)
+    Z, A, Wp, Wm = phys.Z, phys.A, phys.Wp, phys.Wm
 
     # --- the seesaw mass matrix -----------------------------------------
     mD = fermion_mass_matrix(LYukD, nuLbar, nR, model.vacuum, 1, (i, j),

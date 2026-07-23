@@ -51,6 +51,33 @@ Every stage above corresponds to one chapter of the
 `examples/sm_scalar_gauge.py` alongside {doc}`manual/pipeline`, or run the
 {doc}`SM tutorial notebook <tutorials/index>`.
 
+### Reusable SM scaffolding
+
+Building a BSM model usually means "the Standard Model, plus something". The
+`feynlag.models` module ships the electroweak scaffold — the SU(2)×U(1) gauge
+groups, the Higgs doublet with its potential, and the physical-basis rotations
+(Weinberg angle → Z/γ, then W±) — so an extension file writes only its *new*
+physics:
+
+```python
+from feynlag import electroweak_scaffold, to_physical_basis, standard_model
+
+ew = electroweak_scaffold()          # groups + Higgs + parameters
+L = Lagrangian(); ew.add_higgs(L)    # kinetic + potential
+# ... add your own fermions / Yukawas / extension to L ...
+model = Model("my_bsm", gauge_groups=ew.gauge_groups,
+              fields=ew.fields + [...], parameters=ew.parameters + [...],
+              lagrangian=L)
+phys = to_physical_basis(model, ew)  # Z, A, W±, Goldstones, conjugate map
+
+sm = standard_model(generations=1)   # or the whole vanilla SM in one call
+```
+
+Composable primitives (`electroweak_gauge`, `higgs_doublet`,
+`weinberg_rotation`, `charged_current_rotation`) cover non-standard cases —
+e.g. a U(1)_X model whose Weinberg step feeds a chained Z–Z′ rotation.  Every
+`examples/sm_*.py` uses these helpers.
+
 ## Validation
 
 The test suite pins the physics, not just the code (dual verification:

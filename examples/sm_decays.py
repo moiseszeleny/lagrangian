@@ -17,9 +17,8 @@ Run with::
 import sympy as sp
 
 from feynlag import (
-    Bilinear, Dmu, ExternalParameter, InternalParameter, Lagrangian, Model,
-    Rotation, SU2, Scalar, U1, WeylFermion, conjugate_pair, dag, diracPR,
-    fermion_gauge_current, rotation_2x2,
+    Bilinear, ExternalParameter, Lagrangian, Model, SU2, U1, WeylFermion,
+    diracPR, electroweak_scaffold, fermion_gauge_current, to_physical_basis,
 )
 from feynlag.pheno import DecayCalculator
 
@@ -29,30 +28,25 @@ MZ, MW, MTAU = 91.1876, 80.377, 1.77686
 
 
 def build_model():
-    """SM electroweak + one lepton generation, rotated to the physical basis."""
-    gw = ExternalParameter("gw", GW, positive=True)
-    g1 = ExternalParameter("g1", G1, positive=True)
-    v = ExternalParameter("v", VEV, positive=True, unit_dim=1)
-    lam = ExternalParameter("lam", MH**2 / (2 * VEV**2))
-    mu2 = InternalParameter("mu2", unit_dim=2)
+    """SM electroweak + one lepton generation, rotated to the physical basis.
+
+    The electroweak scaffold (gauge groups, Higgs, physical-basis rotations)
+    comes from :mod:`feynlag.models`; only the τ lepton + its Yukawa are
+    written out here — the actual subject of this example.
+    """
+    ew = electroweak_scaffold(gw=GW, g1=G1, v=VEV, mh=MH)
+    SU2L, U1Y, H = ew.SU2L, ew.U1Y, ew.H
     # y = √2 m_τ / v  reproduces the τ mass after EWSB
     ytau = ExternalParameter("ytau", sp.sqrt(2) * MTAU / VEV, positive=True)
 
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
-    H = Scalar("H", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
-               component_names=["Gp", "H0"])
-    H.expand_vev({H.components[1]: v})
     Ll = WeylFermion("Ll", reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
                      chirality="L", nflavors=1, component_names=["nuL", "tauL"])
     tauR = WeylFermion("tauR", reps={U1Y: -1}, chirality="R", nflavors=1,
                        component_names=["tauR"])
 
     i = sp.Symbol("i", integer=True)
-    HdH = (dag(H) * H.mat)[0]
-    DH = Dmu(H)
     L = Lagrangian()
-    L.add((dag(DH) * DH)[0], sector="kinetic")
-    L.add(-(-mu2.s * HdH + lam.s * HdH**2), sector="potential")
+    ew.add_higgs(L)                                    # kinetic + potential
     L.add(fermion_gauge_current(Ll, i) + fermion_gauge_current(tauR, i),
           sector="gauge")
 
@@ -63,26 +57,13 @@ def build_model():
                      + Bilinear(tauLb[i], diracPR, tauRc[i]) * H.components[1])
     L.add(yuk + sp.conjugate(yuk), sector="yukawa")
 
-    model = Model("SM_lepton", gauge_groups=[SU2L, U1Y],
-                  fields=[H, Ll, tauR, SU2L.bosons("W"), U1Y.bosons("B")],
-                  parameters=[gw, g1, v, lam, mu2, ytau], lagrangian=L)
-    model.solve_tadpoles([mu2])
+    model = Model("SM_lepton", gauge_groups=ew.gauge_groups,
+                  fields=ew.fields + [Ll, tauR],
+                  parameters=ew.parameters + [ytau], lagrangian=L)
+    model.solve_tadpoles([ew.mu2])
 
-    # --- physical basis: Weinberg rotation, then W± ----------------------
-    W1, W2, W3 = SU2L.bosons().components
-    B = U1Y.bosons().components[0]
-    Z, A = sp.symbols("Z A", real=True)
-    model.rotate(Rotation([W3, B], [Z, A],
-                          rotation_2x2(-sp.atan(g1.s / gw.s))))
-    Wp, Wm = sp.symbols("Wp Wm")
-    model.rotate(Rotation([W1, W2], [Wp, Wm],
-                          sp.Matrix([[1, -sp.I], [1, sp.I]]) / sp.sqrt(2),
-                          kind="unitary"))
-
-    h = sp.Symbol("H0_r", real=True)
-    G0 = sp.Symbol("H0_i", real=True)
-    Gp = H.components[0]
-    Gm, cmap = conjugate_pair(Gp, "Gm")
+    # physical basis: the standard Weinberg + W± rotations
+    phys = to_physical_basis(model, ew)
 
     # A Dirac fermion is two WeylFermions in feynlag, so state which legs are
     # the same physical particle — otherwise the τ's L and R currents would be
@@ -92,11 +73,11 @@ def build_model():
                     tauLb[i]: taubar, tauRb[i]: taubar,
                     nuL[i]: nu, nuLb[i]: nubar}
 
-    return dict(model=model, conjugate_map=cmap, particle_map=particle_map,
-                bosons=[h, G0, Gp, Gm, Z, A, Wp, Wm],
-                h=h, Z=Z, A=A, Wp=Wp, Wm=Wm,
+    return dict(model=model, conjugate_map=phys.cmap, particle_map=particle_map,
+                bosons=phys.bosons,
+                h=phys.h, Z=phys.Z, A=phys.A, Wp=phys.Wp, Wm=phys.Wm,
                 tau=tau, taubar=taubar, nu=nu, nubar=nubar,
-                gw=gw, g1=g1, v=v, ytau=ytau)
+                gw=ew.gw, g1=ew.g1, v=ew.v, ytau=ytau)
 
 
 def main():

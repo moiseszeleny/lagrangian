@@ -42,8 +42,9 @@ import sympy as sp
 
 from feynlag import (
     Bilinear, DiracGamma, Dmu, ExternalParameter, InternalParameter,
-    Lagrangian, Model, Rotation, SU2, SU3, Scalar, U1, WeylFermion,
-    conjugate_pair, dag, diagonalize_orthogonal_2x2, diracPL, diracPR,
+    Lagrangian, Model, Rotation, SU3, Scalar, U1, WeylFermion,
+    charged_current_rotation, conjugate_pair, dag,
+    diagonalize_orthogonal_2x2, diracPL, diracPR, electroweak_gauge,
     extract_fermion_vertices, fermion_feynman_rule, fermion_gauge_current,
     fermion_mass_matrix, rotation_2x2,
 )
@@ -51,11 +52,11 @@ from feynlag import (
 
 def main():
     # --- symmetries and parameters -------------------------------------
-    gw = ExternalParameter("gw", 0.6535, positive=True)
-    g1 = ExternalParameter("g1", 0.3580, positive=True)
+    # SM electroweak gauge groups from feynlag.models; the U(1)_X extension
+    # (and QCD colour) are this example's own additions.
+    SU2L, U1Y, gw, g1 = electroweak_gauge()
     gX = ExternalParameter("gX", 0.5, positive=True)
     gs = ExternalParameter("gs", 1.22, positive=True)
-    SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
     U1X = U1("U1X", coupling=gX)
     SU3c = SU3("SU3c", coupling=gs)
 
@@ -273,9 +274,7 @@ def main():
                                                    simplifier=sp.nsimplify)]
     print(f"benchmark: m_Z = {mZ2**0.5:.2f} GeV, m_Z' = {mZp2**0.5:.2f} GeV")
 
-    Wp, Wm = sp.symbols("Wp Wm")
-    Umix = sp.Matrix([[1, -sp.I], [1, sp.I]]) / sp.sqrt(2)
-    model.rotate(Rotation([W1, W2], [Wp, Wm], Umix, kind="unitary"))
+    Wp, Wm = charged_current_rotation(model, SU2L)
 
     # --- bosonic Feynman rules -----------------------------------------------
     Gm, cmap = conjugate_pair(Gp, "Gm")
