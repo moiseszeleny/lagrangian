@@ -146,6 +146,15 @@ the FFFF h.c.-pairing lesson (`docs/benchmark.md`). Until then
 
 Delivered — see the Status section above (`examples/ModelBuilding_Tutorial.ipynb`).
 
+### F — decay-width extensions (tiered; own chapter)
+
+The `feynlag.pheno` decay calculator (1→2 tree-level, shipped with its own
+manual chapter and tutorial) has a dedicated tiered roadmap for the full
+Higgs branching-ratio picture — tree-level quark channels + a `DiracParticle`
+abstraction (small), off-shell `VV*` via propagators/1→3 phase space (large),
+and loop-induced `gg`/`γγ` via effective vertices (moderate, documented
+exception to the tree-level ethos). See {doc}`manual/decays_roadmap`.
+
 ## Suggested order
 
 **~~D.3~~ → ~~C2~~ → ~~D.2~~ → C3 / E.** D.3, C2, and D.2 are done. Remaining:

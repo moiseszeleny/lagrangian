@@ -198,6 +198,11 @@ Also out of scope for this stage: $1\to3$ decays, loop-induced channels
 ($h\to\gamma\gamma$), and interference between distinct diagrams feeding the
 same final state.
 
+For a tiered analysis of what it would take to add all of these — the full
+Higgs branching-ratio picture, from the tree-level quark channels through
+off-shell $WW^*$ to the loop-induced $gg/\gamma\gamma$ — see
+{doc}`decays_roadmap`.
+
 ## Minimal example
 
 ```python
