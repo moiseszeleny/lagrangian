@@ -1,11 +1,13 @@
 """Partial widths, total widths and branching ratios from a feynlag model."""
 
+import warnings
 from dataclasses import dataclass
 
 import sympy as sp
 
 from .amplitudes import amplitude_squared
 from .kinematics import TwoBodyKinematics, is_allowed
+from .particles import expand_particles
 from .vertices import collect_decay_vertices
 
 __all__ = ["DecayCalculator", "DecayChannel", "partial_width"]
@@ -71,11 +73,20 @@ class DecayCalculator:
             currents merge into a single channel — see
             :func:`~feynlag.pheno.vertices.resolve_leg`. Omitting it for a
             Dirac fermion splits ``Z → e⁺e⁻`` into two wrong half-channels.
+        particles: list of :class:`~feynlag.pheno.particles.DiracParticle` —
+            the recommended way to declare physical fermions. Each bundles its
+            two Weyl legs, mass and colour $N_c$, so the ``particle_map`` /
+            ``masses`` / ``color_factors`` triple cannot fall out of sync.
+            Colour is applied **once** per channel (no per-leg double count),
+            and any extracted fermion vertex claimed by no declared particle is
+            surfaced in :attr:`unmatched_channels` (with a warning) instead of
+            silently vanishing. Merges with ``masses`` (bosons stay there) and
+            with an explicit ``particle_map``/``color_factors`` if also given.
     """
 
     def __init__(self, model, masses, boson_fields=(), fermion_sectors=(),
                  conjugate_map=None, color_factors=None, parameters=None,
-                 simplifier=None, particle_map=None):
+                 simplifier=None, particle_map=None, particles=()):
         self.model = model
         self.masses = dict(masses)
         self.boson_fields = list(boson_fields)
@@ -85,7 +96,20 @@ class DecayCalculator:
         self.parameters = parameters
         self.simplifier = simplifier
         self.particle_map = dict(particle_map or {})
+        self.particles = list(particles)
+        #: {particle_symbol: N_c} from declared DiracParticles (colour once).
+        self._particle_color = {}
+        if self.particles:
+            pmap, pmasses, pcolors = expand_particles(self.particles)
+            # DiracParticle-declared entries fill in without clobbering an
+            # explicit override the caller also passed.
+            for leg, sym in pmap.items():
+                self.particle_map.setdefault(leg, sym)
+            for sym, m in pmasses.items():
+                self.masses.setdefault(sym, m)
+            self._particle_color = pcolors
         self._vertices = None
+        self._unmatched = None
 
     # ------------------------------------------------------------- vertices
 
@@ -126,14 +150,35 @@ class DecayCalculator:
             return sp.sympify(self.color_factors[base])
         return sp.S.One
 
+    def _channel_color(self, children):
+        """Colour multiplicity of a two-body channel.
+
+        When both daughters belong to the same declared
+        :class:`~feynlag.pheno.particles.DiracParticle` (an ``f f̄`` pair),
+        colour is that particle's $N_c$ applied **once** — never squared. This
+        is what makes the per-leg over-count (the ``81×`` trap) unrepresentable
+        through the ``particles=`` path.  Otherwise fall back to the legacy
+        per-leg product of ``color_factors`` (backward compatible).
+        """
+        if self._particle_color:
+            nc = {self._particle_color.get(c) for c in children}
+            nc.discard(None)
+            if len(nc) == 1 and all(c in self._particle_color for c in children):
+                return nc.pop()
+        color = sp.S.One
+        for leg in children:
+            color *= self._color_of(leg)
+        return color
+
     # --------------------------------------------------------------- widths
 
     def channels(self, parent):
         """Every open two-body channel of ``parent``.
 
         A vertex contributes when one of its legs is ``parent``; the other two
-        are the daughters. Legs with undeclared masses are skipped rather than
-        guessed at.
+        are the daughters. A daughter with an undeclared mass is skipped — but
+        recorded in :attr:`unmatched_channels` when ``particles=`` is in use,
+        so the skip is visible rather than silent.
         """
         M = self.mass_of(parent)
         out = []
@@ -148,12 +193,11 @@ class DecayCalculator:
             try:
                 m1, m2 = (self.mass_of(leg) for leg in remaining)
             except KeyError:
+                self._record_unmatched(vertex, parent, remaining)
                 continue
             symmetry = (sp.Rational(1, 2) if remaining[0] == remaining[1]
                         else sp.S.One)
-            color = sp.S.One
-            for leg in remaining:
-                color *= self._color_of(leg)
+            color = self._channel_color(remaining)
             width = partial_width(vertex, M, m1, m2, color_factor=color,
                                   symmetry_factor=symmetry)
             if width == 0:
@@ -163,6 +207,39 @@ class DecayCalculator:
                                     color_factor=color,
                                     symmetry_factor=symmetry))
         return out
+
+    def _record_unmatched(self, vertex, parent, children):
+        # Only fermion channels count: a bosonic leg with no declared mass
+        # (e.g. an unphysical-gauge Goldstone) is a legitimate skip, not the
+        # "forgot to declare a fermion" trap this surfaces.
+        if vertex.vertex_type not in ("FFS", "FFV"):
+            return
+        if self._unmatched is None:
+            self._unmatched = []
+        entry = (parent, tuple(children), vertex.vertex_type)
+        if entry not in self._unmatched:
+            self._unmatched.append(entry)
+
+    @property
+    def unmatched_channels(self):
+        """Fermion channels dropped because a daughter had no declared mass.
+
+        A list of ``(parent, (child1, child2), vertex_type)`` populated as a
+        side effect of :meth:`channels`.  When ``particles=`` was supplied and
+        this is non-empty, a warning is emitted once — turning the otherwise
+        silent skip (a fermion the model produces but you forgot to declare)
+        into a visible one.  Call :meth:`channels` (or any width method) first;
+        it is empty until then.
+        """
+        matched = self._unmatched or []
+        if matched and self.particles:
+            warnings.warn(
+                f"{len(matched)} fermion channel(s) were dropped because a "
+                f"daughter has no declared DiracParticle/mass: "
+                f"{[ (str(p), tuple(map(str, c)), t) for p, c, t in matched] }. "
+                f"Declare them (or ignore if intentional).",
+                stacklevel=2)
+        return list(matched)
 
     def partial_widths(self, parent):
         """``{(child1, child2): Γ}`` for every open channel."""

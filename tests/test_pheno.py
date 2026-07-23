@@ -14,13 +14,13 @@ import sympy as sp
 
 from feynlag import (
     Bilinear, Dmu, ExternalParameter, InternalParameter, Lagrangian, Model,
-    Rotation, SU2, Scalar, U1, WeylFermion, conjugate_pair, dag, diracPL,
-    diracPR, fermion_gauge_current, rotation_2x2,
+    Rotation, SU2, Scalar, U1, WeylFermion, bar_partner, conjugate_pair, dag,
+    diracPL, diracPR, fermion_gauge_current, rotation_2x2,
 )
 from feynlag.dirac import DiracGamma, PL, _dirac_rep, minkowski_metric
 from feynlag.pheno import (
-    DecayCalculator, TwoBodyKinematics, classify_gamma, ffs_squared,
-    ffv_squared, kallen, reduce_projectors, vvs_squared,
+    DecayCalculator, DiracParticle, TwoBodyKinematics, classify_gamma,
+    ffs_squared, ffv_squared, kallen, reduce_projectors, vvs_squared,
 )
 from feynlag.pheno.trace import dirac_trace as direct_trace
 from feynlag.verify import numeric_equal
@@ -305,7 +305,9 @@ def sm():
     return dict(model=model, cmap=cmap, particle_map=particle_map,
                 bosons=[h, G0, Gp, Gm, Z, A, Wp, Wm],
                 h=h, Z=Z, A=A, Wp=Wp, Wm=Wm, e=e, ebar=ebar, nu=nu,
-                nubar=nubar, gw=gw, g1=g1, v=v, ye=ye)
+                nubar=nubar, gw=gw, g1=g1, v=v, ye=ye,
+                # Weyl leg bases for the DiracParticle path
+                eL_base=eL, eR_base=eRc, nuL_base=nuL, i=i)
 
 
 @pytest.fixture(scope="module")
@@ -458,3 +460,155 @@ def test_numeric_path_matches_direct_substitution(calc, sm):
     assert abs(value - direct) < 1e-9 * max(abs(direct), 1.0)
     # Γ(Z→νν̄) ≈ 0.166 GeV per generation
     assert abs(value.real - 0.166) < 0.005
+
+
+# --------------------------------------------------------------------------
+# DiracParticle — the post-EWSB abstraction (Tier 1 of the decays roadmap)
+# --------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def colour_model():
+    """Higgs + one down-type quark with a single-component colour-diagonal
+    Yukawa, for the colour-once tests.  Returns
+    ``(model, h, dL_base, bR_base, m_h, m_b, y_b)``."""
+    gw = ExternalParameter("gw_c", 0.6535, positive=True)
+    g1 = ExternalParameter("g1_c", 0.3580, positive=True)
+    v = ExternalParameter("v_c", 246.0, positive=True, unit_dim=1)
+    lam = ExternalParameter("lam_c", 0.129)
+    mu2 = InternalParameter("mu2_c", unit_dim=2)
+    yb = ExternalParameter("yb_c", 0.0163, positive=True)
+
+    SU2L, U1Y = SU2("SU2Lc", coupling=gw), U1("U1Yc", coupling=g1)
+    H = Scalar("Hc", reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
+               component_names=["Gpc", "H0c"])
+    H.expand_vev({H.components[1]: v})
+    QL = WeylFermion("QLc", reps={SU2L: 2, U1Y: sp.Rational(1, 6)},
+                     chirality="L", nflavors=1, component_names=["uLc", "dLc"])
+    bR = WeylFermion("bRc", reps={U1Y: -sp.Rational(1, 3)}, chirality="R",
+                     nflavors=1, component_names=["bRc"])
+
+    i = sp.Symbol("i", integer=True)
+    HdH = (dag(H) * H.mat)[0]
+    DH = Dmu(H)
+    L = Lagrangian()
+    L.add((dag(DH) * DH)[0], sector="kinetic")
+    L.add(-(-mu2.s * HdH + lam.s * HdH**2), sector="potential")
+    dLb = QL.bar_components[1]
+    bRc = bR.components[0]
+    L.add(-yb.s * Bilinear(dLb[i], diracPR, bRc[i]) * H.components[1]
+          + sp.conjugate(-yb.s * Bilinear(dLb[i], diracPR, bRc[i])
+                         * H.components[1]),
+          sector="yukawa")
+
+    model = Model("Hqc", gauge_groups=[SU2L, U1Y],
+                  fields=[H, QL, bR, SU2L.bosons("Wc"), U1Y.bosons("Bc")],
+                  parameters=[gw, g1, v, lam, mu2, yb], lagrangian=L)
+    model.solve_tadpoles([mu2])
+    h = sp.Symbol("H0c_r", real=True)
+    mh, mb = sp.symbols("m_h_c m_b_c", positive=True)
+    return model, h, QL.components[1], bR.components[0], mh, mb, yb.s
+
+
+def test_dirac_particle_auto_derives_bar_legs(sm):
+    """`DiracParticle(left, right)` finds the bar legs itself via
+    `bar_partner` — they are not passed in."""
+    e = DiracParticle("e", left=sm["eL_base"], right=sm["eR_base"],
+                      mass=sp.Symbol("m_e", positive=True))
+    # eL is the down-member of Ll -> its bar base is eLbar; eR -> eRbar
+    assert str(e.bar_left) == "eLbar"
+    assert str(e.bar_right) == "eRbar"
+    assert e.antiparticle == sp.Symbol("ebar")
+    # base-keyed maps cover every flavour index
+    pmap = e.particle_map()
+    assert pmap[sm["eL_base"]] == sp.Symbol("e")
+    assert pmap[e.bar_right] == sp.Symbol("ebar")
+
+
+def test_particles_path_reproduces_particle_map(sm):
+    """The `particles=[DiracParticle]` path gives identical widths to the
+    hand-built `particle_map`/`masses` triple, channel by channel."""
+    mZ, mW, mh, me = sp.symbols("m_Z m_W m_h m_e", positive=True)
+    i = sm["i"]
+    old = DecayCalculator(
+        sm["model"],
+        {sm["Z"]: mZ, sm["Wp"]: mW, sm["Wm"]: mW, sm["A"]: 0, sm["h"]: mh,
+         sm["e"]: me, sm["ebar"]: me, sm["nu"]: 0, sm["nubar"]: 0},
+        boson_fields=sm["bosons"], fermion_sectors=("gauge", "yukawa"),
+        conjugate_map=sm["cmap"], particle_map=sm["particle_map"])
+    # electron via DiracParticle; the (left-handed only) neutrino via the
+    # legacy particle_map — the two paths coexist.
+    elec = DiracParticle("e", left=sm["eL_base"], right=sm["eR_base"], mass=me)
+    new = DecayCalculator(
+        sm["model"],
+        {sm["Z"]: mZ, sm["Wp"]: mW, sm["Wm"]: mW, sm["A"]: 0, sm["h"]: mh,
+         sm["nu"]: 0, sm["nubar"]: 0},
+        boson_fields=sm["bosons"], fermion_sectors=("gauge", "yukawa"),
+        conjugate_map=sm["cmap"], particles=[elec],
+        particle_map={sm["nuL_base"][i]: sm["nu"],
+                      bar_partner(sm["nuL_base"])[i]: sm["nubar"]})
+    for parent in (sm["Z"], sm["Wp"], sm["h"]):
+        wo, wn = old.partial_widths(parent), new.partial_widths(parent)
+        assert set(wo) == set(wn), parent
+        for k in wo:
+            assert sp.simplify(wo[k] - wn[k]) == 0, (parent, k)
+
+
+def test_particles_colour_applied_once(colour_model):
+    """A coloured `DiracParticle(color=3)` gives exactly 3× the `color=1`
+    width — and there is no way through `particles=` to reach the 81× (colour
+    squared) over-count the roadmap warns about."""
+    model, h, dL, bR, mh, mb, yb = colour_model
+    lepton = DiracParticle("f", left=dL, right=bR, mass=mb, color=1)
+    quark = DiracParticle("q", left=dL, right=bR, mass=mb, color=3)
+
+    w1 = DecayCalculator(model, {h: mh}, boson_fields=[h],
+                         fermion_sectors=("yukawa",),
+                         particles=[lepton]).partial_widths(h)
+    w3 = DecayCalculator(model, {h: mh}, boson_fields=[h],
+                         fermion_sectors=("yukawa",),
+                         particles=[quark]).partial_widths(h)
+    (g1,) = w1.values()
+    (g3,) = w3.values()
+    assert sp.simplify(g3 - 3 * g1) == 0
+    # the correct N_c = 3 result, not 9 or 81
+    beta3 = (mh**2 - 4 * mb**2)**sp.Rational(3, 2)
+    assert sp.simplify(g3 - 3 * yb**2 * beta3 / (16 * sp.pi * mh**2)) == 0
+
+
+def test_particles_reports_unmatched_fermion(colour_model):
+    """A fermion channel the model produces but no `DiracParticle` claims is
+    surfaced in `unmatched_channels` (with a warning), not silently dropped."""
+    import warnings
+    model, h, dL, bR, mh, mb, yb = colour_model
+
+    # claim the h->bb channel correctly -> nothing unmatched
+    right = DecayCalculator(model, {h: mh}, boson_fields=[h],
+                            fermion_sectors=("yukawa",),
+                            particles=[DiracParticle("b", left=dL, right=bR,
+                                                     mass=mb, color=3)])
+    right.partial_widths(h)
+    assert right.unmatched_channels == []
+
+    # declare a particle on the WRONG legs -> the real h->bb is unclaimed
+    wrong = DecayCalculator(model, {h: mh}, boson_fields=[h],
+                            fermion_sectors=("yukawa",),
+                            particles=[DiracParticle("z", left=dL, right=dL,
+                                                     mass=mb)])
+    wrong.channels(h)
+    with warnings.catch_warnings(record=True) as rec:
+        warnings.simplefilter("always")
+        um = wrong.unmatched_channels
+    assert um, "the undeclared h->bb channel should be reported"
+    assert any("dropped" in str(w.message) for w in rec)
+    assert all(t == "FFS" for _, _, t in um)
+
+
+def test_expand_particles_rejects_conflicts(sm):
+    """`expand_particles` raises when two particles claim the same leg or a
+    particle gets two masses — a modelling mistake caught, not merged."""
+    from feynlag.pheno import expand_particles
+    me = sp.Symbol("m_e", positive=True)
+    a = DiracParticle("e", left=sm["eL_base"], right=sm["eR_base"], mass=me)
+    b = DiracParticle("mu", left=sm["eL_base"], right=sm["eR_base"], mass=me)
+    with pytest.raises(ValueError, match="claimed by two"):
+        expand_particles([a, b])

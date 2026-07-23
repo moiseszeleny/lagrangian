@@ -99,22 +99,26 @@ to this split:
 - colour multiplicity applied in more than one place → the $81\times$
   over-count above.
 
-The fix is one small dataclass:
+The fix is one small dataclass — **now delivered**
+({class}`~feynlag.pheno.particles.DiracParticle`):
 
 ```python
 DiracParticle(
-    name="b",
-    left=dL_1[i], right=dR_1[i],        # the two Weyl legs (one colour comp.)
-    mass=mb, color=3,                    # bar legs found via bar_partner
+    "b",
+    left=QL.components[1], right=bR.components[0],   # the two Weyl legs
+    mass=mb, color=3,                                # bar legs auto-derived
 )
 ```
 
 with `DecayCalculator(model, particles=[...], ...)` consuming a list of these
 instead of the dict triple. The bar legs come from the existing
 `bar_partner` registry (`fields.py`), the mass travels with the particle, and
-$N_c$ is applied once, per channel, incoherently — all three traps become
-*unrepresentable*. The physics engine is untouched; this is calculator
-plumbing.
+$N_c$ is applied once, per channel, incoherently — all three traps are now
+*unrepresentable*, and any fermion channel claimed by no declared particle is
+surfaced in `calc.unmatched_channels` (with a warning) rather than silently
+dropped. The physics engine was untouched; this was calculator plumbing. See
+{doc}`decays` §15.4 for the API and `examples/sm_higgs_decays.py` for the full
+$b\bar b$-dominated fermionic branching-ratio table.
 
 ### Running masses
 
@@ -204,7 +208,7 @@ should stay there until someone wants NLO for its own sake.
 
 | tier | channels | new machinery | BR gained | effort | ethos |
 |---|---|---|---|---|---|
-| 1 | $b\bar b,c\bar c,s\bar s,\mu\mu$ | `DiracParticle` abstraction; model content; running-mass inputs | → 67% | small | tree-level, in ethos |
+| 1 ✅ | $b\bar b,c\bar c,s\bar s,\mu\mu$ | `DiracParticle` abstraction (**done**); model content; running-mass inputs | → 67% | small | tree-level, in ethos |
 | 2 | $WW^*, ZZ^*$ | propagators + $1\to3$ numeric phase space + diagram assembly | → 91% | large | tree-level, in ethos |
 | 3 | $gg,\gamma\gamma,Z\gamma$ | effective one-loop vertices ($A_{1/2}, A_1$) | → 100% | moderate | documented exception (CKM precedent) |
 

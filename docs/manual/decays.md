@@ -135,15 +135,47 @@ So `e_L` and `e_R` are *different legs*, and
 left- and right-handed currents under different keys, even though
 $Z\to e^+e^-$ is **one** channel fed by both.
 
-`DecayCalculator` therefore takes a `particle_map`:
+### The `DiracParticle` way (recommended)
+
+The clean way to declare a physical fermion is a
+{class}`~feynlag.pheno.particles.DiracParticle` — one object bundling the two
+Weyl legs, the mass, and the colour $N_c$:
+
+```python
+from feynlag.pheno import DiracParticle, DecayCalculator
+
+b = DiracParticle("b", left=QL.components[1], right=bR.components[0],
+                  mass=mb, color=3)     # bar legs auto-derived via bar_partner
+tau = DiracParticle("tau", left=Ll.components[1], right=tauR.components[0],
+                    mass=mtau)          # color defaults to 1
+
+calc = DecayCalculator(model, {h: mh}, boson_fields=[h],
+                       fermion_sectors=("yukawa",), particles=[b, tau])
+```
+
+This makes the three silent-failure modes of §16.1 (the roadmap) structurally
+impossible: the two legs cannot be mismatched (they are one object), the mass
+travels with the particle (no separate-dict mismatch), and **colour $N_c$ is
+applied once per channel** — the per-leg product that produced the notorious
+$81\times$ over-count is unreachable through this path. Any fermion channel the
+model produces but no `DiracParticle` claims is surfaced in
+`calc.unmatched_channels` (with a warning), so a forgotten fermion is visible
+rather than a channel that quietly vanishes. Worked model:
+`examples/sm_higgs_decays.py`.
+
+### The `particle_map` way (still supported)
+
+The lower-level interface is a `particle_map` (plus separate `masses` and
+`color_factors`):
 
 ```python
 particle_map = {eL[i]: e, eR[i]: e, eLbar[i]: ebar, eRbar[i]: ebar}
 ```
 
 Omitting it does not error — it silently produces two half-channels, each
-missing the other chirality and the $g_Lg_R$ mass interference. This is the
-single most likely way to get a wrong number out of the module.
+missing the other chirality and the $g_Lg_R$ mass interference. It remains
+available (and composes with `particles=` for e.g. a left-handed-only
+neutrino), but for a full Dirac fermion prefer `DiracParticle`.
 
 ## 15.5 Thresholds: symbolic vs. numeric
 

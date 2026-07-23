@@ -36,6 +36,7 @@ page lists its public classes and functions with full signatures; cross-refs
    feynlag.pheno.kinematics
    feynlag.pheno.amplitudes
    feynlag.pheno.vertices
+   feynlag.pheno.particles
    feynlag.pheno.calculator
    feynlag.verify.checks
 ```
