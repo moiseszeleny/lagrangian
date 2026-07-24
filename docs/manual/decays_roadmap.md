@@ -195,8 +195,10 @@ $\Gamma(S\to VV)\times\mathrm{BR}$). The parity-violating $\gamma_5$/ε term
 drops against the *symmetric* propagator + polarisation structure (the 1→3
 analogue of the $\gamma_5$ argument in {doc}`decays` §15) — no ε-tensor algebra
 needed for this topology. Worked model: `examples/sm_higgs_decays.py` (the BR
-table now includes WW\*/ZZ\*). **Not yet built**: the FFFF and $t\to bW^*$
-topologies (same infrastructure, a new assembler each).
+table now includes WW\*/ZZ\*), and the decays tutorial's §11 walks the off-shell
+$1\to3$ with a $W^*$ line-shape figure and the completed canonical BR chart.
+**Not yet built**: the FFFF and $t\to bW^*$ topologies (same infrastructure, a
+new assembler each).
 
 ## 16.3 Tier 3 — loop-induced $gg$, $\gamma\gamma$, $Z\gamma$
 
