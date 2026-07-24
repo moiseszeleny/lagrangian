@@ -29,11 +29,14 @@ Dirac trace, the trace theorems, polarisation sums — and only then reveals
 $\Gamma(h\to f\bar f) = N_c m_h m_f^2\beta^3/8\pi v^2$ (with the $\beta^3$
 explained as the P-wave signature of a CP-even scalar), $\Gamma(Z\to\nu\bar\nu)$
 and $\Gamma(W\to\ell\nu)$ within ~1% of the PDG, and the familiar Higgs
-branching-ratio-versus-mass plot. Closes with the two mistakes that fail
-*silently* — forgetting that a Dirac fermion is two Weyl fields (an error that
-vanishes in the massless limit), and closed channels turning $\sqrt\lambda$
-imaginary — and then builds a $Z'$ from scratch to show the same machinery on
-a new model.
+branching-ratio-versus-mass plot. Then completes the picture: the
+`DiracParticle` fermion sector, and the **off-shell $1\to3$** $h\to WW^*/ZZ^*$
+(a $W^*$ line-shape figure showing the virtual $W$ never reaches its mass shell,
+and the canonical Higgs BR chart — $b\bar b$ 61%, $WW^*$ 25%). Closes with the
+two mistakes that fail *silently* — forgetting that a Dirac fermion is two Weyl
+fields (an error that vanishes in the massless limit), and closed channels
+turning $\sqrt\lambda$ imaginary — and then builds a $Z'$ from scratch to show
+the same machinery on a new model.
 
 ## SU(N) Groups Tutorial
 

@@ -129,10 +129,12 @@ choice (feed the running value), not new machinery; the roadmap notes it so
 the Tier-1 numbers land near the canonical table rather than mysteriously
 high.
 
-## 16.2 Tier 2 — off-shell $WW^*$ and $ZZ^*$
+## 16.2 Tier 2 — off-shell $WW^*$ and $ZZ^*$  ✅ (V–V\* delivered)
 
 **Channels**: $h\to WW^*\to W f\bar f'$ (21.4%), $h\to ZZ^*\to Z f\bar f$
-(2.6%). **Effort: large** — this is the architectural jump.
+(2.6%). **Effort: large** — this is the architectural jump. **Delivered** in
+`feynlag.pheno.offshell` (see the end of this section); the FFFF and
+$t\to bW^*$ topologies remain.
 
 The on-shell `VVS` width is exactly zero at $m_h=125$ GeV because the
 two-body channel is closed; the physical decay proceeds through *one*
@@ -148,7 +150,10 @@ the current design deliberately does not have:
    $\sqrt\lambda/16\pi M^3$ is a closed form; three-body phase space is a
    2-dimensional (Dalitz) integral over $(q^2, \cos\theta)$ or
    $(m_{12}^2, m_{23}^2)$ that has no closed form once the propagator sits
-   inside it — a numerical integration layer (the first in the library).
+   inside it — a numerical integration layer (the first in the library). The
+   Dalitz invariants, bounds and the $1/((2\pi)^3 32M^3)$ constant
+   `ThreeBodyKinematics` implements follow the standard formulae of the PDG's
+   Kinematics review [PDG].
 3. **Diagram assembly.** {func}`~feynlag.pheno.amplitudes.amplitude_squared`
    squares a *single* {class}`~feynlag.pheno.vertices.DecayVertex`. An
    off-shell amplitude is vertex × propagator × vertex, and squaring it puts
@@ -164,6 +169,39 @@ then the full $q^2$ integration. The same machinery immediately gives
 three-body decays generally (e.g. $\mu\to e\nu\bar\nu$ through the FFFF
 track, top decays $t\to bW^*$ below threshold in BSM spectra), so it earns
 its cost beyond the Higgs.
+
+### What was built
+
+`feynlag.pheno` gained four pieces, each general but exercised here on V–V\*:
+
+- {mod}`~feynlag.pheno.propagator` — the massive-vector Breit–Wigner
+  propagator (numerator $g_{\alpha\beta}-q_\alpha q_\beta/m^2$ + the
+  $|q^2-m^2+im\Gamma|^{-2}$ factor).
+- {class}`~feynlag.pheno.kinematics.ThreeBodyKinematics` — the Dalitz
+  invariants $s_{12},s_{23}$, the $s_{12}$ bounds, and the on-shell `dot` map
+  that reduces the covariant $|M|^2$ (the internal $q=p_2+p_3$ is just a tensor
+  sum the existing engine contracts — no new trace machinery).
+- {mod}`~feynlag.pheno.integrate` — the numerical layer: SciPy when the
+  `[numeric]` extra is installed, else a numpy Gauss–Legendre fallback (SciPy
+  lives in this one module).
+- {mod}`~feynlag.pheno.offshell` — `scalar_vv_squared` (the covariant $|M|^2$),
+  `offshell_scalar_vv_width` (analytic inner $s_{12}$ integral + numeric $q^2$
+  integral), and `scalar_offshell_vv_width` (summed over the $V^*$ fermion
+  channels, with the factor 2 for distinct $W^\pm$ vs. no factor for identical
+  $ZZ$).
+
+**Verified** against the Keung–Marciano closed form [KM84, Djouadi08]
+$\Gamma(h\to VV^*)=\frac{3g_V^4 m_h}{512\pi^3}\delta_V R(x)$, $x=m_V^2/m_h^2$:
+$\Gamma(h\to WW^*)=0.80$ MeV and $\Gamma(h\to ZZ^*)=0.089$ MeV, and by
+narrow-width factorisation (a heavy scalar's $1\to3$ width → the Tier-1
+$\Gamma(S\to VV)\times\mathrm{BR}$). The parity-violating $\gamma_5$/ε term
+drops against the *symmetric* propagator + polarisation structure (the 1→3
+analogue of the $\gamma_5$ argument in {doc}`decays` §15) — no ε-tensor algebra
+needed for this topology. Worked model: `examples/sm_higgs_decays.py` (the BR
+table now includes WW\*/ZZ\*), and the decays tutorial's §11 walks the off-shell
+$1\to3$ with a $W^*$ line-shape figure and the completed canonical BR chart.
+**Not yet built**: the FFFF and $t\to bW^*$ topologies (same infrastructure, a
+new assembler each).
 
 ## 16.3 Tier 3 — loop-induced $gg$, $\gamma\gamma$, $Z\gamma$
 
@@ -184,7 +222,7 @@ $$\Gamma(h\to gg) = \frac{\alpha_s^2 m_h^3}{72\pi^3 v^2}
 \left|A_1(\tau_W) + \textstyle\sum_f N_c Q_f^2 A_{1/2}(\tau_f)\right|^2,$$
 
 where $A_{1/2}$ and $A_1$ are the fermion- and $W$-loop functions of the
-Higgs Hunter's Guide. Implemented as `effective_hgg(...)` /
+Higgs Hunter's Guide [GHKD00]. Implemented as `effective_hgg(...)` /
 `effective_haa(...)` helpers that *return a coupling*, the width is then an
 ordinary $1\to2$ the current engine already squares (`VVS` with massless
 vectors — the $-g_{ab}$ polarisation sum is already in
@@ -209,8 +247,17 @@ should stay there until someone wants NLO for its own sake.
 | tier | channels | new machinery | BR gained | effort | ethos |
 |---|---|---|---|---|---|
 | 1 ✅ | $b\bar b,c\bar c,s\bar s,\mu\mu$ | `DiracParticle` abstraction (**done**); model content; running-mass inputs | → 67% | small | tree-level, in ethos |
-| 2 | $WW^*, ZZ^*$ | propagators + $1\to3$ numeric phase space + diagram assembly | → 91% | large | tree-level, in ethos |
+| 2 ✅ | $WW^*, ZZ^*$ | propagators + $1\to3$ phase space + diagram assembly (**done**); FFFF/$t\to bW^*$ topologies remain | → 91% | large | tree-level, in ethos |
 | 3 | $gg,\gamma\gamma,Z\gamma$ | effective one-loop vertices ($A_{1/2}, A_1$) | → 100% | moderate | documented exception (CKM precedent) |
+
+**Tier 2 status**: the $V$–$V^*$ topology ($h\to WW^*$, $h\to ZZ^*$) is delivered
+— `feynlag.pheno.offshell` reproduces the Keung–Marciano widths
+($\Gamma(h\to WW^*)\approx0.80$ MeV, $\Gamma(h\to ZZ^*)\approx0.089$ MeV) and the
+Higgs BR table is now $b\bar b$-dominated with $WW^*$ second (~25%), the canonical
+shape. The general-$1\to3$ *topologies* the roadmap also names — the FFFF track
+($\mu\to e\nu\nu$) and the fermionic $t\to bW^*$ — reuse the same propagator +
+Dalitz infrastructure but are not yet assembled; they are the remaining Tier-2
+generality.
 
 The recommended order is the table order: Tier 1 fixes the qualitatively
 wrong plot for the cost of a dataclass; Tier 2 is where the architecture
@@ -220,3 +267,21 @@ See {doc}`decays` for the implemented engine, the tutorial
 (`Particle_Decays_Tutorial.ipynb`) for the traps §16.1 makes
 unrepresentable, and the v2-deferred list in the repository `CLAUDE.md` for
 what stays out of scope.
+
+## 16.5 References
+
+- **[KM84]** W.-Y. Keung and W. J. Marciano, *"Higgs scalar decays: H → W±X"*,
+  Phys. Rev. D **30**, 248 (1984).
+  [doi:10.1103/PhysRevD.30.248](https://doi.org/10.1103/PhysRevD.30.248) — the
+  original $H\to WW^*$ calculation this section's Tier-2 widths reproduce.
+- **[Djouadi08]** A. Djouadi, *"The Anatomy of Electro-Weak Symmetry Breaking
+  I: The Higgs boson in the Standard Model"*, Phys. Rept. **457** (2008)
+  1–216, [arXiv:hep-ph/0503172](https://arxiv.org/abs/hep-ph/0503172) — the
+  modern compilation this chapter's $R(x)$ notation follows, and the source of
+  the Tier-3 $A_{1/2}$/$A_1$ loop functions.
+- **[GHKD00]** J. F. Gunion, H. E. Haber, G. L. Kane, S. Dawson, *The Higgs
+  Hunter's Guide*, Front. Phys. **80** (2000) 1–404 (originally
+  Addison-Wesley, 1990).
+- **[PDG]** Particle Data Group, *Review of Particle Physics* — "Kinematics"
+  review (three-body decays and the Dalitz plot); see the current edition at
+  [pdg.lbl.gov](https://pdg.lbl.gov/).
