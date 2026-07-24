@@ -150,7 +150,10 @@ the current design deliberately does not have:
    $\sqrt\lambda/16\pi M^3$ is a closed form; three-body phase space is a
    2-dimensional (Dalitz) integral over $(q^2, \cos\theta)$ or
    $(m_{12}^2, m_{23}^2)$ that has no closed form once the propagator sits
-   inside it — a numerical integration layer (the first in the library).
+   inside it — a numerical integration layer (the first in the library). The
+   Dalitz invariants, bounds and the $1/((2\pi)^3 32M^3)$ constant
+   `ThreeBodyKinematics` implements follow the standard formulae of the PDG's
+   Kinematics review [PDG].
 3. **Diagram assembly.** {func}`~feynlag.pheno.amplitudes.amplitude_squared`
    squares a *single* {class}`~feynlag.pheno.vertices.DecayVertex`. An
    off-shell amplitude is vertex × propagator × vertex, and squaring it puts
@@ -187,7 +190,7 @@ its cost beyond the Higgs.
   channels, with the factor 2 for distinct $W^\pm$ vs. no factor for identical
   $ZZ$).
 
-**Verified** against the Keung–Marciano closed form
+**Verified** against the Keung–Marciano closed form [KM84, Djouadi08]
 $\Gamma(h\to VV^*)=\frac{3g_V^4 m_h}{512\pi^3}\delta_V R(x)$, $x=m_V^2/m_h^2$:
 $\Gamma(h\to WW^*)=0.80$ MeV and $\Gamma(h\to ZZ^*)=0.089$ MeV, and by
 narrow-width factorisation (a heavy scalar's $1\to3$ width → the Tier-1
@@ -219,7 +222,7 @@ $$\Gamma(h\to gg) = \frac{\alpha_s^2 m_h^3}{72\pi^3 v^2}
 \left|A_1(\tau_W) + \textstyle\sum_f N_c Q_f^2 A_{1/2}(\tau_f)\right|^2,$$
 
 where $A_{1/2}$ and $A_1$ are the fermion- and $W$-loop functions of the
-Higgs Hunter's Guide. Implemented as `effective_hgg(...)` /
+Higgs Hunter's Guide [GHKD00]. Implemented as `effective_hgg(...)` /
 `effective_haa(...)` helpers that *return a coupling*, the width is then an
 ordinary $1\to2$ the current engine already squares (`VVS` with massless
 vectors — the $-g_{ab}$ polarisation sum is already in
@@ -264,3 +267,21 @@ See {doc}`decays` for the implemented engine, the tutorial
 (`Particle_Decays_Tutorial.ipynb`) for the traps §16.1 makes
 unrepresentable, and the v2-deferred list in the repository `CLAUDE.md` for
 what stays out of scope.
+
+## 16.5 References
+
+- **[KM84]** W.-Y. Keung and W. J. Marciano, *"Higgs scalar decays: H → W±X"*,
+  Phys. Rev. D **30**, 248 (1984).
+  [doi:10.1103/PhysRevD.30.248](https://doi.org/10.1103/PhysRevD.30.248) — the
+  original $H\to WW^*$ calculation this section's Tier-2 widths reproduce.
+- **[Djouadi08]** A. Djouadi, *"The Anatomy of Electro-Weak Symmetry Breaking
+  I: The Higgs boson in the Standard Model"*, Phys. Rept. **457** (2008)
+  1–216, [arXiv:hep-ph/0503172](https://arxiv.org/abs/hep-ph/0503172) — the
+  modern compilation this chapter's $R(x)$ notation follows, and the source of
+  the Tier-3 $A_{1/2}$/$A_1$ loop functions.
+- **[GHKD00]** J. F. Gunion, H. E. Haber, G. L. Kane, S. Dawson, *The Higgs
+  Hunter's Guide*, Front. Phys. **80** (2000) 1–404 (originally
+  Addison-Wesley, 1990).
+- **[PDG]** Particle Data Group, *Review of Particle Physics* — "Kinematics"
+  review (three-body decays and the Dalitz plot); see the current edition at
+  [pdg.lbl.gov](https://pdg.lbl.gov/).

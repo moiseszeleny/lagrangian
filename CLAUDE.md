@@ -19,6 +19,10 @@ jupyter nbconvert --to notebook --execute --inplace examples/SM_Feynman_Rules_Tu
 
 There is no linter/formatter configured. No build step beyond the editable install.
 
+## Citing literature results
+
+When a docs chapter states a result taken from the literature (a closed-form formula, a loop function, a phase-space convention, a numeric benchmark) rather than derived in this repo, verify the source via web search first — never guess a DOI/arXiv/author list — then add a citable reference: a `## N.k References` list at the end of the chapter (author(s), title, venue, year, DOI/arXiv/stable URL) plus an inline `[Tag]` pointer at the sentence using it. Precedent: `docs/manual/decays_roadmap.md` §16.5 cites Keung & Marciano (Phys. Rev. D 30, 248, 1984) for the $H\to WW^*$ closed form, Djouadi (Phys. Rept. 457, 2008, hep-ph/0503172) for its modern $R(x)$ compilation, Gunion–Haber–Kane–Dawson (*Higgs Hunter's Guide*, Front. Phys. 80, 2000) for the one-loop $A_{1/2}/A_1$ functions, and the PDG's Kinematics review for the general Dalitz-plot phase-space formula — the last cited without a year pin since PDG republishes annually and section numbers shift.
+
 ## Architecture
 
 ### Pipeline stage → module map
