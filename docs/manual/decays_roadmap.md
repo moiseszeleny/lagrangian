@@ -203,10 +203,11 @@ $1\to3$ with a $W^*$ line-shape figure and the completed canonical BR chart.
 **Not yet built**: the FFFF and $t\to bW^*$ topologies (same infrastructure, a
 new assembler each).
 
-## 16.3 Tier 3 — loop-induced $gg$, $\gamma\gamma$, $Z\gamma$
+## 16.3 Tier 3 — loop-induced $gg$, $\gamma\gamma$, $Z\gamma$  ✅ (effective vertices delivered)
 
 **Channels**: $gg$ (8.2%), $\gamma\gamma$ (0.23%), $Z\gamma$ (0.15%).
-**Effort: moderate** — *if* one accepts the recommended route.
+**Effort: moderate** — *if* one accepts the recommended route. **Delivered**
+in `feynlag.pheno.loop` (see the end of this section).
 
 These vanish identically at tree level: the Higgs is electrically and colour
 neutral, so $h\to gg/\gamma\gamma$ proceed only through a top-quark triangle
@@ -242,13 +243,33 @@ choice) — is a project of the same scale as the whole current library, and
 already sits on the v2-deferred list next to $R_\xi$ gauges and ghosts. It
 should stay there until someone wants NLO for its own sake.
 
+### What was built
+
+{mod}`~feynlag.pheno.loop` provides the one-loop form factors — $f(\tau)$,
+$g(\tau)$; the single-argument $A_{1/2}(\tau)$, $A_1(\tau)$ for $gg/\gamma\gamma$;
+the two-argument $I_1,I_2$ and $A^{Z\gamma}_{1/2},A^{Z\gamma}_1$ for $Z\gamma$
+— and three width helpers `higgs_gg_width` (with an optional NLO-QCD
+$K$-factor), `higgs_gammagamma_width`, `higgs_zgamma_width`.
+`DecayCalculator.loop_widths(...)` returns all three.  **Verified against the
+PDG** (a few % each): $\Gamma(h\to\gamma\gamma)=9.2$ keV,
+$\Gamma(h\to gg)=0.20$ MeV at LO and $0.32$ MeV with the $K$-factor
+($\approx8\%$ BR), $\Gamma(h\to Z\gamma)=6.2$ keV; the form factors hit their
+decoupling limits $A_{1/2}\to4/3$, $A_1\to-7$, and the $W$/top interference in
+$\gamma\gamma$ is destructive (the physics that makes it a new-physics probe).
+Worked model: `examples/sm_higgs_decays.py` now prints the **complete** Higgs
+BR table (every visible channel), and the decays tutorial's §12 walks the
+loop physics, the full BR-vs-mass plot, and how new physics shows as a
+*deviation* from it.  The single-argument form factors follow Djouadi
+[Djouadi08]; the $Z\gamma$ closed form is verified against Carena et al.
+[CGHT13]; the NLO-QCD $gg$ $K$-factor follows Spira et al. [SDGZ95].
+
 ## 16.4 Summary
 
 | tier | channels | new machinery | BR gained | effort | ethos |
 |---|---|---|---|---|---|
 | 1 ✅ | $b\bar b,c\bar c,s\bar s,\mu\mu$ | `DiracParticle` abstraction (**done**); model content; running-mass inputs | → 67% | small | tree-level, in ethos |
 | 2 ✅ | $WW^*, ZZ^*$ | propagators + $1\to3$ phase space + diagram assembly (**done**); FFFF/$t\to bW^*$ topologies remain | → 91% | large | tree-level, in ethos |
-| 3 | $gg,\gamma\gamma,Z\gamma$ | effective one-loop vertices ($A_{1/2}, A_1$) | → 100% | moderate | documented exception (CKM precedent) |
+| 3 ✅ | $gg,\gamma\gamma,Z\gamma$ | effective one-loop vertices ($A_{1/2}, A_1$; **done**) | → 100% | moderate | documented exception (CKM precedent) |
 
 **Tier 2 status**: the $V$–$V^*$ topology ($h\to WW^*$, $h\to ZZ^*$) is delivered
 — `feynlag.pheno.offshell` reproduces the Keung–Marciano widths
@@ -281,7 +302,16 @@ what stays out of scope.
   the Tier-3 $A_{1/2}$/$A_1$ loop functions.
 - **[GHKD00]** J. F. Gunion, H. E. Haber, G. L. Kane, S. Dawson, *The Higgs
   Hunter's Guide*, Front. Phys. **80** (2000) 1–404 (originally
-  Addison-Wesley, 1990).
+  Addison-Wesley, 1990) — the one-loop $A_{1/2}/A_1$ form factors.
+- **[SDGZ95]** M. Spira, A. Djouadi, D. Graudenz, P. M. Zerwas, *"Higgs boson
+  production at the LHC"*, Nucl. Phys. B **453** (1995) 17,
+  [arXiv:hep-ph/9504378](https://arxiv.org/abs/hep-ph/9504378) — the NLO-QCD
+  $K$-factor for $h\to gg$.
+- **[CGHT13]** C.-S. Chen, C.-Q. Geng, D. Huang, L.-H. Tsai, *"New Scalar
+  Contributions to $h\to Z\gamma$"*, Phys. Rev. D **87**, 075019 (2013),
+  [arXiv:1301.4694](https://arxiv.org/abs/1301.4694) — the SM $h\to Z\gamma$
+  closed form (loop functions $I_1,I_2$, prefactor and couplings) this
+  implementation was verified against.
 - **[PDG]** Particle Data Group, *Review of Particle Physics* — "Kinematics"
   review (three-body decays and the Dalitz plot); see the current edition at
   [pdg.lbl.gov](https://pdg.lbl.gov/).

@@ -150,19 +150,45 @@ def main():
     print(f"  h -> WW*  Γ = {gWW * 1e3:8.4f} MeV   (Keung–Marciano ~0.80)")
     print(f"  h -> ZZ*  Γ = {gZZ * 1e3:8.4f} MeV   (Keung–Marciano ~0.089)")
 
-    grand = total + gWW + gZZ
-    print(f"\n{'channel':<12}{'Γ [MeV]':>12}{'BR':>10}")
-    print("-" * 34)
-    rows = [(f"{n}{n}" if False else k, v) for k, v in
-            [("WW*", gWW), ("ZZ*", gZZ)]]
+    # --- Tier 3: loop-induced gg / γγ / Zγ -----------------------------------
+    from feynlag.pheno import (higgs_gammagamma_width, higgs_gg_width,
+                               higgs_zgamma_width)
+    MT, ALPHA, ALPHA_S = 172.76, 1 / 137.036, 0.1126
+    Ggg = higgs_gg_width(MH, MT, VEV, ALPHA_S, qcd=True)        # NLO-QCD
+    Ggaga = higgs_gammagamma_width(MH, MT, MW, VEV, ALPHA)
+    GZga = higgs_zgamma_width(MH, MT, MW, MZ, VEV, ALPHA, sw2)
+
+    print("\n" + "=" * 60)
+    print("Higgs loop-induced decays (feynlag.pheno, Tier 3)")
+    print("=" * 60)
+    print(f"  h -> gg      Γ = {Ggg * 1e3:8.4f} MeV   (NLO-QCD, PDG ~0.34)")
+    print(f"  h -> γγ      Γ = {Ggaga * 1e6:8.4f} keV   (PDG ~9.3)")
+    print(f"  h -> Zγ      Γ = {GZga * 1e6:8.4f} keV   (PDG ~6.3)")
+    print("  (effective one-loop form factors — imported, not derived; the")
+    print("   documented Tier-3 exception, see decays_roadmap.md §16.3.)")
+
+    # --- the complete Higgs branching-ratio table ----------------------------
+    grand = total + gWW + gZZ + Ggg + Ggaga + GZga
+    rows = [("WW*", gWW), ("ZZ*", gZZ), ("gg", Ggg),
+            ("γγ", Ggaga), ("Zγ", GZga)]
     for children in ordered:
         rows.append(("".join(str(c) for c in children), numeric[children]))
+
+    print("\n" + "=" * 60)
+    print("Complete Higgs branching ratios at m_h = 125 GeV")
+    print("=" * 60)
+    print(f"{'channel':<12}{'Γ [MeV]':>12}{'BR':>10}   (measured)")
+    print("-" * 48)
+    measured = {"bbarb": "58%", "WW*": "21%", "gg": "8.2%", "taubartau": "6.3%",
+                "cbarc": "2.9%", "ZZ*": "2.6%", "γγ": "0.23%", "Zγ": "0.15%"}
     for name, w in sorted(rows, key=lambda r: -r[1]):
-        print(f"h -> {name:<7}{w * 1e3:>12.4f}{w / grand:>10.3f}")
-    print("-" * 34)
-    print(f"{'total (tree)':<12}{grand * 1e3:>12.4f} MeV")
-    print("\nb̄b dominant, WW* second — the canonical Higgs picture (still tree,")
-    print("1→2 + 1→3; loop-induced gg/γγ is Tier 3, see decays_roadmap.md).")
+        pdg = measured.get(name, "")
+        print(f"h -> {name:<7}{w * 1e3:>12.4f}{w / grand:>10.3f}   {pdg}")
+    print("-" * 48)
+    print(f"{'total':<12}{grand * 1e3:>12.4f} MeV   (PDG 4.1)")
+    print("\nThe full canonical Higgs picture — every channel but the tiny")
+    print("light-fermion ones, computed from a Lagrangian (tree + off-shell)")
+    print("and the standard one-loop form factors (gg/γγ/Zγ).")
 
 
 if __name__ == "__main__":
