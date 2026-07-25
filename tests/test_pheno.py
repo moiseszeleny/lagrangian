@@ -187,6 +187,11 @@ def test_gamma5_guard_raises_outside_two_body():
         reduce_projectors(chain, "L", n_free_indices=0, n_momenta=4)
     with pytest.raises(NotImplementedError, match="free Lorentz indices"):
         reduce_projectors(chain, "L", n_free_indices=3, n_momenta=2)
+    # a 2→2 process has 3 independent momenta and a generically non-zero ε·ε
+    # term (the forward-backward asymmetry) — the guard must fire here too,
+    # not just for 1→3 (see docs/manual/scattering_roadmap.md Tier 1/2)
+    with pytest.raises(NotImplementedError, match="independent momenta"):
+        reduce_projectors(chain, "L", n_free_indices=0, n_momenta=3)
     # the supported 1→2 configurations do not raise
     assert reduce_projectors(chain, "L", 0, 2)[1] == sp.Rational(1, 2)
     assert reduce_projectors(chain, None, 0, 2)[1] == 1

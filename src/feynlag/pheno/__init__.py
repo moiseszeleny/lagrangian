@@ -23,14 +23,20 @@ from .amplitudes import (
     sss_squared, vvs_squared,
 )
 from .calculator import DecayCalculator, DecayChannel, partial_width
+from .diagrams import (
+    Amplitude, BosonPropagator, ChainVertex, Diagram, Leg, SpinorChain,
+)
 from .kinematics import (
     TwoBodyKinematics, is_allowed, kallen, two_body_momentum,
     two_body_phase_space,
 )
-from .kinematics import ThreeBodyKinematics
+from .kinematics import ThreeBodyKinematics, TwoToTwoKinematics
 from .lorentz import contract_to_dots, dirac_trace, reduce_projectors
-from .particles import DiracParticle, expand_particles
-from .propagator import breit_wigner, vector_propagator_numerator
+from .particles import DiracParticle, ExternalState, expand_particles
+from .propagator import (
+    breit_wigner, propagator_denominator, scalar_propagator,
+    vector_propagator, vector_propagator_numerator,
+)
 from .integrate import dalitz_integral, have_scipy
 from .loop import (
     A_half, A_one, higgs_gammagamma_width, higgs_gg_width, higgs_zgamma_width,
@@ -39,19 +45,29 @@ from .offshell import (
     offshell_scalar_vv_width, scalar_offshell_vv_width, scalar_vv_s12_integral,
     scalar_vv_squared,
 )
+from .scattering import (
+    average_factor, cross_section, differential_cross_section,
+    ffs_s_channel_squared, ffv_s_channel_squared,
+)
 from .vertices import DecayVertex, classify_gamma, collect_decay_vertices
 
 __all__ = [
-    "DecayCalculator", "DecayChannel", "DecayVertex", "DiracParticle",
-    "TwoBodyKinematics", "ThreeBodyKinematics", "amplitude_squared",
+    "Amplitude", "BosonPropagator", "ChainVertex", "DecayCalculator",
+    "DecayChannel", "DecayVertex", "Diagram", "DiracParticle",
+    "ExternalState", "Leg", "SpinorChain",
+    "TwoBodyKinematics", "ThreeBodyKinematics", "TwoToTwoKinematics",
+    "amplitude_squared", "average_factor",
     "breit_wigner", "classify_gamma", "collect_decay_vertices",
+    "cross_section", "differential_cross_section",
     "A_half", "A_one", "contract_to_dots", "dalitz_integral", "dirac_trace",
-    "expand_particles", "ffs_squared", "ffv_squared",
+    "expand_particles", "ffs_squared", "ffs_s_channel_squared",
+    "ffv_squared", "ffv_s_channel_squared",
     "higgs_gammagamma_width", "higgs_gg_width", "higgs_zgamma_width",
     "have_scipy", "is_allowed", "kallen",
     "offshell_scalar_vv_width", "partial_width", "polarization_sum",
-    "reduce_projectors", "scalar_offshell_vv_width", "scalar_vv_s12_integral",
-    "scalar_vv_squared",
+    "propagator_denominator",
+    "reduce_projectors", "scalar_offshell_vv_width", "scalar_propagator",
+    "scalar_vv_s12_integral", "scalar_vv_squared",
     "spin_sum", "sss_squared", "two_body_momentum", "two_body_phase_space",
-    "vector_propagator_numerator", "vvs_squared",
+    "vector_propagator", "vector_propagator_numerator", "vvs_squared",
 ]

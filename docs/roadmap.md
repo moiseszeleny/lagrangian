@@ -155,6 +155,19 @@ abstraction (small), off-shell `VV*` via propagators/1→3 phase space (large),
 and loop-induced `gg`/`γγ` via effective vertices (moderate, documented
 exception to the tree-level ethos). See {doc}`manual/decays_roadmap`.
 
+### G — 2→2 scattering (tiered; own chapter)
+
+`feynlag.pheno` has no cross-section machinery at all before this: no
+Mandelstam invariants, no flux factor, no amplitude object (the 1→2 engine
+only ever produces an already-squared number). Tier 1 (kinematics +
+single-diagram amplitude, small–medium) is delivered — reproducing the
+textbook QED $e^+e^-\to\mu^+\mu^-$ cross section and the QED-only fraction of
+the existing MadGraph benchmark. Remaining: the ε (γ₅) algebra 2→2 genuinely
+needs and 1→2 never did (large), multi-diagram interference reaching the full
+MadGraph benchmark (medium–large), derivative-coupling processes like
+$e^+e^-\to W^+W^-$ (large), and parton-level QCD 2→2 (medium–large, no PDFs).
+See {doc}`manual/scattering_roadmap`.
+
 ## Suggested order
 
 **~~D.3~~ → ~~C2~~ → ~~D.2~~ → C3 / E.** D.3, C2, and D.2 are done. Remaining:
