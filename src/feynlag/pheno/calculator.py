@@ -373,3 +373,38 @@ class DecayCalculator:
                 sub = self._substitutions()
                 return complex(sp.sympify(c).subs(sub).evalf())
         raise KeyError(f"no VVS vertex containing ({parent}, {vector})")
+
+    # -------------------------------------------------------- loop-induced
+
+    def loop_widths(self, m_h, m_t, m_W, m_Z, v, alpha, alpha_s, sw2=None,
+                    qcd=True):
+        """Loop-induced Higgs widths ``{('g','g'), ('γ','γ'), ('Z','γ')}`` (Tier 3).
+
+        These channels are **not** derived from the Lagrangian — the Higgs is
+        colour- and charge-neutral, so they vanish at tree level.  They are
+        computed from the standard closed-form one-loop form factors
+        (:mod:`~feynlag.pheno.loop`), a documented exception to the
+        derive-from-the-Lagrangian ethos.  All inputs are numeric (the couplings
+        are imported, not extracted).
+
+        Args:
+            m_h, m_t, m_W, m_Z, v: masses and the VEV (numbers).
+            alpha, alpha_s: the EM and strong couplings at ~$m_h$.
+            sw2: $\\sin^2\\theta_W$; defaults to $1-m_W^2/m_Z^2$.
+            qcd: apply the NLO-QCD $K$-factor to $h\\to gg$ (default ``True``,
+                giving the measured ~0.34 MeV rather than the LO ~0.20).
+
+        Returns:
+            ``{('g','g'): Γ_gg, ('gamma','gamma'): Γ_γγ, ('Z','gamma'): Γ_Zγ}``
+            as floats in the units of ``m_h``.
+        """
+        from .loop import (higgs_gammagamma_width, higgs_gg_width,
+                           higgs_zgamma_width)
+        if sw2 is None:
+            sw2 = 1 - m_W**2 / m_Z**2
+        return {
+            ("g", "g"): higgs_gg_width(m_h, m_t, v, alpha_s, qcd=qcd),
+            ("gamma", "gamma"): higgs_gammagamma_width(m_h, m_t, m_W, v, alpha),
+            ("Z", "gamma"): higgs_zgamma_width(m_h, m_t, m_W, m_Z, v, alpha,
+                                               sw2),
+        }

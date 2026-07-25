@@ -41,6 +41,7 @@ page lists its public classes and functions with full signatures; cross-refs
    feynlag.pheno.propagator
    feynlag.pheno.integrate
    feynlag.pheno.offshell
+   feynlag.pheno.loop
    feynlag.pheno.calculator
    feynlag.verify.checks
 ```

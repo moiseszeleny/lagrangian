@@ -32,6 +32,9 @@ from .lorentz import contract_to_dots, dirac_trace, reduce_projectors
 from .particles import DiracParticle, expand_particles
 from .propagator import breit_wigner, vector_propagator_numerator
 from .integrate import dalitz_integral, have_scipy
+from .loop import (
+    A_half, A_one, higgs_gammagamma_width, higgs_gg_width, higgs_zgamma_width,
+)
 from .offshell import (
     offshell_scalar_vv_width, scalar_offshell_vv_width, scalar_vv_s12_integral,
     scalar_vv_squared,
@@ -42,8 +45,10 @@ __all__ = [
     "DecayCalculator", "DecayChannel", "DecayVertex", "DiracParticle",
     "TwoBodyKinematics", "ThreeBodyKinematics", "amplitude_squared",
     "breit_wigner", "classify_gamma", "collect_decay_vertices",
-    "contract_to_dots", "dalitz_integral", "dirac_trace", "expand_particles",
-    "ffs_squared", "ffv_squared", "have_scipy", "is_allowed", "kallen",
+    "A_half", "A_one", "contract_to_dots", "dalitz_integral", "dirac_trace",
+    "expand_particles", "ffs_squared", "ffv_squared",
+    "higgs_gammagamma_width", "higgs_gg_width", "higgs_zgamma_width",
+    "have_scipy", "is_allowed", "kallen",
     "offshell_scalar_vv_width", "partial_width", "polarization_sum",
     "reduce_projectors", "scalar_offshell_vv_width", "scalar_vv_s12_integral",
     "scalar_vv_squared",
