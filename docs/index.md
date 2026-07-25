@@ -77,6 +77,7 @@ manual/charges
 manual/flavor
 manual/decays
 manual/decays_roadmap
+manual/scattering_roadmap
 tutorials/index
 examples
 benchmark

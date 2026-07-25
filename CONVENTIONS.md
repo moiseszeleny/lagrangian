@@ -33,6 +33,24 @@ test in `tests/`. Adapted from `bsm-calc/conventions/` and
   vertex via `e^{+ip·x}`); the overall convention is fixed by the pinned VSS
   test and documented in `operators.py`.
 
+## 2→2 scattering kinematics
+- `1(k₁) + 2(k₂) → 3(k₃) + 4(k₄)`, all-incoming/outgoing per the standard
+  external-fermion-line table (not an all-incoming convention): incoming
+  particle / outgoing antiparticle → field (ψ) slot; outgoing particle /
+  incoming antiparticle → bar (ψ̄) slot.
+- Mandelstam invariants `s = (k₁+k₂)² = (k₃+k₄)²`, `t = (k₁−k₃)² = (k₂−k₄)²`;
+  `u = m₁²+m₂²+m₃²+m₄² − s − t` is always a **derived** quantity, never an
+  independent free symbol — momentum conservation then holds by construction.
+  `s` is `positive=True`; `t` is `real=True` (it is negative throughout the
+  physical region — the "positive dummies under `sqrt`" rule does not apply
+  to it).
+- Flux factor `1/(2√λ(s,m₁²,m₂²))`; `dσ/dt = ⟨|M|²⟩/(16πλ(s,m₁²,m₂²))`.
+- **Squared-amplitude functions/methods return the spin/colour-summed
+  `|M|²`, never averaged.** Averaging over the initial state is declared
+  data (`feynlag.pheno.particles.ExternalState.dof()`) and applied exactly
+  once, by `feynlag.pheno.scattering.cross_section`/
+  `differential_cross_section` — see `docs/manual/scattering_roadmap.md`.
+
 ## SymPy hygiene
 - Arguments of `sqrt` must be manifestly positive: introduce positive dummy
   symbols for differences (e.g. `p1 = μ₃ − m_μ` with `p1 > 0`), never feed a

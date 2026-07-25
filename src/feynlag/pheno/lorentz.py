@@ -119,8 +119,8 @@ def reduce_projectors(expr, chirality, n_free_indices=0, n_momenta=2):
 
     Raises:
         NotImplementedError: if the ε term is not provably zero.  This is a
-            hard guard, not a comment: a later 1→3 extension fails loudly here
-            instead of silently returning a wrong number.
+            hard guard, not a comment: a later 1→3 or 2→2 extension fails
+            loudly here instead of silently returning a wrong number.
     """
     if chirality is None:
         return expr, sp.S.One
@@ -128,11 +128,15 @@ def reduce_projectors(expr, chirality, n_free_indices=0, n_momenta=2):
         raise ValueError(f"chirality must be 'L', 'R' or None, got {chirality!r}")
     # ε^{μνρσ} is totally antisymmetric: it needs four independent vectors.
     # Each free index is contracted with a symmetric tensor and so cannot
-    # supply one; only independent momenta can.
-    if n_momenta > 3:
+    # supply one; only independent momenta can.  A 2→2 process already has 3
+    # independent momenta (p4 = p1+p2-p3 is not independent) and its ε·ε
+    # contribution is generically non-zero (the forward-backward-asymmetry
+    # term), so the "provably zero" guarantee holds only up to 2 momenta —
+    # exactly the 1→2 case this module was built for.
+    if n_momenta > 2:
         raise NotImplementedError(
             f"reduce_projectors: the γ₅ (ε-tensor) term is only provably zero "
-            f"for at most 3 independent momenta, got {n_momenta}. A 1→3 or "
+            f"for at most 2 independent momenta, got {n_momenta}. A 1→3 or "
             f"2→2 process needs genuine ε-tensor algebra, which this engine "
             f"does not implement — refusing to silently drop it.")
     if n_free_indices > 2:

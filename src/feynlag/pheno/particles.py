@@ -23,7 +23,7 @@ import sympy as sp
 
 from ..fields import bar_partner
 
-__all__ = ["DiracParticle", "expand_particles"]
+__all__ = ["DiracParticle", "ExternalState", "expand_particles"]
 
 
 @dataclass(frozen=True)
@@ -97,6 +97,61 @@ class DiracParticle:
         """``{particle: N_c, antiparticle: N_c}``."""
         nc = sp.Integer(self.color)
         return {self.particle: nc, self.antiparticle: nc}
+
+
+@dataclass(frozen=True)
+class ExternalState:
+    """One external particle of a 2→2 scattering process.
+
+    :class:`DiracParticle` bundles what a *decaying* fermion needs (mass,
+    colour, its two Weyl legs).  A scattering initial/final state additionally
+    needs its **spin**, because
+    :func:`~feynlag.pheno.scattering.average_factor` must average over the
+    initial-state spin/colour degrees of freedom — the anti-pattern this
+    replaces is :func:`~feynlag.pheno.amplitudes.ffv_squared`'s hardcoded
+    ``/3``, an initial-state spin average masquerading as part of the Lorentz
+    algebra, which made that function unreusable for an *internal* vector.
+    Here the averaging factor is declared data, applied exactly once by
+    :func:`~feynlag.pheno.scattering.cross_section`.
+
+    Args:
+        name: the particle symbol (a ``str`` is promoted to a
+            :class:`~sympy.core.symbol.Symbol`).
+        mass: the physical mass.
+        spin: ``0`` (scalar), ``Rational(1,2)`` (fermion) or ``1`` (vector).
+        color: colour multiplicity, as in :class:`DiracParticle`.
+    """
+
+    name: sp.Symbol
+    mass: sp.Expr
+    spin: sp.Rational
+    color: int = 1
+
+    def __post_init__(self):
+        object.__setattr__(self, "name", sp.sympify(self.name))
+        object.__setattr__(self, "mass", sp.sympify(self.mass))
+        object.__setattr__(self, "spin", sp.sympify(self.spin))
+
+    def spin_states(self):
+        """Number of physical spin states: ``1`` (scalar), ``2`` (fermion),
+        ``2`` (massless vector) or ``3`` (massive vector)."""
+        if self.spin == 0:
+            return 1
+        if self.spin == sp.Rational(1, 2):
+            return 2
+        if self.spin == 1:
+            return 1 if self.mass == 0 else 3
+        raise NotImplementedError(f"ExternalState: unsupported spin {self.spin}")
+
+    def dof(self):
+        """``spin_states() × color`` — the full averaging denominator unit."""
+        return self.spin_states() * self.color
+
+    @classmethod
+    def from_dirac_particle(cls, dp, spin=sp.Rational(1, 2)):
+        """Build from a :class:`DiracParticle`, so mass and ``N_c`` cannot
+        fall out of sync between the two descriptions."""
+        return cls(name=dp.particle, mass=dp.mass, spin=spin, color=dp.color)
 
 
 def expand_particles(particles):

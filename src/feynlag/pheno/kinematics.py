@@ -7,8 +7,8 @@ import sympy as sp
 from .lorentz import momentum
 
 __all__ = [
-    "ThreeBodyKinematics", "TwoBodyKinematics", "is_allowed", "kallen",
-    "two_body_momentum", "two_body_phase_space",
+    "ThreeBodyKinematics", "TwoBodyKinematics", "TwoToTwoKinematics",
+    "is_allowed", "kallen", "two_body_momentum", "two_body_phase_space",
 ]
 
 
@@ -203,3 +203,159 @@ class ThreeBodyKinematics:
     def phase_space_constant(self):
         """The ``1/((2π)³ 32 M³)`` prefactor of the Dalitz integral."""
         return 1 / ((2 * sp.pi)**3 * 32 * self.M**3)
+
+
+@dataclass(frozen=True)
+class TwoToTwoKinematics:
+    """On-shell kinematics of ``1(k₁) + 2(k₂) → 3(k₃) + 4(k₄)``.
+
+    Parametrised by the Mandelstam invariants ``s = (k₁+k₂)² = (k₃+k₄)²`` and
+    ``t = (k₁−k₃)² = (k₂−k₄)²`` (the third, ``u = (k₁−k₄)² = (k₂−k₃)²``, is
+    fixed by ``s+t+u = m₁²+m₂²+m₃²+m₄²`` and is a *derived* property here, not
+    a free symbol — momentum conservation then holds by construction rather
+    than by assertion).
+
+    ``s`` and ``t`` are kept as the primary symbols rather than ``(s, cosθ)``:
+    the ``dot`` table below is linear in ``s, t, u`` with no radicals, while a
+    ``cosθ`` parametrization would drag ``√λ_i√λ_f`` into every table entry
+    and hence into every Dirac trace — the same reason
+    :class:`ThreeBodyKinematics` confines its radicals to
+    :meth:`s12_bounds`. ``t`` is negative throughout the physical region, so
+    it is declared ``real=True``, not ``positive=True``.
+
+    ``k₄`` is *not* an independent momentum (``k₄ = k₁+k₂−k₃``), but it is
+    still given its own :func:`~feynlag.pheno.lorentz.momentum` head rather
+    than being rewritten inline: momentum conservation then becomes a
+    testable invariant of the ``dot`` table instead of expression-level
+    algebra that would interact badly with ``TensAdd`` expansion inside
+    :func:`~feynlag.pheno.lorentz.dirac_trace`.
+
+    Names default to ``k1..k4`` — deliberately distinct from the ``p1, p2,
+    p3`` defaults of :class:`TwoBodyKinematics`/:class:`ThreeBodyKinematics`,
+    since :func:`~feynlag.pheno.lorentz.momentum` caches heads globally by
+    name and :meth:`dot` dispatches on that name: a foreign ``p1`` head
+    leaking into a 2→2 expression must raise a loud ``KeyError``, never
+    silently answer with the wrong table.
+    """
+
+    m1: sp.Expr
+    m2: sp.Expr
+    m3: sp.Expr
+    m4: sp.Expr
+    names: tuple = ("k1", "k2", "k3", "k4")
+
+    @property
+    def k1(self):
+        return momentum(self.names[0])
+
+    @property
+    def k2(self):
+        return momentum(self.names[1])
+
+    @property
+    def k3(self):
+        return momentum(self.names[2])
+
+    @property
+    def k4(self):
+        return momentum(self.names[3])
+
+    @property
+    def s(self):
+        return sp.Symbol("s", positive=True)
+
+    @property
+    def t(self):
+        return sp.Symbol("t", real=True)
+
+    @property
+    def u(self):
+        """``u = m₁²+m₂²+m₃²+m₄² − s − t`` — derived, never a free symbol."""
+        return self.m1**2 + self.m2**2 + self.m3**2 + self.m4**2 - self.s - self.t
+
+    def dot(self, head_a, head_b):
+        """``k_a·k_b`` for two momentum heads.
+
+        Signature required by
+        :func:`~feynlag.pheno.lorentz.contract_to_dots`.
+        """
+        n1, n2, n3, n4 = self.names
+        m1, m2, m3, m4 = self.m1, self.m2, self.m3, self.m4
+        s, t, u = self.s, self.t, self.u
+        table = {
+            (n1, n1): m1**2, (n2, n2): m2**2,
+            (n3, n3): m3**2, (n4, n4): m4**2,
+            tuple(sorted((n1, n2))): (s - m1**2 - m2**2) / 2,
+            tuple(sorted((n3, n4))): (s - m3**2 - m4**2) / 2,
+            tuple(sorted((n1, n3))): (m1**2 + m3**2 - t) / 2,
+            tuple(sorted((n2, n4))): (m2**2 + m4**2 - t) / 2,
+            tuple(sorted((n1, n4))): (m1**2 + m4**2 - u) / 2,
+            tuple(sorted((n2, n3))): (m2**2 + m3**2 - u) / 2,
+        }
+        pair = tuple(sorted((head_a.name, head_b.name)))
+        if pair not in table:
+            raise KeyError(f"no on-shell dot product for momenta {pair}")
+        return table[pair]
+
+    def lambda_initial(self):
+        """``λ(s, m₁², m₂²)`` — the initial-state Källén function."""
+        return kallen(self.s, self.m1**2, self.m2**2)
+
+    def lambda_final(self):
+        """``λ(s, m₃², m₄²)`` — the final-state Källén function."""
+        return kallen(self.s, self.m3**2, self.m4**2)
+
+    def p_cm_initial(self):
+        """CM three-momentum magnitude of either initial particle."""
+        return two_body_momentum(sp.sqrt(self.s), self.m1, self.m2)
+
+    def p_cm_final(self):
+        """CM three-momentum magnitude of either final particle."""
+        return two_body_momentum(sp.sqrt(self.s), self.m3, self.m4)
+
+    def flux_factor(self):
+        """``1/(2√λ(s,m₁²,m₂²))`` — from the flux identity
+        ``4E₁E₂|v₁−v₂| = 4√s·p_i = 2√λ_i``."""
+        return 1 / (2 * sp.sqrt(self.lambda_initial()))
+
+    def _t_center_and_spread(self):
+        """``(t₀, Δ)`` with ``t = t₀ + Δ·cosθ`` — shared by ``t_bounds``,
+        ``cos_theta`` and ``t_of_cos``."""
+        rs = sp.sqrt(self.s)
+        E1 = (self.s + self.m1**2 - self.m2**2) / (2 * rs)
+        E3 = (self.s + self.m3**2 - self.m4**2) / (2 * rs)
+        spread = 2 * self.p_cm_initial() * self.p_cm_final()
+        t0 = self.m1**2 + self.m3**2 - 2 * E1 * E3
+        return t0, spread
+
+    def t_bounds(self):
+        """``(t_min, t_max)`` at fixed ``s`` — the ``cosθ = ∓1`` endpoints."""
+        t0, spread = self._t_center_and_spread()
+        return (t0 - spread, t0 + spread)
+
+    def cos_theta(self):
+        """The CM scattering angle implied by this object's ``t``."""
+        t0, spread = self._t_center_and_spread()
+        return (self.t - t0) / spread
+
+    def t_of_cos(self, c):
+        """``t`` at a given ``cosθ = c``, fixed ``s`` — inverse of
+        :meth:`cos_theta`."""
+        t0, spread = self._t_center_and_spread()
+        return t0 + spread * c
+
+    def dsigma_dt_factor(self):
+        """``1/(16π λ_initial)`` — multiply by the spin/colour-summed
+        ``|M|²`` to get ``dσ/dt``."""
+        return 1 / (16 * sp.pi * self.lambda_initial())
+
+    def dsigma_dcos_factor(self):
+        """``√λ_final/(32π s √λ_initial)`` — multiply by the spin/colour-
+        summed ``|M|²`` to get ``dσ/dcosθ``."""
+        return sp.sqrt(self.lambda_final()) / (
+            32 * sp.pi * self.s * sp.sqrt(self.lambda_initial()))
+
+    def allowed(self):
+        """Whether the final state ``3+4`` is open at this ``√s``
+        (``None`` if undecidable symbolically)."""
+        return is_allowed(sp.sqrt(self.s), self.m3, self.m4)
