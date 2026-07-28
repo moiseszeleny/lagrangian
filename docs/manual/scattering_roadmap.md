@@ -45,11 +45,12 @@ covariant engine (`pheno/lorentz.py`) unchanged underneath.
 $f_1\bar f_1\to f_2\bar f_2$ through one s-channel scalar. **Effort:
 small–medium.**
 
-What Tier 1 deliberately does *not* attempt: chiral couplings on both
-vertices of the same diagram (the ε·ε term above — Tier 2), and more than one
-diagram (γ/Z interference — Tier 3). Both are hard guards, not omissions: the
-engine raises `NotImplementedError` rather than returning a number that would
-be wrong by an $O(1)$ fraction.
+What Tier 1 deliberately does *not* attempt: more than one diagram (γ/Z
+interference — Tier 3). This is a hard guard, not an omission: the engine
+raises `NotImplementedError` rather than returning a number that would be
+wrong by an $O(1)$ fraction. (Chiral couplings on both vertices of the same
+diagram — the ε·ε term above — were Tier 1's other hard guard; §17.2 below
+computes it instead.)
 
 ### What was built
 
@@ -115,9 +116,11 @@ function still correctly proves each *individual* chain's own ε term is zero
 — that reasoning is unaffected by the overall process being 2→2, since a
 chain's trace only ever involves its own two legs. What it cannot see is the
 **cross-chain** ε·ε term that appears when *two* chiral chains meet through a
-propagator; {class}`~feynlag.pheno.diagrams.Amplitude` computes the product of
-both chains' would-be ε coefficients directly
-(`ChainVertex.epsilon_coefficient`) and refuses to drop it when non-zero.
+propagator; {class}`~feynlag.pheno.diagrams.Amplitude` computes that term
+directly now (§17.2, delivered) instead of refusing it, and
+`SpinorChain.trace` no longer calls `reduce_projectors` at all — it stays
+frozen as the 1→2-only helper `ffs_squared`/`ffv_squared` use
+(`tests/test_scattering.py::test_reduce_projectors_is_no_longer_on_the_chain_path`).
 
 ### Verified
 
@@ -135,37 +138,115 @@ be accidentally "passed" here. `tests/test_scattering.py` also pins that a
 chiral coupling on both vertices genuinely differs from the naive "half the
 vector result" guess that *does* hold for a 1→2 decay
 (`test_ffv_chiral_is_half_the_vector_result` in `test_pheno.py`) — by up to
-$O(1)$, at several angles — which is what justifies Tier 1's refusal to
-compute that case rather than silently guessing.
+$O(1)$, at several angles — which is what justified Tier 1's refusal to
+compute that case rather than silently guessing, before §17.2 computed it
+for real.
 
-## 17.2 Tier 2 — the ε (γ₅) algebra
+## 17.2 Tier 2 — the ε (γ₅) algebra ✅ (delivered)
 
 **Channels**: $e^+e^-\to\mu^+\mu^-$ through the $Z$ alone; any process with a
 single diagram carrying two chiral fermion currents. **Effort: large.**
 
-This has to land before Tier 3, not folded into it. It is needed the moment
-one diagram has two chiral currents — no interference required — so it can be
+This landed before Tier 3, not folded into it. It was needed the moment one
+diagram has two chiral currents — no interference required — so it could be
 validated in isolation, against one closed form
-($d\sigma/d\cos\theta \propto (1+\cos^2\theta) + A\cos\theta$, with the sign
-and magnitude of the forward–backward asymmetry $A$ pinned), with exactly one
-new failure mode. Folded into Tier 3 alongside multi-diagram interference, a
-wrong $A_{FB}$ could equally be the ε reduction, a relative diagram sign, or
-fermion-flow bookkeeping — three candidate bugs instead of one.
+($d\sigma/d\cos\theta \propto (1+\cos^2\theta) + A_{FB}\cos\theta$, with the
+sign and magnitude of the forward–backward asymmetry pinned against
+[LEPEWWG06]), with exactly one new failure mode. Folded into Tier 3 alongside
+multi-diagram interference, a wrong $A_{FB}$ could equally have been the ε
+reduction, a relative diagram sign, or fermion-flow bookkeeping — three
+candidate bugs instead of one.
 
-The content: $\mathrm{Tr}[\gamma^a\gamma^b\gamma^c\gamma^d\gamma_5] =
--4i\varepsilon^{abcd}$, implemented against SymPy's own
-`LorentzIndex.epsilon` (present since at least SymPy 1.14 but **not**
-self-contracting — `Eps(a,b,c,d)*Eps(-a,-b,-c,-d)` does not auto-simplify,
-even under `.contract_metric()`, so a dedicated reduction pass is needed), and
-the identity $\varepsilon^{abcd}\varepsilon_{a'b'c'd'} = -\det[g^a_{a'}\cdots]$
-contracted down to $\varepsilon(p,q,r,s)\cdot\varepsilon(p',q',r',s') =
--\det[p_i\cdot p'_j]$ — a genuine Gram-determinant computation, not a lookup.
-This retires the `(n_momenta, n_free_indices)` proxy inside
-{func}`~feynlag.pheno.lorentz.reduce_projectors` for the chain-level engine
-(that function stays, frozen, as the 1→2-only helper `ffs_squared`/
-`ffv_squared` already use) in favour of a per-chain-pair computed ε
-coefficient that {class}`~feynlag.pheno.diagrams.Amplitude` can act on
-directly instead of merely refusing.
+### What was built
+
+- {mod}`~feynlag.pheno.epsilon` (new) — the only module with ε knowledge.
+  SymPy's own `sympy.physics.hep.gamma_matrices` ships neither a γ₅ object
+  nor an ε-aware `gamma_trace` (checked directly against the installed
+  version, not assumed), so both identities below are hand-rolled rather
+  than delegated to a SymPy primitive:
+  - $\mathrm{Tr}[\gamma^a\gamma^b\gamma^c\gamma^d\gamma_5] =
+    \kappa\,\varepsilon^{abcd}$ — {func}`~feynlag.pheno.epsilon.gamma5_trace_coefficient`
+    reads $\kappa$ off the literal $\gamma^0\gamma^1\gamma^2\gamma^3\gamma_5$
+    matrix from `feynlag.dirac._dirac_rep`, against a stated
+    $\varepsilon^{0123}=+1$ normalization
+    ({func}`~feynlag.pheno.epsilon.levi_civita_array`) — $\kappa=-4i$,
+    **derived, not quoted**, the same discipline
+    `dirac.majorana_symmetry_sign` uses for its own sign.
+  - $\varepsilon^{a\ldots}\varepsilon^{b\ldots} = s_{\det}\!\cdot\!\det[g^{a_ib_j}]$
+    — {func}`~feynlag.pheno.epsilon.epsilon_product_sign` derives
+    $s_{\det}=-1$ the same way, against the $(+,-,-,-)$ metric.
+    {func}`~feynlag.pheno.epsilon.epsilon_pair_tensor` expands this as 24
+    signed products of four metrics with all free Lorentz indices left
+    **open**, each slot resolved by content (two momenta contract through a
+    fresh dummy per pairing; a momentum meeting a free index just evaluates
+    the head there; two free indices meet the ordinary `LorentzIndex.metric`)
+    — no `Eps` tensor object needed, and the all-momentum case reduces on
+    its own to the roadmap's $-\det[p_i\cdot p'_j]$ Gram determinant.
+  - {func}`~feynlag.pheno.epsilon.assert_epsilon_single_vanishes` — the
+    single-ε cross terms (one chain's ε piece times the other chain's
+    ordinary trace) reduce to a scalar times $\varepsilon$(four momenta drawn
+    from the diagram's own external legs); since
+    $\varepsilon(a,b,c,d)^2=-\det[\cdot]$ (identity 2 again), a vanishing
+    Gram determinant over every 4-subset of the diagram's momenta **proves**
+    every such term is zero — a computed prove-or-refuse guard reading the
+    diagram's actual `kin.dot` table, not a momentum-count proxy that would
+    need re-tuning for a future topology.
+- {meth}`~feynlag.pheno.diagrams.SpinorChain.epsilon_structure` — a chain's
+  ε piece as `(prefactor, slots)` or `None` (a scalar chain, or a
+  pure-vector `g_L=g_R` chain, has none — exactly the cases the pre-Tier-2
+  engine already handled correctly, so those results are unchanged
+  bit-for-bit). `SpinorChain.trace` no longer calls `reduce_projectors` —
+  see the retirement note above.
+- {meth}`~feynlag.pheno.diagrams.Amplitude.squared` assembles the ε
+  contribution alongside the existing non-ε piece — both are separately
+  fully-contracted scalars before being summed, so the house rule that
+  {func}`~feynlag.pheno.lorentz.contract_to_dots` runs **exactly once**, on a
+  fully-contracted expression, survives literally. Contracting the two
+  propagator numerators against the ε tensor stepwise (one numerator at a
+  time, with `.expand()` between them) is ~3.5× faster than contracting both
+  at once for a massive mediator.
+- {func}`~feynlag.pheno.scattering.forward_backward_asymmetry` — the Tier-2
+  acceptance observable, $A_{FB}=(\sigma_F-\sigma_B)/(\sigma_F+\sigma_B)$
+  over the $\cos\theta\gtrless0$ hemispheres. Needs no
+  {class}`~feynlag.pheno.particles.ExternalState`\ s, unlike
+  `differential_cross_section`/`cross_section`: the spin average, any
+  identical-particle symmetry factor, and the $d\sigma/d\cos\theta$
+  conversion factor are all $\cos\theta$-independent and cancel exactly in
+  the ratio.
+
+### Verified
+
+The headline test, `test_chiral_squared_amplitude_matches_explicit_matrix_oracle`:
+with **fully symbolic**, independent chiral couplings $g_L,g_R,h_L,h_R$ on
+both vertices (not the pure-vector case, where the ε term is trivially zero)
+through a massless mediator, the covariant engine matches the independent
+explicit-4×4-matrix oracle exactly (`tests/test_scattering.py`'s
+`_oracle_qed_general`) — this one identity simultaneously fixes $\kappa$, the
+$\mp$ sign in the $P_{L,R}$ split, and the $\varepsilon_{0123}$ convention,
+and its full generality is what shows the single-ε cross terms genuinely
+cancel rather than happening to vanish at one lucky point.
+`test_z_massive_mediator_matches_explicit_matrix_oracle` extends the oracle
+to a massive mediator (the only test needing that extension) and checks
+`vector_propagator_numerator`'s sign convention composes correctly with the ε
+piece; `test_massive_mediator_epsilon_piece_drops_the_qq_term` separately
+confirms the propagator's $q_\mu q_\nu/M^2$ term drops out of the ε
+contribution automatically (a repeated momentum in the same ε ⟹ two equal
+Gram-determinant rows ⟹ 0), for four symbolic external masses.
+
+Against the literature: the massless-final-state angular distribution
+matches the LEP Born-level form,
+$\Sigma|\mathcal M|^2=(g_L^2+g_R^2)(h_L^2+h_R^2)(1+\cos^2\theta)+2(g_L^2-g_R^2)(h_L^2-h_R^2)\cos\theta$
+(Eq. (1.55) of [LEPEWWG06] at zero beam polarization), and
+`forward_backward_asymmetry` reproduces
+$A_{FB}^{0,f}=\tfrac34A_eA_f$ (Eq. (1.66)) symbolically, plus a numeric pin
+at the LEP effective weak mixing angle
+$\sin^2\theta_{\mathrm{eff}}^{\mathrm{lept}}=0.23153$ giving the standard
+leptonic $A_\ell\approx0.147$, $A_{FB}^{0,\ell}\approx0.016$.
+`test_z_only_total_cross_section_is_epsilon_independent` confirms the ε term
+is odd in $\cos\theta$ and integrates away over the full range — a chiral
+mediator's *total* cross section equals a pure-vector coupling's with the
+same $g_L^2+g_R^2$, so Tier 1's 2.322 pb QED benchmark cannot shift from
+Tier 2 landing; $A_{FB}$ is an angular observable only.
 
 ## 17.3 Tier 3 — interference and the first cross-section benchmark
 
@@ -232,15 +313,15 @@ the library (no proton structure anywhere).
 
 | tier | channels | new machinery | effort | oracle |
 |---|---|---|---|---|
-| 1 ✅ | $e^+e^-\to\mu^+\mu^-$ (γ only), $f\bar f\to f\bar f$ via a scalar | `TwoToTwoKinematics`; `SpinorChain`/`Diagram`/`Amplitude` (**done**); amplitude-level propagators; `ExternalState` averaging; the ε-coefficient guard | small–medium | Peskin QED closed form + explicit-matrix oracle |
-| 2 | $e^+e^-\to\mu^+\mu^-$ (Z only); any single chiral-current diagram | ε (γ₅) algebra: $\mathrm{Tr}[\gamma\gamma\gamma\gamma\gamma_5]$, ε·ε → Gram determinant | large | $d\sigma/d\cos\theta$ shape + $A_{FB}$; γ₅-carrying matrix oracle |
+| 1 ✅ | $e^+e^-\to\mu^+\mu^-$ (γ only), $f\bar f\to f\bar f$ via a scalar | `TwoToTwoKinematics`; `SpinorChain`/`Diagram`/`Amplitude` (**done**); amplitude-level propagators; `ExternalState` averaging | small–medium | Peskin QED closed form + explicit-matrix oracle |
+| 2 ✅ | $e^+e^-\to\mu^+\mu^-$ (Z only); any single chiral-current diagram | ε (γ₅) algebra (`pheno.epsilon`): $\mathrm{Tr}[\gamma\gamma\gamma\gamma\gamma_5]$, ε·ε → Gram determinant, `forward_backward_asymmetry` | large | $d\sigma/d\cos\theta$ shape + $A_{FB}=\tfrac34A_eA_f$ vs [LEPEWWG06]; γ₅-carrying matrix oracle (massless + massive mediator) |
 | 3 | full $e^+e^-\to f\bar f$ (γ/Z interference) | multi-diagram double sum; s/t/u topology search; relative signs | medium–large | **MadGraph 2.7878 pb** |
 | 4 | $e^+e^-\to W^+W^-$; derivative couplings | `VVV`/`VSS` momentum-tag resolution; external vector polarization sums | large | **MadGraph 19.498 pb**; no $s^2$ growth |
 | 5 | $q\bar q\to q\bar q$, $qg\to qg$, $gg\to gg$ | colour-flow algebra; colour averaging; 4-point contact vertices | medium–large | ESW parton-level table (no PDFs) |
 
-The recommended order is the table order: Tier 1 gives the first native cross
+The recommended order is the table order: Tier 1 gave the first native cross
 section for the cost of an object layer that reuses the existing covariant
-engine unchanged; Tier 2 is the genuinely new algebra 2→2 requires that 1→2
+engine unchanged; Tier 2 was the genuinely new algebra 2→2 requires that 1→2
 never did; Tier 3 is where the two MadGraph benchmarks stop being aspirational
 and start being reproduced; Tier 4 is the hardest single piece (derivative
 couplings); Tier 5 generalizes to QCD but adds no new *kind* of physics beyond
@@ -260,6 +341,15 @@ pins.
   Physics*, Cambridge Monographs on Particle Physics, Nuclear Physics and
   Cosmology 8, Cambridge University Press (1996), ISBN 978-0-521-54589-1 —
   the parton-level $2\to2$ $|\mathcal M|^2$ table Tier 5 targets.
+- **[LEPEWWG06]** ALEPH, DELPHI, L3, OPAL, SLD Collaborations, LEP
+  Electroweak Working Group, SLD Electroweak and Heavy Flavour Groups,
+  "Precision Electroweak Measurements on the Z Resonance," Phys. Rept. 427
+  (2006) 257–454, [arXiv:hep-ex/0509008](https://arxiv.org/abs/hep-ex/0509008),
+  [doi:10.1016/j.physrep.2005.12.006](https://doi.org/10.1016/j.physrep.2005.12.006)
+  — Eq. (1.55) the Born-level $e^+e^-\to f\bar f$ angular distribution,
+  Eq. (1.56) the coupling asymmetry $A_f$, Eq. (1.66) the forward–backward
+  asymmetry $A_{FB}^{0,f}=\tfrac34A_eA_f$ Tier 2's `forward_backward_asymmetry`
+  reproduces.
 - **[PDG]** Particle Data Group, *Review of Particle Physics* — "Kinematics"
   review (Mandelstam invariants, the two-body $t$-range, $d\sigma/dt$); see
   the current edition at [pdg.lbl.gov](https://pdg.lbl.gov/), cited without a

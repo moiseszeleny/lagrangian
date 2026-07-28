@@ -1,6 +1,6 @@
 # Tutorials
 
-Seven fully executed Jupyter notebooks, walking a worked model stage by
+Eight fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -10,6 +10,7 @@ notebook produces.
 :maxdepth: 1
 
 Particle_Decays_Tutorial
+Scattering_Tutorial
 SUN_Groups_Tutorial
 SM_Feynman_Rules_Tutorial
 SM_VLL_Tutorial
@@ -37,6 +38,24 @@ two mistakes that fail *silently* — forgetting that a Dirac fermion is two Wey
 fields (an error that vanishes in the massless limit), and closed channels
 turning $\sqrt\lambda$ imaginary — and then builds a $Z'$ from scratch to show
 the same machinery on a new model.
+
+## Scattering Tutorial
+
+The first native **cross section**, not a decay width: $e^+e^-\to\mu^+\mu^-$
+through a photon (Tier 1), matched against the Peskin & Schroeder closed form,
+then $e^+e^-\to\mu^+\mu^-$ through the Z alone (Tier 2), where a real electron
+Z coupling is pulled straight out of a built SM Lagrangian rather than typed
+in as a textbook formula. Derives by hand why the $\gamma_5$ (ε-tensor) term
+that vanishes in *every* decay this library computes — two independent
+momenta is never enough — survives for $2\to2$, where two chiral currents
+meeting at one propagator give three, and walks the two derived (not quoted)
+identities in `feynlag.pheno.epsilon` that compute it: the trace coefficient
+$\kappa=-4i$ and the Gram-determinant sign $s_{\det}=-1$. Reproduces the LEP
+forward–backward asymmetry $A_{FB}=\tfrac34A_eA_f$ from first principles, with
+a $d\sigma/d\cos\theta$ figure showing the chiral tilt against a symmetric
+vector-coupling baseline, and closes with a total-cross-section sanity check
+showing the ε term is an angular effect only — it integrates away, so Tier 1's
+QED benchmark is untouched.
 
 ## SU(N) Groups Tutorial
 

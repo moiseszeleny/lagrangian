@@ -23,6 +23,7 @@ from .diagrams import (
 __all__ = [
     "average_factor", "cross_section", "differential_cross_section",
     "ffs_s_channel_squared", "ffv_s_channel_squared",
+    "forward_backward_asymmetry",
 ]
 
 
@@ -73,6 +74,33 @@ def cross_section(m2_summed, kin, initial, symmetry_factor=1):
     return sp.integrate(dsdt, (kin.t, t_min, t_max))
 
 
+def forward_backward_asymmetry(m2_summed, kin):
+    """``A_FB = (σ_F − σ_B)/(σ_F + σ_B)`` over the ``cosθ ≷ 0`` hemispheres.
+
+    The Tier-2 acceptance observable — the ε (γ₅) term
+    (:mod:`~feynlag.pheno.epsilon`) integrates to zero over the full
+    ``cosθ`` range but not over a hemisphere, so ``A_FB`` is where a chiral
+    diagram's ε contribution actually shows up in a cross section.
+
+    Needs **no** ``initial`` :class:`~feynlag.pheno.particles.ExternalState`\\ s,
+    unlike :func:`differential_cross_section`/:func:`cross_section`: the spin
+    average (:func:`average_factor`), any identical-particle
+    ``symmetry_factor``, and
+    :meth:`~feynlag.pheno.kinematics.TwoToTwoKinematics.dsigma_dcos_factor`
+    are all ``cosθ``-independent and cancel exactly in the ``σ_F/σ_B`` ratio.
+
+    Args:
+        m2_summed: ``Σ|M|²`` (e.g. from
+            :meth:`~feynlag.pheno.diagrams.Amplitude.squared`).
+        kin: a :class:`~feynlag.pheno.kinematics.TwoToTwoKinematics`.
+    """
+    cos = sp.Symbol("_afb_cos", real=True)
+    dsdcos = m2_summed.subs(kin.t, kin.t_of_cos(cos))
+    sigma_f = sp.integrate(dsdcos, (cos, 0, 1))
+    sigma_b = sp.integrate(dsdcos, (cos, -1, 0))
+    return sp.simplify((sigma_f - sigma_b) / (sigma_f + sigma_b))
+
+
 def _s_channel_amplitude(g_in_left, g_in_right, g_out_left, g_out_right, kin,
                          mediator_spin, mediator_mass, mediator_width=0):
     """Shared assembler: ``1(k₁) 2(k₂) → mediator(s-channel) → 3(k₃) 4(k₄)``.
@@ -117,12 +145,14 @@ def ffv_s_channel_squared(g_in_left, g_in_right, g_out_left, g_out_right,
                           kin, mediator_mass, mediator_width=0):
     """``Σ|M|²`` for ``f₁ f̄₁ → f₂ f̄₂`` through one s-channel vector.
 
-    The Tier-1 worked assembler, in the low-level, coupling-in/number-out
-    style of :func:`~feynlag.pheno.offshell.scalar_offshell_vv_width`.  Raises
-    (via :meth:`~feynlag.pheno.diagrams.Amplitude.squared`) if the chiral
-    couplings give a non-zero ε contribution — e.g. a purely chiral current
-    like a bare ``Z`` coupling; a pure-vector (QED) coupling
-    (``g_left == g_right``) never trips it.
+    The worked assembler, in the low-level, coupling-in/number-out style of
+    :func:`~feynlag.pheno.offshell.scalar_offshell_vv_width`.  Chiral
+    couplings — e.g. a purely chiral current like a bare ``Z`` coupling — are
+    computed exactly (Tier 2, the ε/γ₅ algebra in
+    :mod:`~feynlag.pheno.epsilon`), not just the pure-vector (QED) case
+    (``g_left == g_right``). Only raises (via
+    :meth:`~feynlag.pheno.diagrams.Amplitude.squared`) for a topology beyond
+    this module's single s-channel diagram.
     """
     amp = _s_channel_amplitude(g_in_left, g_in_right, g_out_left, g_out_right,
                                kin, mediator_spin=1, mediator_mass=mediator_mass,

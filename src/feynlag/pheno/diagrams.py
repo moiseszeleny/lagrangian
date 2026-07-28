@@ -12,28 +12,37 @@ and :class:`BosonPropagator`\\ s — the covariant engine
 (:mod:`~feynlag.pheno.lorentz`) is reused unchanged; what is new is
 *combining* its output across a propagator and (eventually) across diagrams.
 
-Two hard guards, both load-bearing rather than incidental:
+One hard guard remains load-bearing rather than incidental:
 
 - **Interference.**  :meth:`Amplitude.squared` raises for more than one
   diagram.  Multi-diagram interference (relative fermion-flow signs,
   identical-particle exchange signs) is Tier 3.
-- **The ε (γ₅) term.**  Each chain's own trace never needs it —
-  :func:`~feynlag.pheno.lorentz.reduce_projectors` still proves it vanishes
-  for a chain's own two legs.  But when *two* chiral chains meet through a
-  propagator, the product of their would-be ε coefficients is a genuine,
-  non-zero contribution to ``|M|²`` (the forward–backward-asymmetry term) —
-  a chain-level fact `reduce_projectors` cannot see, since it only ever
-  looks at one chain in isolation.  :meth:`Amplitude.squared` computes that
-  product directly via :meth:`ChainVertex.epsilon_coefficient` and refuses
-  to drop it.  ε·ε → Gram-determinant algebra is Tier 2.
+
+**The ε (γ₅) term is Tier 2, shipped.**  Each chain's own trace never needs
+it — the diagonal-trace split in :meth:`SpinorChain.trace` proves it drops
+for a chain's own two legs, the same fact
+:func:`~feynlag.pheno.lorentz.reduce_projectors` proves for the 1→2 engine.
+But when *two* chiral chains meet through a propagator, the product of
+their ε coefficients (:meth:`ChainVertex.epsilon_coefficient`) is a
+genuine, non-zero contribution to ``|M|²`` — the forward–backward-asymmetry
+term — which :meth:`SpinorChain.epsilon_structure` exposes and
+:meth:`Amplitude.squared` assembles via
+:func:`~feynlag.pheno.epsilon.epsilon_pair_tensor`, after
+:func:`~feynlag.pheno.epsilon.assert_epsilon_single_vanishes` proves the
+remaining *single*-ε cross terms (one chain's ε piece times the other's
+ordinary trace) vanish for this diagram's own momenta.
 """
 
 from dataclasses import dataclass
 
 import sympy as sp
 from sympy.physics.hep.gamma_matrices import GammaMatrix, LorentzIndex
+from sympy.tensor.tensor import TensorHead
 
-from .lorentz import contract_to_dots, dirac_trace, index, reduce_projectors, slashed
+from .epsilon import (
+    assert_epsilon_single_vanishes, epsilon_pair_tensor, gamma5_trace_coefficient,
+)
+from .lorentz import contract_to_dots, dirac_trace, index, slashed
 from .propagator import breit_wigner, vector_propagator_numerator
 
 __all__ = [
@@ -163,6 +172,37 @@ class SpinorChain:
                 "scattering roadmap")
         return self.vertices[0].epsilon_coefficient()
 
+    def epsilon_structure(self):
+        """This chain's ε (γ₅) piece as ``(prefactor, slots)``, or ``None``.
+
+        Only the diagonal 4-γ term of a ``'V'`` chain has an ε piece — a
+        ``'S'`` chain's :meth:`epsilon_coefficient` is always zero (at most
+        two γ's, no room for ``Tr[Xγ₅]``), and a pure-vector ``'V'`` coupling
+        (``|g_L|=|g_R|``) also gives zero — so this returns ``None`` in
+        exactly the cases where the chain contributes no ε term at all,
+        including every case the pre-Tier-2 engine already handled correctly.
+
+        No mass and no :attr:`Leg.anti` sign enters ``prefactor``: the
+        chirality-mixing (mass) term of :meth:`trace` has at most two
+        explicit γ's and so has no ``Tr[Xγ₅]`` piece either — only the
+        diagonal, momentum-slash-only term does.
+
+        Returns:
+            ``(prefactor, slots)`` with ``prefactor = epsilon_coefficient()
+            · κ`` (:func:`~feynlag.pheno.epsilon.gamma5_trace_coefficient`)
+            and ``slots`` the 4-tuple ``(('m', out.momentum), ('i', mu),
+            ('m', inn.momentum), ('i', mu_bar))`` for
+            :func:`~feynlag.pheno.epsilon.epsilon_pair_tensor` — or ``None``.
+        """
+        coeff = self.epsilon_coefficient()
+        if coeff == 0:
+            return None
+        prefactor = coeff * gamma5_trace_coefficient()
+        mu, mu_bar = self.indices[0], self.bar_indices[0]
+        slots = (("m", self.out.momentum), ("i", mu),
+                 ("m", self.inn.momentum), ("i", mu_bar))
+        return prefactor, slots
+
     def trace(self):
         """The γ₅-free trace for this chain, open on ``indices``/
         ``bar_indices`` for a ``'V'`` vertex (a plain scalar for ``'S'``).
@@ -172,11 +212,18 @@ class SpinorChain:
         :func:`~feynlag.pheno.amplitudes.ffs_squared`/``ffv_squared`` — the
         mass-interference term is a hand-derived literal there and here for
         the identical reason: :mod:`~feynlag.pheno.lorentz` has no explicit
-        γ₅/projector object to build ``Γ``/``Γ̄`` from directly, only the
-        machinery to reduce a γ₅-free remainder.  The result is left with
-        its external indices **open** — reduction to on-shell dot products
-        happens once, at the :class:`Amplitude` level, after combining with
-        the other chain and the propagator.
+        γ₅/projector object to build ``Γ``/``Γ̄`` from directly.  The diagonal
+        term's γ₅-free half is
+        ``Tr[X(|g_L|²P_L+|g_R|²P_R)] = ½(|g_L|²+|g_R|²)Tr[X] ∓ ½(...)Tr[Xγ₅]``
+        — the ``½`` below is that split's non-ε half; the ``Tr[Xγ₅]`` half is
+        :meth:`epsilon_structure`, assembled separately at the
+        :class:`Amplitude` level (unlike
+        :func:`~feynlag.pheno.lorentz.reduce_projectors`, which this method
+        no longer calls, this chain-level engine computes that ε term
+        instead of proving it away).  The result is left with its external
+        indices **open** — reduction to on-shell dot products happens once,
+        at the :class:`Amplitude` level, after combining with the other
+        chain and the propagator.
 
         Raises:
             NotImplementedError: more than one vertex (Tier 4), or a
@@ -207,11 +254,9 @@ class SpinorChain:
 
         if vertex.structure == "S":
             chain = out_slash * inn_slash
-            expr, factor = reduce_projectors(chain, "L", n_free_indices=0,
-                                             n_momenta=2)
             total = sp.S.Zero
             if gL != 0 or gR != 0:
-                total += (sp.Abs(gL)**2 + sp.Abs(gR)**2) * factor * dirac_trace(expr)
+                total += (sp.Abs(gL)**2 + sp.Abs(gR)**2) * sp.Rational(1, 2) * dirac_trace(chain)
             if gL != 0 and gR != 0:
                 total += 2 * sp.re(gL * sp.conjugate(gR)) * mixing_mass
             return sp.expand(total)
@@ -225,9 +270,7 @@ class SpinorChain:
         total = sp.S.Zero
         if gL != 0 or gR != 0:
             chain = out_slash * GammaMatrix(mu) * inn_slash * GammaMatrix(mu_bar)
-            expr, factor = reduce_projectors(chain, "L", n_free_indices=2,
-                                             n_momenta=2)
-            total += (sp.Abs(gL)**2 + sp.Abs(gR)**2) * factor * dirac_trace(expr)
+            total += (sp.Abs(gL)**2 + sp.Abs(gR)**2) * sp.Rational(1, 2) * dirac_trace(chain)
         if gL != 0 and gR != 0:
             total += (2 * sp.re(gL * sp.conjugate(gR)) * mixing_mass
                      * LorentzIndex.metric(mu, mu_bar))
@@ -310,11 +353,24 @@ class Amplitude:
         """The spin/colour-**summed** ``|M|²`` — no averaging (see
         :func:`~feynlag.pheno.scattering.average_factor`).
 
+        For a spin-1 mediator, when either chain has a non-zero
+        :meth:`~SpinorChain.epsilon_structure`, this assembles the ε (γ₅)
+        contribution — see the module docstring — instead of refusing it: it
+        proves the single-ε cross terms vanish for this diagram's own
+        momenta (:func:`~feynlag.pheno.epsilon.assert_epsilon_single_vanishes`)
+        and, if both chains have a non-zero ε piece, adds the computed ε·ε
+        term (:func:`~feynlag.pheno.epsilon.epsilon_pair_tensor`) to the
+        ordinary (non-ε) piece before the **one**
+        :func:`~feynlag.pheno.lorentz.contract_to_dots` call — both pieces
+        are separately fully contracted scalars, so summing them first keeps
+        that house rule intact.
+
         Raises:
             NotImplementedError: more than one diagram (interference, Tier
                 3); a diagram that is not the two-chain, one-propagator
-                s-channel topology; or a non-zero ε·ε contribution
-                (Tier 2) — see the module docstring.
+                s-channel topology; or a single-ε cross term that does not
+                provably vanish (beyond this module's single s-channel 2→2
+                diagram).
         """
         if len(self.diagrams) != 1:
             raise NotImplementedError(
@@ -331,14 +387,6 @@ class Amplitude:
                 "Amplitude.squared: multi-propagator (t-channel) diagrams "
                 "are not yet assembled")
 
-        eps = sp.simplify(sp.Mul(*[c.epsilon_coefficient() for c in diagram.chains]))
-        if eps != 0:
-            raise NotImplementedError(
-                f"the ε-tensor (γ₅) contribution to |M|² is non-zero for "
-                f"these chiral couplings (coefficient {eps}); ε·ε → "
-                f"Gram-determinant algebra is Tier 2 of the scattering "
-                f"roadmap — refusing to silently drop it")
-
         chain_a, chain_b = diagram.chains
         tensor_a = chain_a.trace()
         tensor_b = chain_b.trace()
@@ -354,7 +402,45 @@ class Amplitude:
             combined = (tensor_a * n1 * tensor_b * n2)
             combined = combined.contract_metric(LorentzIndex.metric)
 
+            ea = chain_a.epsilon_structure()
+            eb = chain_b.epsilon_structure()
+            if (ea is not None and ea[0] != 0) or (eb is not None and eb[0] != 0):
+                # single-ε cross terms (this chain's ε piece × the other's
+                # ordinary trace) exist whenever EITHER coefficient is
+                # non-zero, regardless of the other — prove they vanish.
+                assert_epsilon_single_vanishes(_momentum_heads(diagram), kin.dot)
+            if ea is not None and eb is not None:
+                eps_prod = sp.simplify(ea[0] * eb[0])
+                if eps_prod != 0:
+                    ee = epsilon_pair_tensor(ea[1], eb[1])
+                    # stepwise contract_metric (one numerator at a time) is
+                    # ~3.5x faster here than contracting both at once.
+                    ee = (ee * n1).contract_metric(LorentzIndex.metric).expand()
+                    ee = (ee * n2).contract_metric(LorentzIndex.metric)
+                    combined = combined + eps_prod * ee
+
         result = contract_to_dots(combined, kin.dot)
         result *= prop.denominator_squared_inverse()
         result *= sp.Abs(diagram.coefficient)**2
         return sp.expand(result)
+
+
+def _momentum_heads(diagram):
+    """Every momentum ``TensorHead`` appearing in ``diagram``.
+
+    The four external legs, plus whatever a propagator's own momentum
+    callable is built from (e.g. ``k1+k2`` for the s-channel assemblers in
+    :mod:`~feynlag.pheno.scattering` — already a subset of the four leg
+    momenta today, but this stays generic rather than assuming that).
+    """
+    heads = []
+    for chain in diagram.chains:
+        for leg in (chain.out, chain.inn):
+            if leg.momentum not in heads:
+                heads.append(leg.momentum)
+    for prop in diagram.propagators:
+        if prop.momentum is not None:
+            for head in prop.momentum(index("_momentum_heads_dummy")).atoms(TensorHead):
+                if head not in heads:
+                    heads.append(head)
+    return heads
