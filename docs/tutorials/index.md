@@ -1,6 +1,6 @@
 # Tutorials
 
-Seven fully executed Jupyter notebooks, walking a worked model stage by
+Eight fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -16,6 +16,7 @@ SM_VLL_Tutorial
 SM_U1X_Tutorial
 ModelBuilding_Tutorial
 SM_Seesaw_Tutorial
+THDM_S3_Tutorial
 ```
 
 ## Particle Decays Tutorial
@@ -89,3 +90,19 @@ M_R]]` mass matrix, `diagonalize_takagi` for the light (sub-eV) + heavy (~M_R)
 spectrum, and the charge-conjugation-aware `MajoranaRotation` to extract the
 physical heavy-neutrino couplings — showing `W ℓ̄ N = (g/√2)·V` with the
 light–heavy mixing `V ≈ m_D/M_R`, and its decoupling as `M_R → ∞`.
+
+## 3HDM with S₃ Tutorial
+
+The library's group-theory stress test: three Higgs doublets, with
+`(H1, H2)` forming an `S3` doublet and `HS` an `S3` singlet, and the
+potential built entirely from `S3.doublet_product`'s own
+$2\otimes2=1\oplus1'\oplus2$ Clebsch–Gordan decomposition. Introduces the
+one genuinely new invariance concept in the whole tutorial set — a
+**finite** discrete-symmetry check (`check_discrete_invariance`, the exact
+group substitution) rather than the infinitesimal linearization every
+gauge check elsewhere relies on — and shows a model where the vacuum
+isn't free to tune: with three VEVs but only two independent mass
+parameters, the third tadpole condition **forces** the alignment
+$v_1^2=v_2^2/3$, derived directly from the symbolic tadpole system rather
+than assumed. Closes with the resulting $3\times3$ CP-even mass matrix on
+the aligned vacuum.
