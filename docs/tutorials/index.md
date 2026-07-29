@@ -104,5 +104,13 @@ gauge check elsewhere relies on — and shows a model where the vacuum
 isn't free to tune: with three VEVs but only two independent mass
 parameters, the third tadpole condition **forces** the alignment
 $v_1^2=v_2^2/3$, derived directly from the symbolic tadpole system rather
-than assumed. Closes with the resulting $3\times3$ CP-even mass matrix on
-the aligned vacuum.
+than assumed — matching, up to the basis swap, the tadpole solution of the
+literature S₃-3HDM model (Gómez-Bock, Mondragón & Pérez-Martínez, EPJC 81,
+942 (2021)) this example follows. Builds the pseudoscalar and charged mass
+matrices alongside the CP-even one, then implements and verifies that
+paper's geometric rotation ansatz: it exactly, symbolically diagonalizes
+the Goldstone-protected pseudoscalar/charged sectors for any couplings,
+while the CP-even sector needs one further dynamical mixing angle (reusing
+the same 2×2 tool `thdm.py` uses for the plain 2HDM) — closing with a
+numerical stability scan (mirroring the paper's own) that turns a mostly
+tachyonic benchmark point into seven genuine physical scalar masses.

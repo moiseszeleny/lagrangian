@@ -94,7 +94,9 @@ the `Model` cache.
 potential, when its tadpole equations are solved simultaneously, does not
 admit an arbitrary vacuum: it **forces** a specific alignment,
 $v_1 = \sqrt3\,v_2$ in the literature basis (components swap in feynlag's
-real-orthogonal S₃ irrep basis — see {doc}`declaration`). This is not a
+real-orthogonal S₃ irrep basis — see {doc}`declaration`) — exactly the
+tadpole solution of the S₃-3HDM model this example follows
+[GomezBock21]. This is not a
 numerical accident of the benchmark point chosen; it is a structural
 consequence of the S₃ Clebsch–Gordan structure of the potential terms
 (`S3.doublet_product`) forcing the minimum to sit on a symmetry-preserving
@@ -116,3 +118,17 @@ directly from the symbolic system, without it being hand-imposed.
 model.check_invariance(raise_on_failure=True)
 solution = model.solve_tadpoles([mu2])   # {mu2.symbol: lam.symbol * v.symbol**2}
 ```
+
+## References
+
+- **[GomezBock21]** M. Gómez-Bock, M. Mondragón, A. Pérez-Martínez,
+  *"Scalar and gauge sectors in the 3-Higgs Doublet Model under the
+  S₃-symmetry"*, Eur. Phys. J. C **81**, 942 (2021),
+  [arXiv:2102.02800](https://arxiv.org/abs/2102.02800),
+  [doi:10.1140/epjc/s10052-021-09731-3](https://doi.org/10.1140/epjc/s10052-021-09731-3)
+  — the literature S₃-3HDM model `examples/thdm_s3.py` and
+  `examples/THDM_S3_Tutorial.ipynb` follow; their Eq. (13) tadpole
+  solution is exactly the $v_1=\sqrt3v_2$ alignment above, and their
+  Eq. (25)–(29) geometric rotation ansatz is the one the tutorial notebook
+  builds and verifies against `feynlag`'s own pseudoscalar/charged/CP-even
+  mass matrices.
