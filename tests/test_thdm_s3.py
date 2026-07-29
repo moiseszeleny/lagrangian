@@ -175,3 +175,168 @@ def test_cp_even_mass_matrix_structure(s3_model):
     # symmetric, and no vanishing diagonal in general
     assert sp.simplify(M - M.T) == sp.zeros(3, 3)
     assert M[0, 0] != 0 and M[1, 1] != 0 and M[2, 2] != 0
+
+
+# ---------------------------------------------------------------------------
+# All three scalar sectors + the geometric rotation.
+#
+# These pin what previously lived only as print statements inside
+# examples/THDM_S3_Tutorial.ipynb §6-§9.  Built here from this file's own
+# fixture, deliberately NOT importing research/thdm_s3/model.py — research
+# code churns, and the suite must not be hostage to it (see research/README.md).
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(scope="module")
+def s3_sectors(s3_model):
+    """(M_S, M_A, M_C, R, v-symbols) on the aligned vacuum, tadpoles solved."""
+    model, s3, (H1, H2, HS), (v1, v2, vS), (mu0sq, mu1sq), l = s3_model
+    align = {v1.s: v2.s / sp.sqrt(3)}
+    tad = model.tadpoles()
+    sol = sp.solve([sp.Eq(tad[v2.s].subs(align), 0),
+                    sp.Eq(tad[vS.s].subs(align), 0)],
+                   [mu0sq.s, mu1sq.s], dict=True)[0]
+
+    def build(fields, charged=False):
+        M = (model.mass_matrix(fields, charged=True) if charged
+             else model.mass_matrix(fields))
+        return M.subs(sol).subs(align).applyfunc(
+            lambda e: sp.simplify(sp.expand(e)))
+
+    M_S = build([sp.Symbol(f"{n}0_r", real=True) for n in ("H1", "H2", "HS")])
+    M_A = build([sp.Symbol(f"{n}0_i", real=True) for n in ("H1", "H2", "HS")])
+    M_C = build([H1.components[0], H2.components[0], HS.components[0]],
+                charged=True)
+
+    # the Gomez-Bock-Mondragon-Perez-Martinez geometric ansatz, [GomezBock21]
+    # Eq. (29): first column is the vacuum direction.
+    v12 = sp.sqrt(v1.s**2 + v2.s**2)
+    vtot = sp.sqrt(v1.s**2 + v2.s**2 + vS.s**2)
+    cphi, sphi = v1.s / v12, v2.s / v12
+    cth, sth = vS.s / vtot, v12 / vtot
+    R = sp.simplify(sp.Matrix([
+        [sth * cphi, -sphi, -cth * cphi],
+        [sth * sphi, cphi, -cth * sphi],
+        [cth, 0, sth],
+    ]).subs(align))
+    return M_S, M_A, M_C, R, (v1, v2, vS), l
+
+
+def test_pseudoscalar_and_charged_mass_matrices(s3_sectors):
+    """M_A and M_C are symmetric with non-vanishing diagonals, like M_S."""
+    M_S, M_A, M_C, R, vevs, l = s3_sectors
+    for M in (M_A, M_C):
+        assert sp.simplify(M - M.T) == sp.zeros(3, 3)
+        assert all(M[i, i] != 0 for i in range(3))
+
+
+def test_geometric_rotation_isolates_goldstones(s3_sectors):
+    """RᵀMR puts an EXACT zero at [0,0] in the CP-odd and charged sectors.
+
+    One Goldstone each (eaten by Z and W±); the ansatz is purely geometric —
+    built from the VEVs, with no reference to the quartics — so this vanishing
+    is a nontrivial statement about the potential, not an identity.
+    """
+    M_S, M_A, M_C, R, vevs, l = s3_sectors
+    assert sp.simplify(R.T * R) == sp.eye(3)          # orthogonal
+
+    for M in (M_A, M_C):
+        D = sp.simplify(R.T * M * R)
+        assert D[0, 0] == 0
+        # and fully diagonal in the remaining 2x2
+        for i in range(3):
+            for j in range(3):
+                if i != j:
+                    assert sp.simplify(D[i, j]) == 0
+
+
+def test_cp_even_block_diagonalizes_to_2x2(s3_sectors):
+    """D_S = RᵀM_S R keeps exactly one off-diagonal pair, the (0,2) block."""
+    M_S, M_A, M_C, R, vevs, l = s3_sectors
+    D = sp.simplify(R.T * M_S * R)
+    assert sp.simplify(D[0, 1]) == 0 and sp.simplify(D[1, 2]) == 0
+    assert sp.simplify(D[0, 2]) != 0                   # the surviving mixing
+    assert sp.simplify(D[0, 2] - D[2, 0]) == 0
+
+
+def test_masses_match_gomezbock_closed_forms(s3_sectors):
+    """feynlag's derived masses reproduce [GomezBock21] Eqs. (30)-(33) exactly.
+
+    This is the end-to-end validation of the 3HDM-S₃ chain against published
+    closed forms — potential, tadpoles, mass matrices and rotation at once —
+    and it is what *fixes the parameter dictionary* to the literature:
+
+        a=2λ₈, b=λ₅, c=2λ₁, d=2λ₂, e=−λ₄, f=λ₆, g=2λ₃, h=2λ₇
+
+    The e = −λ₄ sign matters: feynlag's real-orthogonal S₃ doublet basis is not
+    the literature's (the λ₄ invariant transcribed literally from [DasDey14]
+    is not even S₃-invariant here).  Because the [DasDey14] boundedness and
+    unitarity conditions involve λ₄ only as |λ₄| or λ₄², they nevertheless
+    transfer to feynlag's λ's unchanged — which is what
+    research/thdm_s3/constraints.py relies on.
+
+    [GomezBock21] M. Gómez-Bock, M. Mondragón, A. Pérez-Martínez,
+        Eur. Phys. J. C 81, 942 (2021), arXiv:2102.02800,
+        doi:10.1140/epjc/s10052-021-09731-3.
+    [DasDey14] D. Das, U. K. Dey, Phys. Rev. D 89, 095025 (2014),
+        arXiv:1404.2491, doi:10.1103/PhysRevD.89.095025.
+    """
+    M_S, M_A, M_C, R, (v1, v2, vS), l = s3_sectors
+    D_A = sp.simplify(R.T * M_A * R)
+    D_C = sp.simplify(R.T * M_C * R)
+
+    # the paper's vacuum parametrization: v12 = v sinθ, vS = v cosθ, with the
+    # alignment fixing v2 = √3 v12/2 in feynlag's basis ([GomezBock21] Eq. 24)
+    v, th = sp.symbols("v theta", positive=True)
+    vac = {v2.s: v * sp.sin(th) * sp.sqrt(3) / 2, vS.s: v * sp.cos(th)}
+
+    a, b, c, d, e, f, g, h = sp.symbols("a b c d e f g h")
+    dictionary = {a: 2 * l[8], b: l[5], c: 2 * l[1], d: 2 * l[2],
+                  e: -l[4], f: l[6], g: 2 * l[3], h: 2 * l[7]}
+
+    published = {                                        # [GomezBock21]
+        D_A[1, 1]: -v**2 * ((d + g) * sp.sin(th)**2
+                            + sp.Rational(5, 4) * e * sp.sin(2 * th)
+                            + h * sp.cos(th)**2),                     # Eq. (30)
+        D_A[2, 2]: -v**2 * (e / 2 * sp.tan(th) + h),                  # Eq. (31)
+        D_C[1, 1]: -v**2 / 4 * (5 * e * sp.sin(2 * th)
+                                + 2 * (f + h) * sp.cos(th)**2
+                                + 4 * g * sp.sin(th)**2),             # Eq. (32)
+        D_C[2, 2]: -v**2 / 2 * (e * sp.tan(th) + (f + h)),            # Eq. (33)
+    }
+
+    for derived, closed_form in published.items():
+        diff = sp.simplify(sp.expand_trig(sp.simplify(
+            derived.subs(vac) - closed_form.subs(dictionary))))
+        assert diff == 0, diff
+
+    # and the opposite sign genuinely fails, so the test has teeth
+    wrong = {**dictionary, e: l[4]}
+    bad = sp.simplify(sp.expand_trig(sp.simplify(
+        D_A[2, 2].subs(vac) - published[D_A[2, 2]].subs(wrong))))
+    assert bad != 0
+
+
+def test_aligned_vacuum_can_meet_the_electroweak_scale(s3_model):
+    """The alignment and √Σvᵢ² = 246 GeV are simultaneously satisfiable.
+
+    Regression for a real bug found in examples/THDM_S3_Tutorial.ipynb: it
+    picks (v1,v2,vS) = (200,115,80) so that √Σvᵢ² ≈ 246 ([GomezBock21] Eq. 8),
+    then imposes the alignment as the substitution v1 → v2/√3, which *replaces*
+    v1 = 200 by 66.4 and silently drops the vacuum to 155 GeV.  Imposing both
+    conditions at once leaves θ free: v12 = v sinθ, vS = v cosθ, v1 = v12/2,
+    v2 = √3 v12/2.
+    """
+    import math
+    v_ew = 246.0
+    for theta in (0.3, 0.8, 1.0286, 1.4):
+        v12 = v_ew * math.sin(theta)
+        v1, v2, vS = v12 / 2, v12 * math.sqrt(3) / 2, v_ew * math.cos(theta)
+        assert math.isclose(v2 / v1, math.sqrt(3), rel_tol=1e-12)     # alignment
+        assert math.isclose(math.sqrt(v1**2 + v2**2 + vS**2), v_ew,
+                            rel_tol=1e-12)                            # Eq. (8)
+
+    # the tutorial's aligned point demonstrably misses the scale
+    v2_t, vS_t = 115.0, 80.0
+    v1_t = v2_t / math.sqrt(3)
+    assert not math.isclose(math.sqrt(v1_t**2 + v2_t**2 + vS_t**2), v_ew,
+                            rel_tol=1e-3)
