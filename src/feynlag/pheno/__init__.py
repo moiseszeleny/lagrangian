@@ -31,6 +31,9 @@ from .kinematics import (
     two_body_phase_space,
 )
 from .kinematics import ThreeBodyKinematics, TwoToTwoKinematics
+from .epsilon import (
+    assert_epsilon_single_vanishes, epsilon_pair_tensor, gamma5_trace_coefficient,
+)
 from .lorentz import contract_to_dots, dirac_trace, reduce_projectors
 from .particles import DiracParticle, ExternalState, expand_particles
 from .propagator import (
@@ -47,7 +50,7 @@ from .offshell import (
 )
 from .scattering import (
     average_factor, cross_section, differential_cross_section,
-    ffs_s_channel_squared, ffv_s_channel_squared,
+    ffs_s_channel_squared, ffv_s_channel_squared, forward_backward_asymmetry,
 )
 from .vertices import DecayVertex, classify_gamma, collect_decay_vertices
 
@@ -56,12 +59,13 @@ __all__ = [
     "DecayChannel", "DecayVertex", "Diagram", "DiracParticle",
     "ExternalState", "Leg", "SpinorChain",
     "TwoBodyKinematics", "ThreeBodyKinematics", "TwoToTwoKinematics",
-    "amplitude_squared", "average_factor",
+    "amplitude_squared", "assert_epsilon_single_vanishes", "average_factor",
     "breit_wigner", "classify_gamma", "collect_decay_vertices",
     "cross_section", "differential_cross_section",
     "A_half", "A_one", "contract_to_dots", "dalitz_integral", "dirac_trace",
-    "expand_particles", "ffs_squared", "ffs_s_channel_squared",
-    "ffv_squared", "ffv_s_channel_squared",
+    "epsilon_pair_tensor", "expand_particles", "ffs_squared",
+    "ffs_s_channel_squared", "ffv_squared", "ffv_s_channel_squared",
+    "forward_backward_asymmetry", "gamma5_trace_coefficient",
     "higgs_gammagamma_width", "higgs_gg_width", "higgs_zgamma_width",
     "have_scipy", "is_allowed", "kallen",
     "offshell_scalar_vv_width", "partial_width", "polarization_sum",
