@@ -1,0 +1,55 @@
+{
+  "description": "S3-3HDM quark sector with soft S3 breaking. Exact S3 forces r = v1/v2 = sqrt(3) and V_us = 0; releasing r reproduces the observed Cabibbo angle. Demonstration of the MECHANISM, not a global fit: V_ub, V_cb and the CP phase are not targeted, and the converged solution puts |V_cb| ~ 0.98 against a measured 0.0408 -- see finding 7 of the notebook.",
+  "targets": {
+    "m_u": 0.00216,
+    "m_c": 1.27,
+    "m_t": 172.69,
+    "m_d": 0.00467,
+    "m_s": 0.0934,
+    "m_b": 4.18,
+    "Vus": 0.2243
+  },
+  "converged": true,
+  "cost": 7.428151799880165e-19,
+  "r": 1.6744165772719823,
+  "r_exact_S3": 1.7320508075688772,
+  "params_up": [
+    -85.71069934564736,
+    44.59790364163941,
+    0.003558901601445155,
+    0.021586989605908557
+  ],
+  "params_down": [
+    1.9997887569112112,
+    0.9801477480551787,
+    0.2691524861953214,
+    0.5256661554773411
+  ],
+  "masses_up_GeV": [
+    0.0021599999999892985,
+    1.2700000000084064,
+    172.68999978970163
+  ],
+  "masses_down_GeV": [
+    0.004669999999765082,
+    0.0933999999997424,
+    4.180000000017767
+  ],
+  "V_abs": [
+    [
+      0.9490712904775972,
+      0.2242999999999569,
+      0.22125369057081937
+    ],
+    [
+      0.21499008118146795,
+      0.052291860017767304,
+      0.9752152718089828
+    ],
+    [
+      0.23031055248245644,
+      0.973116165406732,
+      0.0014064278595423683
+    ]
+  ]
+}

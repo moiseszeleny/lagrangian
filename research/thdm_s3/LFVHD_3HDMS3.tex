@@ -1,0 +1,560 @@
+%% LyX 2.4.0 created this file.  For more info, see https://www.lyx.org/.
+%% Do not edit unless you really know what you are doing.
+\documentclass[spanish]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{babel}
+\addto\shorthandsspanish{\spanishdeactivate{~<>.}}
+\deactivatequoting
+
+\begin{document}
+\title{Exploring LFV Higgs decays in the Three Higgs Doublet Model}
+\author{M. Zeleny-Mora$^{1}$\thanks{moiseszeleny@gmail.com}, M. Mondragón$^{1}$\thanks{myriam@fisica.unam.mx},
+T. A. Valencia-Pérez$^{1}$\thanks{tvalencia@fisica.unam.mx}\\
+$^{1}$Instituto de Física, Universidad Nacional Autónoma de México,
+Apdo. Postal 20-364, CDMX 01000, México.}
+\maketitle
+\begin{abstract}
+In this work we consider the Three Higgs Doublet model with $S_{3}$
+symmetry, we focus on the lepton sector and explore lepton flavor
+violating Higgs decays.
+\end{abstract}
+
+\section{Introduction}
+
+In the search of new
+
+\section{The model}
+
+In this work we consider the Three Higgs Doublet Model with $S_{3}$
+symmetry (3HDMS3) \cite{Das:2015sca}. The discrete symmetry $S_{3}$
+has three irreducible representations denoted by $\mathbf{1}$, $\mathbf{1^{\prime}}$
+and $\mathbf{2}.$ In the basis where the generators of $S_{3}$group
+in the $\mathbf{2}$ representation is given by
+\[
+a=\begin{bmatrix}-\frac{1}{2} & \frac{\sqrt{3}}{2}\\
+-\frac{\sqrt{3}}{2} & -\frac{1}{2}
+\end{bmatrix},\qquad b=\begin{bmatrix}\frac{1}{2} & \frac{\sqrt{3}}{2}\\
+\frac{\sqrt{3}}{2} & -\frac{1}{2}
+\end{bmatrix}
+\]
+ where $a$ is of order 3 and $b$ is of order 2. In the lepton sector,
+the fields are assigned the following representations of the $S_{3}$:
+\begin{align}
+\mathbf{2:} & \begin{bmatrix}L_{1}\\
+L_{2}
+\end{bmatrix},\,\begin{bmatrix}\nu_{1R}\\
+\nu_{2R}
+\end{bmatrix},\,\begin{bmatrix}e_{1R}\\
+e_{2R}
+\end{bmatrix}\nonumber \\
+\mathbf{1}: & L_{S},\nu_{SR},e_{SR},\label{eq:S3_representations_leptons}
+\end{align}
+where the $L_{i}$ with $i=1,2,3$, are the usual $SU\left(2\right)_{L}$
+lepton doublets, whereas the $\nu_{iR}$ and $e_{iR}$ are the right-handed
+neutrinos and charged leptons fields which are singlets of the $SU\left(2\right)_{L}$
+part of gauge symmetry. The square brackets in (\ref{eq:S3_representations_leptons})
+represent the doublet representation under $S_{3}$, different to
+the doublet representation under $SU\left(2\right)_{L}$. In the scalar
+sector, there are three $SU\left(2\right)_{L}$ doublets $\phi_{i}$
+and this transform under the $S_{3}$ symmetry as follows:
+\[
+\mathbf{2}:\begin{bmatrix}H_{1}\\
+H_{2}
+\end{bmatrix}\equiv\Phi,\qquad\mathbf{1}:H_{S}.
+\]
+where
+\[
+H_{1}=\frac{1}{\sqrt{2}}\begin{pmatrix}\phi_{1}+i\phi_{4}\\
+\phi_{7}+i\phi_{10}
+\end{pmatrix};\quad H_{2}=\frac{1}{\sqrt{2}}\begin{pmatrix}\phi_{2}+i\phi_{5}\\
+\phi_{8}+i\phi_{11}
+\end{pmatrix};
+\]
+\[
+H_{S}=\frac{1}{\sqrt{2}}\begin{pmatrix}\phi_{3}+i\phi_{6}\\
+\phi_{9}+i\phi_{12}
+\end{pmatrix}.
+\]
+In the case of the most general scalar potential in the (3HDMS3),
+considering that each $\phi_{i}$ ($i=7,8,9$) has a real vacuum expectation
+value (VEV) $v_{i}$ non-zero. The minimization of the potential yields
+to the relation
+\begin{equation}
+v_{1}=\sqrt{3}v_{2}.\label{eq:vev12_cond}
+\end{equation}
+
+The condition (\ref{eq:vev12_cond}), allows to $Z_{2}$ symmetry
+survive the spontaneous symmetry breaking, or equivalently the VEVs
+are unaffected by the transformation
+\[
+\Phi\to b\Phi.
+\]
+In this model, $v=\sqrt{v_{1}^{2}+v_{2}^{2}+v_{3}^{2}}=246$ GeV appears
+in the masses of $W$ and $Z$ bosons. The VEV's be rewritten in spherical
+coordinates as follows: 
+\[
+v_{1}=v\cos\varphi\sin\theta_{v},\quad v_{2}=v\sin\varphi\sin\theta_{v},\quad v_{3}=v\cos\theta_{v},
+\]
+in this form, the relations among vev's are parametrized in terms
+of two angles
+\[
+\tan\varphi=\frac{v_{2}}{v_{1}},\quad\tan\theta_{v}=\frac{v_{2}}{v_{3}\sin\varphi}.
+\]
+Moreover, the value of $\varphi$ is fixed by the minimum of the potential
+(\ref{eq:vev12_cond}), as follows: 
+\begin{align*}
+\tan\varphi= & \frac{1}{\sqrt{3}}\Rightarrow\tan\theta_{v}=\frac{2v_{2}}{v_{3}}\\
+\sin\theta_{v}= & \frac{2v_{2}}{v}\Rightarrow\cos\theta_{v}=\frac{v_{3}}{v}.
+\end{align*}
+
+The CP even Higgs in the mass basis $h_{0}$, $H_{1}$ and $H_{2}$
+are rotated as follows:
+\[
+\begin{pmatrix}\phi_{7}\\
+\phi_{8}\\
+\phi_{9}
+\end{pmatrix}=R_{S}\begin{pmatrix}h_{1}\\
+h_{0}\\
+h_{2}
+\end{pmatrix}
+\]
+where
+\begin{equation}
+R_{S}=\left(\begin{array}{ccc}
+\sin\alpha\cos\varphi & -\sin\varphi & -\cos\alpha\cos\varphi\\
+\sin\alpha\sin\varphi & \cos\varphi & -\cos\alpha\sin\varphi\\
+\cos\alpha & 0 & \sin\alpha
+\end{array}\right).\label{eq:RS}
+\end{equation}
+
+To straightforward comparison with the SM like we consider the Higgs
+basis where only one Higgs doublet acquire vev. 
+\[
+\begin{pmatrix}\Phi_{\text{vev}}\\
+\Phi_{1}\\
+\Phi_{2}
+\end{pmatrix}=R_{A}^{\top}\begin{pmatrix}H_{1}\\
+H_{2}\\
+H_{S}
+\end{pmatrix},
+\]
+\begin{align}
+R_{A}^{\top} & =\left(\begin{array}{ccc}
+\sin\theta_{v}\cos\varphi & \sin\theta_{v}\sin\varphi & \cos\theta_{v}\\
+-\sin\varphi & \cos\varphi & 0\\
+-\cos\theta_{v}\cos\varphi & -\cos\theta_{v}\sin\varphi & \sin\theta_{v}
+\end{array}\right),\label{eq:RAT}\\
+ & =\left(\begin{array}{ccc}
+\frac{\sqrt{3}v_{2}}{v} & \frac{v_{2}}{v} & \frac{v_{3}}{v}\\
+-\frac{1}{2} & \frac{\sqrt{3}}{2} & 0\\
+-\frac{\sqrt{3}v_{3}}{2v} & -\frac{v_{3}}{2v} & \frac{2v_{2}}{v}
+\end{array}\right)
+\end{align}
+where
+\[
+\begin{aligned}\Phi_{\text{vev}} & =\binom{G^{\pm}}{\frac{1}{\sqrt{2}}\left(v+\widetilde{H}+iG_{0}\right)},\quad\Phi_{1}=\binom{H_{1}^{\pm}}{\frac{1}{\sqrt{2}}\left(\widetilde{H}_{a}+iA_{1}\right)},\\
+\Phi_{2} & =\binom{H_{2}^{\pm}}{\frac{1}{\sqrt{2}}\left(\widetilde{H}_{b}+iA_{2}\right)}.
+\end{aligned}
+\]
+In this basis, the Goldstone bosons $G_{0}$, $G^{\pm}$, pseudoscalars
+$A_{1,2}$ and charged scalars $H_{1,2}^{\pm}$ appears explicitly.
+Whereas the neutral part of the Higgs doublets, denoted by $\widetilde{H}$,
+$\widetilde{H}_{a}$ and $\widetilde{H}_{b}$ do not correspond to
+their mass eigenstates, but they are in the Higgs basis. So, we rotate
+into the physical basis from the Higgs basis as follows
+\[
+\left(\begin{array}{c}
+\widetilde{H}\\
+\widetilde{H}_{a}\\
+\widetilde{H}_{b}
+\end{array}\right)=R_{H}\left(\begin{array}{l}
+h_{1}\\
+h_{0}\\
+h_{2}
+\end{array}\right),
+\]
+\begin{equation}
+R_{H}=\left(\begin{array}{ccc}
+\cos(\alpha-\theta_{v}) & 0 & \sin(\alpha-\theta_{v})\\
+0 & 1 & 0\\
+-\sin(\alpha-\theta_{v}) & 0 & \cos(\alpha-\theta_{v})
+\end{array}\right).\label{eq:R_H}
+\end{equation}
+In consequence, we have
+\begin{equation}
+R_{S}=R_{A}R_{H}.\label{eq:RS_AH}
+\end{equation}
+
+and three scenarios:
+\begin{enumerate}
+\item Scenario A: $h_{1}$ SM-like In this case, 
+\begin{align*}
+h_{1} & =\widetilde{H}\Rightarrow\cos(\alpha-\theta_{v})=1\\
+\alpha & =\theta_{v}\Rightarrow R_{H}=\mathbb{I},\Rightarrow R_{S}=R_{A}
+\end{align*}
+\begin{align}
+\phi_{7}= & \frac{\sqrt{3}v_{2}}{v}h_{1}-\frac{1}{2}h_{0}-\frac{\sqrt{3}v_{3}}{2v}h_{2},\nonumber \\
+\phi_{8}= & \frac{v_{2}}{v}h_{1}+\frac{\sqrt{3}}{2}h_{0}-\frac{v_{3}}{2v}h_{2},\nonumber \\
+\phi_{9}= & \frac{v_{3}}{v}h_{1}+\frac{2v_{2}}{v}h_{2}\label{eq:phi789_h1}
+\end{align}
+\item Scenario B: $h_{2}$ SM-like, In this case
+\begin{align*}
+h_{2} & =\widetilde{H}\Rightarrow\sin(\alpha-\theta_{v})=1\\
+\alpha & -\theta_{v}=\frac{\pi}{2}\\
+\Rightarrow & R_{H}=\left(\begin{array}{ccc}
+0 & 0 & 1\\
+0 & 1 & 0\\
+-1 & 0 & 0
+\end{array}\right)\\
+\Rightarrow & R_{S}=\begin{pmatrix}\frac{\sqrt{3}\cos\left(\theta_{v}\right)}{2} & -\frac{1}{2} & \frac{\sqrt{3}\sin\left(\theta_{v}\right)}{2}\\
+\frac{\cos\left(\theta_{v}\right)}{2} & \frac{\sqrt{3}}{2} & \frac{\sin\left(\theta_{v}\right)}{2}\\
+-\sin\left(\theta_{v}\right) & 0 & \cos\left(\theta_{v}\right)
+\end{pmatrix}\\
+\Rightarrow & R_{S}=\begin{pmatrix}\frac{\sqrt{3}v_{3}}{2v} & -\frac{1}{2} & \frac{\sqrt{3}v_{2}}{v}\\
+\frac{v_{3}}{2v} & \frac{\sqrt{3}}{2} & \frac{v_{2}}{v}\\
+-\frac{2v_{2}}{v} & 0 & \frac{v_{3}}{v}
+\end{pmatrix}
+\end{align*}
+\begin{align}
+\phi_{7}= & \frac{\sqrt{3}v_{3}}{2v}h_{1}-\frac{1}{2}h_{0}+\frac{\sqrt{3}v_{2}}{v}h_{2},\nonumber \\
+\phi_{8}= & \frac{v_{3}}{2v}h_{1}+\frac{\sqrt{3}}{2}h_{0}+\frac{v_{2}}{v}h_{2},\nonumber \\
+\phi_{9}= & -\frac{2v_{2}}{v}h_{1}+\frac{v_{3}}{v}h_{2}\label{eq:phi789_h2}
+\end{align}
+\item Scenario C: General $\alpha-\theta_{v}=\delta$
+\begin{align*}
+\alpha-\theta_{v} & =\delta\ll1\Rightarrow R_{H}\approx\left(\begin{array}{ccc}
+\cos\left(\delta\right) & 0 & \sin\left(\delta\right)\\
+0 & 1 & 0\\
+-\sin\left(\delta\right) & 0 & \cos\left(\delta\right)
+\end{array}\right).\\
+\Rightarrow & R_{S}=\begin{pmatrix}\frac{\sqrt{3}v_{2}\cos\left(\delta\right)}{v}+\frac{\sqrt{3}v_{3}\sin\left(\delta\right)}{2v} & -\frac{1}{2} & \frac{\sqrt{3}v_{2}\sin\left(\delta\right)}{v}-\frac{\sqrt{3}v_{3}\cos\left(\delta\right)}{2v}\\
+\frac{v_{2}\cos\left(\delta\right)}{v}+\frac{v_{3}\sin\left(\delta\right)}{2v} & \frac{\sqrt{3}}{2} & \frac{v_{2}\sin\left(\delta\right)}{v}-\frac{v_{3}\cos\left(\delta\right)}{2v}\\
+-\frac{2v_{2}\sin\left(\delta\right)}{v}+\frac{v_{3}\cos\left(\delta\right)}{v} & 0 & \frac{2v_{2}\cos\left(\delta\right)}{v}+\frac{v_{3}\sin\left(\delta\right)}{v}
+\end{pmatrix}
+\end{align*}
+\begin{align}
+\phi_{7}= & \frac{\sqrt{3}}{2v}\left(v_{3}\sin\left(\delta\right)+2v_{2}\cos\left(\delta\right)\right)h_{1}-\frac{1}{2}h_{0}+\frac{\sqrt{3}}{2v}\left(2v_{2}\sin\left(\delta\right)-v_{3}\cos\left(\delta\right)\right)h_{2},\nonumber \\
+\phi_{8}= & \frac{1}{2v}\left(v_{3}\sin\left(\delta\right)+2v_{2}\cos\left(\delta\right)\right)h_{1}+\frac{\sqrt{3}}{2}h_{0}+\frac{1}{2v}\left(2v_{2}\sin\left(\delta\right)-v_{3}\cos\left(\delta\right)\right)h_{2},\nonumber \\
+\phi_{9}= & -\frac{2v_{2}\sin\left(\delta\right)-v_{3}\cos\left(\delta\right)}{v}h_{1}+\frac{1}{v}\left(v_{3}\sin\left(\delta\right)+2v_{2}\cos\left(\delta\right)\right)h_{2}.\label{eq:phi789_near_alignment}
+\end{align}
+\end{enumerate}
+
+\subsection{Yukawa sector}
+
+In the Yukawa sector for charged leptons 
+\begin{align*}
+\mathcal{L}_{Y_{\ell}}= & -\frac{1}{\sqrt{2}}Y_{1}^{\ell}\left[\bar{L}_{1}\ell_{1R}+\bar{L}_{2}\ell_{2R}\right]H_{S}-Y_{3}^{\ell}\bar{L}_{S}H_{S}\ell_{SR}\\
+ & -\frac{1}{\sqrt{2}}Y_{2}^{\ell}\left[\left(\bar{L}_{1}H_{2}+\bar{L}_{2}H_{1}\right)\ell_{1R}+\left(\bar{L}_{1}H_{1}-\bar{L}_{2}H_{2}\right)\ell_{2R}\right]\\
+ & -\frac{1}{\sqrt{2}}Y_{4}^{\ell}\bar{L}_{S}\left[H_{1}\ell_{1R}+H_{2}\ell_{2R}\right]-\frac{1}{\sqrt{2}}Y_{5}^{\ell}\left[\bar{L}_{1}H_{1}+\bar{L}_{2}H_{2}\right]\ell_{SR}+\text{ h.c. }
+\end{align*}
+and the mass matrix is given by
+\begin{align}
+M_{\ell}= & \begin{pmatrix}\mu_{1}^{\ell}+\mu_{2}^{\ell} & \sqrt{3}\mu_{2}^{\ell} & \sqrt{3}\mu_{5}^{\ell}\\
+\sqrt{3}\mu_{2}^{\ell} & \mu_{1}^{\ell}-\mu_{2}^{\ell} & \mu_{5}^{\ell}\\
+\sqrt{3}\mu_{4}^{\ell} & \mu_{4}^{\ell} & \mu_{3}^{\ell}
+\end{pmatrix},\label{eq:ML_mass_matrix}
+\end{align}
+where\footnote{With $H_{i}=\frac{1}{\sqrt{2}}(\phi+i\phi')$ the neutral vacuum
+expectation values are $\langle H_{i}^{0}\rangle=v_{i}/\sqrt{2}$, so each term of
+$\mathcal{L}_{Y_{\ell}}$ contributes its explicit prefactor times $v_{i}/\sqrt{2}$;
+this is what fixes the factors below. Note that $Y_{3}^{\ell}$ is the one structure
+written without a $1/\sqrt{2}$ prefactor, hence the different factor in $\mu_{3}^{\ell}$;
+adding a $1/\sqrt{2}$ there as well would make all five uniform.}
+\begin{align*}
+\mu_{1}^{\ell}= & \frac{v_{3}}{2}Y_{1}^{\ell} & \mu_{2}^{\ell}= & \frac{v_{2}}{2}Y_{2}^{\ell},\\
+\mu_{3}^{\ell}= & \frac{v_{3}}{\sqrt{2}}Y_{3}^{\ell} & \mu_{4}^{\ell}= & \frac{v_{2}}{2}Y_{4}^{\ell},\\
+ &  & \mu_{5}^{\ell}= & \frac{v_{2}}{2}Y_{5}^{\ell}.
+\end{align*}
+Matching the eigenvalues of (\ref{eq:ML_mass_matrix}) with the charged
+lepton masses we obtain the following relations
+\begin{align}
+m_{e}= & \mu_{1}^{\ell}-2\mu_{2}^{\ell}\nonumber \\
+m_{\mu}+m_{\tau}= & \mu_{1}^{\ell}+2\mu_{2}^{\ell}+\mu_{3}^{\ell}\nonumber \\
+\left(m_{\tau}-m_{\mu}\right)^{2}= & {\displaystyle \left(2\mu_{3}^{\ell}-m_{\mu}-m_{\tau}\right)^{2}}+4\left(\mu_{4}^{\ell}+\mu_{5}^{\ell}\right)^{2}\label{eq:muil_equations}
+\end{align}
+where the last relation follows from $\left(\sigma_{1}-\sigma_{2}\right)^{2}=\text{tr}\left(A^{\top}A\right)-2\left|\det A\right|$
+for the block $A$ defined in (\ref{eq:A_definition}) below, and is valid for
+independent $\mu_{4}^{\ell}$ and $\mu_{5}^{\ell}$. (Only once $\mu_{4}^{\ell}=\mu_{5}^{\ell}$
+has been established does it reduce to the more compact ${\displaystyle \left(2\mu_{3}^{\ell}-m_{\mu}-m_{\tau}\right)^{2}}+16\mu_{4}^{\ell}\mu_{5}^{\ell}$;
+we keep the general form here because (\ref{eq:mu5_equal_mu4}) is derived from it.)
+and we could solve as follows
+\begin{align}
+\mu_{1}^{\ell}= & \frac{1}{2}\left(m_{e}+m_{\mu}+m_{\tau}-\mu_{3}^{\ell}\right),\nonumber \\
+\mu_{2}^{\ell}= & \frac{1}{4}\left(m_{\mu}+m_{\tau}-m_{e}-\mu_{3}^{\ell}\right),\label{eq:muil_sols}\\
+\left(\mu_{4}^{\ell}+\mu_{5}^{\ell}\right)^{2}= & \left(m_{\tau}-\mu_{3}^{\ell}\right)\left(\mu_{3}^{\ell}-m_{\mu}\right),\nonumber
+\end{align}
+and
+\begin{align*}
+\mu_{1}^{\ell}+\mu_{2}^{\ell}= & \frac{1}{4}\left[m_{e}+3\left(m_{\mu}+m_{\tau}-\mu_{3}^{\ell}\right)\right],\\
+\mu_{1}^{\ell}-\mu_{2}^{\ell}= & \frac{1}{4}\left[3m_{e}+\left(m_{\mu}+m_{\tau}-\mu_{3}^{\ell}\right)\right].
+\end{align*}
+Since the left-hand side of the last relation in (\ref{eq:muil_sols}) is a square,
+its right-hand side must be non-negative, which imposes
+\[
+m_{\mu}\leq\mu_{3}^{\ell}\leq m_{\tau}
+\]
+with no further assumption.
+In the case of $\mu_{5}^{\ell}=0$ $\left(\text{similarly to }\mu_{4}^{\ell}=0\right)$,
+we have two cases:
+\begin{enumerate}
+\item $\mu_{3}^{\ell}=m_{\mu},$ then
+\begin{align*}
+\mu_{1}^{\ell}= & \frac{1}{2}\left(m_{e}+m_{\tau}\right)\\
+\mu_{2}^{\ell}= & \frac{1}{4}\left(m_{\tau}-m_{e}\right)\\
+\mu_{1}^{\ell}+\mu_{2}^{\ell}= & \frac{1}{4}\left(m_{e}+3m_{\tau}\right)\\
+\mu_{1}^{\ell}-\mu_{2}^{\ell}= & \frac{1}{4}\left(3m_{e}+m_{\tau}\right)
+\end{align*}
+\[
+M_{\ell}=\begin{pmatrix}\frac{1}{4}\left(m_{e}+3m_{\tau}\right) & \frac{\sqrt{3}}{4}\left(m_{\tau}-m_{e}\right) & 0\\
+\frac{\sqrt{3}}{4}\left(m_{\tau}-m_{e}\right) & \frac{1}{4}\left(3m_{e}+m_{\tau}\right) & 0\\
+\sqrt{3}\mu_{4}^{\ell} & \mu_{4}^{\ell} & m_{\mu}
+\end{pmatrix}.
+\]
+\item $\mu_{3}^{\ell}=m_{\tau}$, so
+\begin{align*}
+\mu_{1}^{\ell}= & \frac{1}{2}\left(m_{e}+m_{\mu}\right)\\
+\mu_{2}^{\ell}= & \frac{1}{4}\left(m_{\mu}-m_{e}\right)\\
+\mu_{1}^{\ell}+\mu_{2}^{\ell}= & \frac{1}{4}\left(m_{e}+3m_{\mu}\right)\\
+\mu_{1}^{\ell}-\mu_{2}^{\ell}= & \frac{1}{4}\left(3m_{e}+m_{\mu}\right)
+\end{align*}
+\[
+M_{\ell}=\begin{pmatrix}\frac{1}{4}\left(m_{e}+3m_{\mu}\right) & \frac{\sqrt{3}}{4}\left(m_{\mu}-m_{e}\right) & 0\\
+\frac{\sqrt{3}}{4}\left(m_{\mu}-m_{e}\right) & \frac{1}{4}\left(3m_{e}+m_{\mu}\right) & 0\\
+\sqrt{3}\mu_{4}^{\ell} & \mu_{4}^{\ell} & m_{\tau}
+\end{pmatrix}.
+\]
+\end{enumerate}
+
+\subsection{Physical basis}
+
+The diagonalization occurs in two stages, the first stage consists
+of a rotation by $\pi/3$ $e-\mu$ sector, 
+\begin{equation}
+O_{12}=\begin{pmatrix}\frac{1}{2} & \frac{\sqrt{3}}{2} & 0\\
+-\frac{\sqrt{3}}{2} & \frac{1}{2} & 0\\
+0 & 0 & 1
+\end{pmatrix}.\label{eq:O12_definition}
+\end{equation}
+The rotation $O_{12}$ gives a block diagonal matrix 
+\begin{equation}
+\tilde{M}_{\ell}=O_{12}^{\top}M_{\ell}O_{12}=\begin{pmatrix}m_{e} & 0\\
+0 & A
+\end{pmatrix}\label{eq:O12_rotation}
+\end{equation}
+where 
+\begin{equation}
+A=\begin{cases}
+\begin{pmatrix}m_{\alpha} & 0\\
+2\mu_{4}^{\ell} & m_{\beta}
+\end{pmatrix} & \text{case 1 (\ensuremath{\alpha=\tau} and \ensuremath{\beta=\mu}) and case 2 (\ensuremath{\alpha=\mu} and \ensuremath{\beta=\tau}),}\\
+\begin{pmatrix}\rho & 2\mu_{5}^{\ell}\\
+2\mu_{4}^{\ell} & \mu_{3}^{\ell}
+\end{pmatrix} & \text{in general},
+\end{cases}\label{eq:A_definition}
+\end{equation}
+where
+\[
+\rho=m_{\mu}+m_{\tau}-\mu_{3}^{\ell}
+\]
+Then we need to diagonalize $A$, and then the lepton masses are equivalent
+to the singular values of $A$, which arise from 
+\[
+N=A^{\dagger}A=A^{\top}A
+\]
+where the last identity is true with $\mu_{4}^{\ell}\mu_{5}^{\ell}\geq0$.
+Explicitly
+\[
+N=\begin{cases}
+\begin{pmatrix}4\left(\mu_{4}^{\ell}\right)^{2}+m_{\alpha}^{2} & 2\mu_{4}^{\ell}m_{\beta}\\
+2\mu_{4}^{\ell}m_{\beta} & m_{\beta}^{2}
+\end{pmatrix} & \text{case 1 (\ensuremath{\alpha=\tau} and \ensuremath{\beta=\mu}) and case 2 (\ensuremath{\alpha=\mu} and \ensuremath{\beta=\tau}),}\\
+\begin{pmatrix}4\left(\mu_{4}^{\ell}\right)^{2}+\rho^{2} & 2\mu_{3}^{\ell}\mu_{4}^{\ell}+2\mu_{5}^{\ell}\rho\\
+2\mu_{3}^{\ell}\mu_{4}^{\ell}+2\mu_{5}^{\ell}\rho & \left(\mu_{3}^{\ell}\right)^{2}+4\left(\mu_{5}^{\ell}\right)^{2}
+\end{pmatrix} & \text{in general}.
+\end{cases}
+\]
+comparing with the trace,
+\begin{equation}
+\text{tr}\left(N\right)=m_{\mu}^{2}+m_{\tau}^{2}\label{eq:TraceN}
+\end{equation}
+For cases 1 and 2
+\[
+\text{tr}\left(N\right)=4\left(\mu_{4}^{\ell}\right)^{2}+m_{\mu}^{2}+m_{\tau}^{2}
+\]
+consequently, the only one solution is 
+\[
+\mu_{4}^{\ell}=0,
+\]
+we conclude for these simplified cases that we only need $O_{12}$
+to diagonalize $M_{\ell}$ and its diagonal form is $\tilde{M_{\ell}}$.
+However, for the general case, from (\ref{eq:TraceN})
+\begin{align}
+\ensuremath{{\displaystyle 4\left[\left(\mu_{4}^{\ell}\right)^{2}+\left(\mu_{5}^{\ell}\right)^{2}\right]}} & =-2m_{\mu}m_{\tau}+2\mu_{3}^{\ell}\left(m_{\mu}+m_{\tau}\right)-2\left(\mu_{3}^{\ell}\right)^{2},\nonumber \\
+ & =2\left(m_{\tau}-\mu_{3}^{\ell}\right)\left(\mu_{3}^{\ell}-m_{\mu}\right).\label{eq:trN_mu45}
+\end{align}
+Comparing with the third equation in (\ref{eq:muil_sols}), which involves
+$\left(\mu_{4}^{\ell}+\mu_{5}^{\ell}\right)^{2}$ and is therefore independent
+of (\ref{eq:trN_mu45}),
+\begin{align*}
+\left(\mu_{4}^{\ell}+\mu_{5}^{\ell}\right)^{2} & =\left(m_{\tau}-\mu_{3}^{\ell}\right)\left(\mu_{3}^{\ell}-m_{\mu}\right),\\
+{\displaystyle 2\left[\left(\mu_{4}^{\ell}\right)^{2}+\left(\mu_{5}^{\ell}\right)^{2}\right]} & =\left(m_{\tau}-\mu_{3}^{\ell}\right)\left(\mu_{3}^{\ell}-m_{\mu}\right),
+\end{align*}
+so that subtracting the second from the first
+\begin{align*}
+\left(\mu_{4}^{\ell}+\mu_{5}^{\ell}\right)^{2}-2\left[\left(\mu_{4}^{\ell}\right)^{2}+\left(\mu_{5}^{\ell}\right)^{2}\right] & =0\\
+-\left(\mu_{4}^{\ell}-\mu_{5}^{\ell}\right)^{2} & =0
+\end{align*}
+So, the only possibiity in this case is 
+\begin{equation}
+\mu_{5}^{\ell}=\mu_{4}^{\ell}.\label{eq:mu5_equal_mu4}
+\end{equation}
+In consequence, from (\ref{eq:mu5_equal_mu4}), $A$ is symmetric
+and
+\[
+A=\begin{pmatrix}\rho & 2\mu_{4}^{\ell}\\
+2\mu_{4}^{\ell} & \mu_{3}^{\ell}
+\end{pmatrix},
+\]
+which is diagonalized by 
+\[
+o_{23}=\begin{pmatrix}\cos\left(\theta_{\ell}\right) & \sin\left(\theta_{\ell}\right)\\
+-\sin\left(\theta_{\ell}\right) & \cos\left(\theta_{\ell}\right)
+\end{pmatrix},
+\]
+with the angle given by
+\begin{align*}
+\tan\left(2\theta_{\ell}\right) & =\frac{4\mu_{4}^{\ell}}{2\mu_{3}^{\ell}-\left(m_{\mu}+m_{\tau}\right)}.
+\end{align*}
+Without loss of generality, we assume that $\mu_{4}^{\ell}>0$, then,
+from (\ref{eq:muil_sols}) and (\ref{eq:mu5_equal_mu4})
+\[
+\mu_{4}^{\ell}=\frac{1}{2}\sqrt{\left(\mu_{3}^{\ell}-m_{\mu}\right)\left(m_{\tau}-\mu_{3}^{\ell}\right)}=\frac{1}{2}\sqrt{p_{1}p_{2}},\quad m_{\mu}<\mu_{3}^{\ell}<m_{\tau}.
+\]
+as a consequence
+\[
+\tan\left(2\theta_{\ell}\right)=\frac{2\sqrt{p_{1}p_{2}}}{p_{1}-p_{2}}
+\]
+where
+\[
+p_{1}=\mu_{3}^{\ell}-m_{\mu};\quad p_{2}=m_{\tau}-\mu_{3}^{\ell};\quad p_{1,2}>0.
+\]
+\begin{align*}
+\sin\left(\theta_{\ell}\right)=\sqrt{\frac{p_{2}}{\Delta}} & \cos\left(\theta_{\ell}\right)=\sqrt{\frac{p_{1}}{\Delta}};\quad\Delta=p_{1}+p_{2}=m_{\tau}-m_{\mu}>0.
+\end{align*}
+ Finally, the full charged lepton mass matrix is diagonalized by an
+orthogonal matrix given as follows 
+\begin{equation}
+O=O_{12}O_{23}\label{eq:O_definition}
+\end{equation}
+ where $O_{12}$ is given in (\ref{eq:O12_definition}) and 
+\begin{equation}
+O_{23}=\begin{pmatrix}1 & 0 & 0\\
+0 & \cos\left(\theta_{\ell}\right) & \sin\left(\theta_{\ell}\right)\\
+0 & -\sin\left(\theta_{\ell}\right) & \cos\left(\theta_{\ell}\right)
+\end{pmatrix}.\label{eq:O23}
+\end{equation}
+
+
+\section{Lepton flavor violating Higgs decays}
+
+From now on, we will consider the condition $\mu_{5}^{\ell}=\mu_{4}^{\ell}\left(Y_{5}^{\ell}=Y_{4}^{\ell}\right)$,
+so, the charged lepton mass matrix is given by
+\begin{align*}
+M_{\ell}= & \begin{pmatrix}\mu_{1}^{\ell}+\mu_{2}^{\ell} & \sqrt{3}\mu_{2}^{\ell} & \sqrt{3}\mu_{4}^{\ell}\\
+\sqrt{3}\mu_{2}^{\ell} & \mu_{1}^{\ell}-\mu_{2}^{\ell} & \mu_{4}^{\ell}\\
+\sqrt{3}\mu_{4}^{\ell} & \mu_{4}^{\ell} & \mu_{3}^{\ell}
+\end{pmatrix}
+\end{align*}
+which can be decomposed as follows
+\[
+M_{\ell}=v_{1}G_{1}+v_{2}G_{2}+v_{3}G_{S}
+\]
+where
+\begin{align*}
+G_{1}= & \frac{1}{v_{1}}\begin{pmatrix}0 & \sqrt{3}\mu_{2}^{\ell} & \sqrt{3}\mu_{4}^{\ell}\\
+\sqrt{3}\mu_{2}^{\ell} & 0 & 0\\
+\sqrt{3}\mu_{4}^{\ell} & 0 & 0
+\end{pmatrix}=\frac{1}{v_{2}}\begin{pmatrix}0 & \mu_{2}^{\ell} & \mu_{4}^{\ell}\\
+\mu_{2}^{\ell} & 0 & 0\\
+\mu_{4}^{\ell} & 0 & 0
+\end{pmatrix}\\
+G_{2}= & \frac{1}{v_{2}}\begin{pmatrix}\mu_{2}^{\ell} & 0 & 0\\
+0 & -\mu_{2}^{\ell} & \mu_{4}^{\ell}\\
+0 & \mu_{4}^{\ell} & 0
+\end{pmatrix}\\
+G_{S}= & \frac{1}{v_{3}}\begin{pmatrix}\mu_{1}^{\ell} & 0 & 0\\
+0 & \mu_{1}^{\ell} & 0\\
+0 & 0 & \mu_{3}^{\ell}
+\end{pmatrix}
+\end{align*}
+each $G_{k}$ couples with $H_{k}$ ($k=1,2,S$). So, in the lepton
+mass basis, these matrices are transform by $O$ matrix , such as
+follows
+\begin{align}
+\widetilde{G}_{k}= & O^{\top}G_{k}O.\label{eq:Gktilde}
+\end{align}
+
+In terms of $\widetilde{G}_{k}$ from (\ref{eq:Gktilde}), the charged
+lepton interactions with neutral scalar are given as follows
+\begin{equation}
+\mathcal{L}_{\text{LFV}}^{h}=-h_{1}\overline{\ell}Q_{1}P_{R}\ell-h_{0}\overline{\ell}Q_{2}P_{R}\ell-h_{2}\overline{\ell}Q_{3}P_{R}\ell+\text{h.c.}\label{eq:L_LFVH}
+\end{equation}
+where
+\begin{equation}
+Q_{i}=\sum_{j=1,2,3}\left(R_{S}\right)_{ji}\widetilde{G}_{j}.\label{eq:Q_general}
+\end{equation}
+
+
+\subsection{Scenario A}
+
+In this scenario, $R_{S}=R_{A}$, in consequence, 
+\begin{align*}
+Q_{1}\left(A\right)= & \frac{1}{v}\text{diag}\left(m_{e},m_{\mu},m_{\tau}\right),\\
+Q_{2}\left(A\right)= & \begin{pmatrix}0 & -\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & -\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}}\\
+-\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0\\
+-\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0
+\end{pmatrix}\\
+Q_{3}\left(A\right)= & \begin{pmatrix}\frac{2m_{e}v_{2}}{vv_{3}}-\frac{v\left(m_{e}-\mu_{3}+p_{1}-p_{2}\right)}{4v_{2}v_{3}} & 0 & 0\\
+0 & \frac{2m_{\mu}v_{2}}{vv_{3}}+\frac{p_{1}v\left(m_{e}-m_{\mu}+3p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)} & -\frac{\sqrt{p_{1}}\sqrt{p_{2}}v\left(-m_{e}+\mu_{3}+p_{1}-p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)}\\
+0 & -\frac{\sqrt{p_{1}}\sqrt{p_{2}}v\left(-m_{e}+\mu_{3}+p_{1}-p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)} & \frac{2m_{\tau}v_{2}}{vv_{3}}-\frac{p_{2}v\left(-m_{e}+m_{\tau}+3p_{1}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)}
+\end{pmatrix}
+\end{align*}
+
+
+\subsection{Scenario B}
+
+Now, 
+
+\begin{align*}
+Q_{1}\left(B\right)= & \begin{pmatrix}-\frac{2m_{e}v_{2}}{vv_{3}}+\frac{v\left(m_{e}-m_{\mu}-p_{2}\right)}{4v_{2}v_{3}} & 0 & 0\\
+0 & -\frac{2m_{\mu}v_{2}}{vv_{3}}-\frac{p_{1}v\left(m_{e}-m_{\mu}+3p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)} & \frac{\sqrt{p_{1}}\sqrt{p_{2}}v\left(-m_{e}+\mu_{3}+p_{1}-p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)}\\
+0 & \frac{\sqrt{p_{1}}\sqrt{p_{2}}v\left(-m_{e}+\mu_{3}+p_{1}-p_{2}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)} & -\frac{2m_{\tau}v_{2}}{vv_{3}}+\frac{p_{2}v\left(-m_{e}+m_{\tau}+3p_{1}\right)}{4v_{2}v_{3}\left(p_{1}+p_{2}\right)}
+\end{pmatrix},\\
+Q_{2}\left(B\right)= & \begin{pmatrix}0 & -\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & -\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}}\\
+-\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0\\
+-\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0
+\end{pmatrix}\\
+Q_{3}\left(B\right)= & \frac{1}{v}\text{diag}\left(m_{e},m_{\mu},m_{\tau}\right)
+\end{align*}
+
+
+\subsection{Scenario C}
+
+But, 
+
+\begin{align*}
+Q_{1}\left(C\right)\approx & \frac{1}{v}\cos\left(\delta\right)\text{diag}\left(m_{e},m_{\mu},m_{\tau}\right)+\sin\left(\delta\right)Q_{1}\left(B\right),\\
+Q_{2}\left(C\right)\approx & \begin{pmatrix}0 & -\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & -\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}}\\
+-\frac{\sqrt{p_{1}}\left(m_{e}-\mu_{3}+p_{1}-3p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0\\
+-\frac{\sqrt{p_{2}}\left(m_{e}-\mu_{3}+3p_{1}-p_{2}\right)}{4v_{2}\sqrt{p_{1}+p_{2}}} & 0 & 0
+\end{pmatrix}\\
+Q_{3}\left(C\right)\approx & \cos\left(\delta\right)Q_{3}\left(A\right)+\frac{\sin\left(\delta\right)}{v}\text{diag}\left(m_{e},m_{\mu},m_{\tau}\right)
+\end{align*}
+
+\bibliographystyle{plain}
+\bibliography{biblioteca}
+
+\end{document}

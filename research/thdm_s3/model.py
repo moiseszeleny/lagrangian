@@ -56,9 +56,15 @@ class S3Model:                # the lru_caches below can key on the instance
     vevs: dict                 # {"v1": ExternalParameter, "v2": ..., "vS": ...}
     lams: dict                 # {1..8: ExternalParameter}
     mus: tuple                 # (mu0sq, mu1sq)
-    align: dict                # {v1.s: v2.s/√3}
+    align: dict                # {v1.s: v2.s/√3}; empty when soft-broken
     tadpole_sol: dict          # (mu0sq, mu1sq) on the aligned vacuum
+    softs: dict = _field(default_factory=dict)   # soft S₃-breaking quadratics
     _cache: dict = _field(default_factory=dict, repr=False)
+
+    @property
+    def soft(self):
+        """Whether the soft S₃-breaking quadratics are present."""
+        return bool(self.softs)
 
     # convenience accessors used constantly by the notebooks
     @property
@@ -83,7 +89,8 @@ class S3Model:                # the lru_caches below can key on the instance
         return expr.subs(self.tadpole_sol).subs(self.align)
 
 
-def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False) -> S3Model:
+def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False,
+                soft=False) -> S3Model:
     """Build the S₃-invariant 3HDM and solve its tadpoles on the alignment.
 
     Parameters
@@ -98,6 +105,15 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False) -> S3Model:
     check : also run ``model.check_invariance()`` and raise if it fails.
         Off by default because it costs a few seconds and is pinned in
         ``tests/test_thdm_s3.py``.
+    soft : add the four CP-conserving **soft S₃-breaking** quadratics
+        (`SOFT_LABELS`).  Soft breaking is dimension-2 by definition, so it
+        touches no quartic — every boundedness / unitarity result in
+        `constraints.py` and `01_scalar_parameter_space.ipynb` is unaffected.
+        What it *does* change is the vacuum: the tadpole system stops being
+        over-constrained, so the √3 alignment is no longer forced and
+        ``align`` comes back empty.  This is what lets the residual Z₂ break
+        and, in turn, what generates a non-zero Cabibbo angle
+        (`02_s3_fermion_sector.ipynb` §11, [DasDeyPal16]).
     """
     nm = (lambda plain, latex: latex if tex else plain)
 
@@ -106,10 +122,10 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False) -> S3Model:
     SU2L, U1Y = SU2("SU2L", coupling=gw), U1("U1Y", coupling=g1)
     s3 = S3()
 
-    v1 = ExternalParameter(nm("v1", "v_1"), vevs[0], positive=True, unit_dim=1)
-    v2 = ExternalParameter(nm("v2", "v_2"), vevs[1], positive=True, unit_dim=1)
-    vS = ExternalParameter(nm("vS", "v_S"), vevs[2], positive=True, unit_dim=1)
-    lams = {k: ExternalParameter(nm(f"lm{k}", f"lambda_{k}"), 0.05 * k)
+    v1 = ExternalParameter(nm("v_1", "v_1"), vevs[0], positive=True, unit_dim=1)
+    v2 = ExternalParameter(nm("v_2", "v_2"), vevs[1], positive=True, unit_dim=1)
+    vS = ExternalParameter(nm("v_S", "v_S"), vevs[2], positive=True, unit_dim=1)
+    lams = {k: ExternalParameter(nm(f"lambda_{k}", f"lambda_{k}"), 0.05 * k)
             for k in range(1, 9)}
     mu0sq = InternalParameter("mu0sq", unit_dim=2)
     mu1sq = InternalParameter("mu1sq", unit_dim=2)
@@ -118,9 +134,9 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False) -> S3Model:
         return Scalar(name, reps={SU2L: 2, U1Y: sp.Rational(1, 2)},
                       component_names=[f"{name}p", f"{name}0"])
 
-    H1 = doublet(nm("H1", "H_1"))
-    H2 = doublet(nm("H2", "H_2"))
-    HS = doublet(nm("HS", "H_S"))
+    H1 = doublet(nm("H_1", "H_1"))
+    H2 = doublet(nm("H_2", "H_2"))
+    HS = doublet(nm("H_S", "H_S"))
     s3.assign("2", H1, H2)
     s3.assign("1", HS)
     H1.expand_vev({H1.components[1]: v1})
@@ -157,32 +173,58 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False) -> S3Model:
          + l[7] * lam7_term
          + l[8] * sss**2)
 
+    # --- soft S₃ breaking: quadratic only, so no quartic is touched ---------
+    softs = {}
+    if soft:
+        herm = lambda e: e + sp.conjugate(e)
+        structures = {
+            "mD1sq": d2[0],                 # x11 − x22        } the 2 of 2⊗2
+            "mD2sq": d2[1],                 # −(x12 + x21)     }
+            "mS1sq": herm(s1),              # H_S†H₁ + h.c.    } the S-doublet
+            "mS2sq": herm(s2),              # H_S†H₂ + h.c.    }
+        }
+        for name, struct in structures.items():
+            p = ExternalParameter(nm(name, name), 0.0, unit_dim=2)
+            softs[name] = p
+            V += p.s * struct
+
     L = Lagrangian().add(-V, sector="potential")
     model = Model("3HDM-S3", gauge_groups=[SU2L, U1Y], discrete_groups=[s3],
                   fields=[H1, H2, HS],
-                  parameters=[gw, g1, v1, v2, vS, mu0sq, mu1sq, *lams.values()],
+                  parameters=[gw, g1, v1, v2, vS, mu0sq, mu1sq, *lams.values(),
+                              *softs.values()],
                   lagrangian=L)
 
     if check:
         model.check_invariance(raise_on_failure=True)
 
-    # The tadpole system is deliberately OVER-constrained — that is the point
-    # of the model.  Model.solve_tadpoles() does not apply here (contrast
-    # examples/thdm.py, where it does): two conditions fix (μ0², μ1²) and the
-    # third is not an equation for a parameter but the vacuum-alignment
-    # residual, [GomezBock21] Eq. (13).  So impose the alignment first, then
-    # solve the remaining two.
-    align = {v1.s: v2.s / sp.sqrt(3)}
     tadpoles = model.tadpoles()
-    sol = sp.solve([sp.Eq(tadpoles[v2.s].subs(align), 0),
-                    sp.Eq(tadpoles[vS.s].subs(align), 0)],
-                   [mu0sq.s, mu1sq.s], dict=True)[0]
+    if soft:
+        # With four extra quadratic parameters the system is no longer
+        # over-constrained: all three tadpoles become ordinary equations, and a
+        # *general* (v₁, v₂, v_S) minimizes the potential.  Nothing forces the
+        # alignment, so `align` is empty — that is the whole point.
+        align = {}
+        unknowns = [mu0sq.s, mu1sq.s, softs["mD2sq"].s]
+        sol = sp.solve([sp.Eq(tadpoles[v.s], 0) for v in (v1, v2, vS)],
+                       unknowns, dict=True)[0]
+    else:
+        # The tadpole system is deliberately OVER-constrained — that is the
+        # point of the model.  Model.solve_tadpoles() does not apply here
+        # (contrast examples/thdm.py, where it does): two conditions fix
+        # (μ0², μ1²) and the third is not an equation for a parameter but the
+        # vacuum-alignment residual, [GomezBock21] Eq. (13).  So impose the
+        # alignment first, then solve the remaining two.
+        align = {v1.s: v2.s / sp.sqrt(3)}
+        sol = sp.solve([sp.Eq(tadpoles[v2.s].subs(align), 0),
+                        sp.Eq(tadpoles[vS.s].subs(align), 0)],
+                       [mu0sq.s, mu1sq.s], dict=True)[0]
 
     return S3Model(model=model, s3=s3, SU2L=SU2L, U1Y=U1Y,
                    doublets=(H1, H2, HS),
                    vevs={"v1": v1, "v2": v2, "vS": vS},
                    lams=lams, mus=(mu0sq, mu1sq),
-                   align=align, tadpole_sol=sol)
+                   align=align, tadpole_sol=sol, softs=softs)
 
 
 def alignment_residual(m: S3Model):
@@ -389,6 +431,103 @@ def spectrum_function(m: S3Model, modules="math") -> Callable:
     return spectrum
 
 
+# --------------------------------------------------------------------------
+# the quartic potential, for boundedness checks
+# --------------------------------------------------------------------------
+
+#: Slot order of `quartic_potential`'s 12 real arguments: the 6 real parts, then
+#: the 6 imaginary parts, of (H₁⁺, H₁⁰, H₂⁺, H₂⁰, H_S⁺, H_S⁰).  Indices 1, 3, 5
+#: are the neutral legs.
+NEUTRAL_INDICES = (1, 3, 5)
+CHARGED_INDICES = (0, 2, 4)
+
+
+def component_symbols(m: S3Model):
+    """The six doublet-component symbols, in `NEUTRAL_INDICES` slot order.
+
+    Read off the `Field` objects rather than reconstructed from hardcoded names:
+    the parameter/field naming is a `build_model(tex=...)` option, so any name
+    string baked in here would silently stop matching if it changed — and a
+    ``subs`` keyed on a stale name is a **no-op**, not an error, so the failure
+    would be invisible.
+    """
+    return [c for H in m.doublets for c in H.components]
+
+
+def quartic_potential(m: S3Model):
+    """Lambdified V₄(x₀…x₅, y₀…y₅, λ₁…λ₈) — the quartic part of the potential.
+
+    Each doublet component is split as ``Hᵢ = xᵢ + i yᵢ`` over
+    `component_symbols`, giving 12 real degrees of freedom.  Vectorized
+    (``numpy``), so a whole block of field directions evaluates at once.
+
+    Used to test boundedness from below *directly*, rather than trusting the
+    analytic conditions in `constraints.py`: V₄ is homogeneous of degree 4, so
+    the potential is bounded from below iff V₄ ≥ 0 on the unit 12-sphere.
+    """
+    if "V4" in m._cache:
+        return m._cache["V4"]
+
+    lam = m.lam_symbols
+    V = -sum(t.expr for t in m.model.lagrangian.terms)
+    V4 = sum(t for t in sp.expand(V).args if any(t.has(l) for l in lam))
+
+    comps = component_symbols(m)
+    xr = sp.symbols("x0:6", real=True)
+    yi = sp.symbols("y0:6", real=True)
+    split = {c: xr[i] + sp.I * yi[i] for i, c in enumerate(comps)}
+    real_part = sp.expand(sp.expand(V4.subs(split)).as_real_imag()[0])
+
+    leftover = real_part.free_symbols - set(xr) - set(yi) - set(lam)
+    if leftover:
+        raise ValueError(f"V4 still contains field symbols after the split: "
+                         f"{sorted(map(str, leftover))} — component_symbols(m) "
+                         f"does not match the fields in the Lagrangian")
+
+    m._cache["V4"] = sp.lambdify(list(xr) + list(yi) + lam, real_part, "numpy")
+    return m._cache["V4"]
+
+
+def numeric_bfb_min(m: S3Model, lam_points, n_directions=20_000, seed=0,
+                    subspace="all", chunk=64):
+    """Smallest V₄ found over random unit field directions, per λ point.
+
+    A negative entry is a **proof** that the point is not bounded from below —
+    an explicit direction along which V₄ < 0, and V₄ being degree-4 homogeneous
+    that direction runs to −∞.  A non-negative entry is only evidence, since the
+    search is a finite sample of the unit 12-sphere.
+
+    `subspace` selects which directions are sampled: ``"all"`` (12 real dof),
+    ``"neutral"`` (charged legs zero), or ``"neutral-real"`` (charged legs and
+    all phases zero) — the slice `constraints.neutral_real_bfb_min` solves in
+    closed form, kept here as its cross-check.
+    """
+    import numpy as np
+
+    fn = quartic_potential(m)
+    lam_points = np.atleast_2d(np.asarray(lam_points, dtype=float))
+    rng = np.random.default_rng(seed)
+
+    X = rng.normal(size=(12, n_directions))
+    if subspace in ("neutral", "neutral-real"):
+        for i in CHARGED_INDICES:
+            X[i] = 0.0
+            X[i + 6] = 0.0
+    if subspace == "neutral-real":
+        for i in NEUTRAL_INDICES:
+            X[i + 6] = 0.0
+    X /= np.linalg.norm(X, axis=0)
+
+    out = np.empty(len(lam_points))
+    for start in range(0, len(lam_points), chunk):
+        block = lam_points[start:start + chunk]
+        # broadcast: fields (12, 1, n_dir) against lambdas (n_block, 1)
+        args = [X[i][None, :] for i in range(12)] + [block[:, k][:, None]
+                                                     for k in range(8)]
+        out[start:start + chunk] = fn(*args).min(axis=1)
+    return out
+
+
 def check_spectrum_against_eigenvals(m: S3Model, lam_values, v2_val, vS_val,
                                      rtol=1e-8):
     """Cross-check the rotation-ansatz CP-even masses against brute force.
@@ -399,13 +538,51 @@ def check_spectrum_against_eigenvals(m: S3Model, lam_values, v2_val, vS_val,
     feynlag derived.  Returns (via_rotation, brute_force, agree).
     """
     spec = spectrum_function(m)(lam_values, v2_val, vS_val)
-    subs = dict(zip(m.lam_symbols, lam_values))
-    subs[m.v2.s] = v2_val
-    subs[m.vS.s] = vS_val
+    subs = _numeric_subs(m, lam_values, v2_val, vS_val)
 
     M_S = mass_matrices(m)[0]
     brute = sorted(complex(e).real for e in sp.N(M_S.subs(subs)).eigenvals())
     via = sorted(spec[k] for k in ("h0", "H1", "H2"))
-    scale = max(abs(x) for x in brute + via) or 1.0
-    agree = all(abs(a - b) <= rtol * scale for a, b in zip(via, brute))
-    return via, brute, agree
+    return via, brute, _agree(via, brute, rtol)
+
+
+def _numeric_subs(m: S3Model, lam_values, v2_val, vS_val):
+    subs = dict(zip(m.lam_symbols, lam_values))
+    subs[m.v2.s] = v2_val
+    subs[m.vS.s] = vS_val
+    return subs
+
+
+def _agree(via, brute, rtol):
+    scale = max(abs(x) for x in list(brute) + list(via)) or 1.0
+    return all(abs(a - b) <= rtol * scale for a, b in zip(via, brute))
+
+
+def check_sectors_against_eigenvals(m: S3Model, lam_values, v2_val, vS_val,
+                                    rtol=1e-8):
+    """The `check_spectrum_against_eigenvals` cross-check, for *all three* sectors.
+
+    The rotation ansatz claims more than the CP-even spectrum: it claims the
+    CP-odd and charged 3×3 matrices are diagonalized outright, with a Goldstone
+    at [0,0].  Checking only the CP-even sector leaves that untested.  Here each
+    sector's rotation-basis masses — including the Goldstone zeros — are compared
+    against direct numeric diagonalization of the *un-rotated* mass matrix.
+
+    Returns ``{sector: (via_rotation, brute_force, agree)}`` with sector in
+    ``("CP-even", "CP-odd", "charged")``, each list sorted ascending.
+    """
+    spec = spectrum_function(m)(lam_values, v2_val, vS_val)
+    subs = _numeric_subs(m, lam_values, v2_val, vS_val)
+    M_S, M_A, M_C = mass_matrices(m)
+
+    # the Goldstone is a genuine eigenvalue of M_A/M_C, so include the 0
+    wanted = {"CP-even": (M_S, [spec[k] for k in ("h0", "H1", "H2")]),
+              "CP-odd": (M_A, [0.0, spec["A1"], spec["A2"]]),
+              "charged": (M_C, [0.0, spec["Hpm1"], spec["Hpm2"]])}
+
+    out = {}
+    for name, (M, via) in wanted.items():
+        brute = sorted(complex(e).real for e in sp.N(M.subs(subs)).eigenvals())
+        via = sorted(via)
+        out[name] = (via, brute, _agree(via, brute, rtol))
+    return out

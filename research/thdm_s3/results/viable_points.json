@@ -1,5 +1,5 @@
 {
-  "description": "S3-3HDM scalar parameter points surviving boundedness-from-below [DasDey14 Eq.4], tree unitarity [DasDey14 Eq.36-37], no tachyons, m_Hpm > 80 GeV, and one CP-even state at 125 +- 3 GeV.",
+  "description": "S3-3HDM scalar parameter points surviving boundedness-from-below ([DasDey14] Eq.4 PLUS the corrected neutral condition derived in notebook section 5, PLUS a full 12-dimensional numerical backstop), tree unitarity [DasDey14] Eq.36-37, no tachyons, m_Hpm > 80 GeV, and one CP-even state at 125 +- 3 GeV.",
   "electroweak_scale_GeV": 246.0,
   "sample_size": 2000000,
   "rng_seed": 20260729,
@@ -7,13 +7,19 @@
     -2.0,
     2.0
   ],
+  "boundedness": {
+    "quoted_conditions": "[DasDey14] Eq.(4a)-(4g), arXiv v2 (pre-erratum)",
+    "correction": "min_{t>=0} [ l8 t^4 + (l5+l6+2 l7) t^2 - 2|l4| t + (l1+l3) ] >= 0",
+    "numeric_backstop_directions": 40000
+  },
   "cut_flow": {
     "sampled": 2000000,
-    "bounded below": 114293,
-    "+ unitarity": 114293,
-    "+ no tachyons": 7927,
-    "+ charged > 80": 7196,
-    "+ CP-even 125+-3": 334
+    "Eq.(4) bounded": 114293,
+    "+ corrected BFB": 103465,
+    "+ unitarity": 103465,
+    "+ no tachyons": 7608,
+    "+ charged > 80": 6890,
+    "+ CP-even 125+-3": 322
   },
   "points": [
     {

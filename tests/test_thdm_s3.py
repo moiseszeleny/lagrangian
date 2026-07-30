@@ -340,3 +340,154 @@ def test_aligned_vacuum_can_meet_the_electroweak_scale(s3_model):
     v1_t = v2_t / math.sqrt(3)
     assert not math.isclose(math.sqrt(v1_t**2 + v2_t**2 + vS_t**2), v_ew,
                             rel_tol=1e-3)
+
+
+# ---------------------------------------------------------------------------
+# The S₃ FERMION sector (leptons and quarks).
+#
+# Physics input: the S₃ irrep assignment of research/thdm_s3/LFVHD_3HDMS3.tex —
+# (F1, F2) a doublet and F_S a singlet, for every left- and right-handed
+# species.  Rebuilt here from scratch, deliberately NOT importing
+# research/thdm_s3/fermions.py (see the note above the s3_sectors fixture).
+#
+# The headline result these pin: O12 depends on the VACUUM alone, so it is the
+# same matrix in every fermion sector — which forces the CKM matrix to be block
+# diagonal unless the vacuum is moved off the S₃ alignment.
+# ---------------------------------------------------------------------------
+
+MU1, MU2, MU3, MU4, MU5 = sp.symbols("mu1 mu2 mu3 mu4 mu5", real=True)
+
+
+def _s3_mass_matrix(r):
+    """The S₃ mass matrix at vacuum ratio r = v1/v2 (r = √3 is the alignment)."""
+    return sp.Matrix([[MU1 + MU2, r * MU2, r * MU5],
+                      [r * MU2, MU1 - MU2, MU5],
+                      [r * MU4, MU4, MU3]])
+
+
+def _o12(r):
+    """The 1–2 block-diagonalizing rotation: tan 2ψ = −r, independent of the μ's."""
+    psi = (sp.pi - sp.atan(r)) / 2
+    c, s = sp.cos(psi), sp.sin(psi)
+    return sp.Matrix([[c, s, 0], [-s, c, 0], [0, 0, 1]])
+
+
+def test_s3_lepton_yukawa_is_complete(s3_model):
+    """feynlag's own enumeration finds exactly the five Yukawa structures.
+
+    The draft writes Y₁…Y₅; character theory says the trivial rep appears once
+    in 2⊗2⊗2, giving 5 invariants over the eight (L̄, H, e_R) irrep
+    assignments.  `suggest_yukawa` knows nothing about either argument.
+    """
+    from feynlag import WeylFermion, suggest_yukawa
+
+    model, s3, (H1, H2, HS), _, _, _ = s3_model
+    SU2L, U1Y = model.gauge_groups
+
+    def lepL(name):
+        return WeylFermion(name, reps={SU2L: 2, U1Y: -sp.Rational(1, 2)},
+                           chirality="L", nflavors=1,
+                           component_names=[f"nu{name}", f"e{name}"])
+
+    def lepR(name):
+        return WeylFermion(name, reps={U1Y: -1}, chirality="R", nflavors=1,
+                           component_names=[name])
+
+    left = [lepL(f"tL{t}") for t in ("1", "2", "S")]
+    right = [lepR(f"tR{t}") for t in ("1", "2", "S")]
+    s3.assign("2", left[0], left[1])
+    s3.assign("1", left[2])
+    s3.assign("2", right[0], right[1])
+    s3.assign("1", right[2])
+
+    terms = suggest_yukawa(left + right, [H1, H2, HS], [SU2L, U1Y],
+                           discrete_groups=[s3], max_dim=4, verify=True)
+    assert len(terms) == 5
+
+
+def test_o12_block_diagonalizes_and_gives_m_e():
+    """O₁₂ᵀ M O₁₂ is block diagonal with m_e = μ₁ − 2μ₂ at the alignment."""
+    M = _s3_mass_matrix(sp.sqrt(3))
+    D = (_o12(sp.sqrt(3)).T * M * _o12(sp.sqrt(3))).applyfunc(sp.simplify)
+
+    assert sp.simplify(D[0, 0] - (MU1 - 2 * MU2)) == 0
+    for i, j in ((0, 1), (1, 0), (0, 2), (2, 0)):
+        assert sp.simplify(D[i, j]) == 0
+    # the residual block is [[μ₁+2μ₂, 2μ₅], [2μ₄, μ₃]]
+    assert sp.simplify(D[1, 1] - (MU1 + 2 * MU2)) == 0
+    assert sp.simplify(D[1, 2] - 2 * MU5) == 0
+    assert sp.simplify(D[2, 1] - 2 * MU4) == 0
+    assert sp.simplify(D[2, 2] - MU3) == 0
+
+
+def test_first_generation_decouples_only_on_the_s3_alignment():
+    """The 1st generation decouples **iff** v1 = √3 v2 — the Z₂-preserving vacuum.
+
+    This is what makes the exact-S₃ CKM matrix block diagonal: O₁₂ depends on
+    the vacuum alone, so every sector shares it, but the (1,3) entry only
+    vanishes at r = √3.  Asserting that it does NOT vanish elsewhere is what
+    gives the test teeth.
+    """
+    r = sp.Symbol("r", positive=True)
+    D = (_o12(r).T * _s3_mass_matrix(r) * _o12(r)).applyfunc(sp.simplify)
+
+    # the 1-2 block is diagonalized for ANY r (the angle has no μ dependence)
+    assert sp.simplify(D[0, 1]) == 0 and sp.simplify(D[1, 0]) == 0
+
+    assert sp.simplify(D[0, 2].subs(r, sp.sqrt(3))) == 0
+    assert sp.simplify(D[2, 0].subs(r, sp.sqrt(3))) == 0
+    for bad in (sp.Integer(2), sp.Rational(3, 2), sp.sqrt(5)):
+        assert sp.simplify(D[0, 2].subs(r, bad)) != 0
+
+    # the orthogonality condition behind it has the single positive root √3
+    lam = sp.sqrt(1 + r**2)
+    cond = sp.expand((sp.Matrix([r, -lam - 1]).T * sp.Matrix([r, 1]))[0])
+    assert sp.solve(sp.Eq(cond, 0), r) == [sp.sqrt(3)]
+
+
+def test_exact_s3_ckm_is_a_pure_23_rotation():
+    """V_CKM = O_uᵀO_d is a 2–3 rotation, so V_us = V_ub = V_cd = V_td = 0."""
+    import numpy as np
+
+    def diagonalize(pars, r_val):
+        a, b, c, d = pars                       # (μ₁, μ₂, μ₃, μ₄), with μ₅ = μ₄
+        Mn = np.array([[a + b, r_val * b, r_val * d],
+                       [r_val * b, a - b, d],
+                       [r_val * d, d, c]], dtype=float)
+        w, O = np.linalg.eigh(Mn)
+        order = np.argsort(np.abs(w))
+        return O[:, order]
+
+    pu, pd = (60.0, 25.0, 90.0, 30.0), (2.0, 0.7, 3.0, 1.1)
+    root3 = float(sp.sqrt(3))
+    V = diagonalize(pu, root3).T @ diagonalize(pd, root3)
+    for i, j in ((0, 1), (0, 2), (1, 0), (2, 0)):
+        assert abs(V[i, j]) < 1e-12
+
+    # off the alignment the block structure is destroyed
+    V_soft = diagonalize(pu, root3 + 0.1).T @ diagonalize(pd, root3 + 0.1)
+    assert abs(V_soft[0, 1]) > 1e-3
+
+
+def test_singular_value_relation_needs_mu4_plus_mu5_squared():
+    """(m_τ−m_μ)² = (ρ−μ₃)² + 4(μ₄+μ₅)², not + 16μ₄μ₅.
+
+    The compact form is what the draft prints; it is only correct once
+    μ₄ = μ₅, which is *derived* from this relation — so using it there is
+    circular.  Both statements are pinned.
+    """
+    A = sp.Matrix([[MU1 + 2 * MU2, 2 * MU5], [2 * MU4, MU3]])
+    rho = MU1 + 2 * MU2
+    exact = sp.expand(sp.trace(A.T * A) - 2 * sp.det(A))    # (σ₁ − σ₂)²
+
+    correct = (rho - MU3)**2 + 4 * (MU4 + MU5)**2
+    printed = (rho - MU3)**2 + 16 * MU4 * MU5
+    assert sp.expand(exact - correct) == 0
+    assert sp.expand(exact - printed) != 0
+    assert sp.simplify((correct - printed).subs(MU5, MU4)) == 0
+
+    # and the non-circular route still gives μ₅ = μ₄
+    p1, p2 = sp.symbols("p1 p2", positive=True)
+    combined = sp.expand((MU4 + MU5)**2 - p1 * p2
+                         - 2 * (MU4**2 + MU5**2 - p1 * p2 / 2))
+    assert sp.factor(combined) == -(MU4 - MU5)**2
