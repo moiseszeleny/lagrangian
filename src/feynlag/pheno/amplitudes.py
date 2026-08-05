@@ -13,25 +13,28 @@ The one place a result is written down directly is ``Tr[P_{L,R}] = 2``, which
 is the *definition* of the projector reduction rather than an output of it.
 
 Covered: the three-leg catalog subset a 1→2 decay can use — **SSS, FFS, FFV,
-VVS**.  ``VSS``/``VVV`` carry feynlag momentum tags (``p(φ)``, see
-:func:`~feynlag.operators.to_momentum_space`) and are not handled yet; they
-raise rather than being silently skipped, matching
+VVS, VSS**.  ``VSS`` is the one derivative coupling here: it carries feynlag
+momentum tags (``p(φ)``, see
+:func:`~feynlag.operators.to_momentum_space`), which :func:`vss_squared`
+resolves into the physical momenta before contracting.  ``VVV`` still raises
+rather than being silently skipped, matching
 :func:`~feynlag.vertices.vertex.classify_spins`.
 """
 
 import sympy as sp
 from sympy.physics.hep.gamma_matrices import GammaMatrix, LorentzIndex
 
+from ..operators import momentum as tag
 from .lorentz import contract_to_dots, dirac_trace, index, reduce_projectors, slashed
 
 __all__ = [
     "SUPPORTED_VERTEX_TYPES", "amplitude_squared", "ffs_squared",
     "ffv_squared", "polarization_sum", "spin_sum", "sss_squared",
-    "vvs_squared",
+    "vss_squared", "vss_vector_leg", "vvs_squared",
 ]
 
 #: three-leg catalog entries this module can square
-SUPPORTED_VERTEX_TYPES = ("SSS", "FFS", "FFV", "VVS")
+SUPPORTED_VERTEX_TYPES = ("SSS", "FFS", "FFV", "VVS", "VSS")
 
 
 def spin_sum(p, mass, dummy, anti=False):
@@ -152,10 +155,95 @@ def vvs_squared(coupling, kin, m_v1=None, m_v2=None):
                      * contract_to_dots(expr, kin.dot))
 
 
+# --------------------------------------------------- vector + two scalars
+
+def vss_vector_leg(vertex):
+    """Which leg of a ``VSS`` vertex is the vector.
+
+    Identified from the vertex itself rather than from leg ordering (which is
+    alphabetical, not spin-sorted): the derivative in
+    ``g V^μ(S ∂_μ S' − S' ∂_μ S)`` acts on the **scalars**, so exactly the two
+    scalar legs carry a ``p(leg)`` momentum tag and the vector carries none.
+
+    Raises:
+        ValueError: if the tag pattern is not one untagged leg out of three —
+            which means the coupling is not the derivative structure this
+            module knows how to square.
+    """
+    legs = list(vertex.particles)
+    untagged = [leg for leg in legs
+                if sp.diff(vertex.coupling, tag(leg)) == 0]
+    if len(untagged) != 1:
+        raise ValueError(
+            f"VSS vertex {tuple(legs)} has {len(untagged)} legs without a "
+            f"p(leg) momentum tag; expected exactly one (the vector). "
+            f"Coupling: {vertex.coupling}")
+    return untagged[0]
+
+
+def vss_squared(coupling, kin, legs, vector_leg, parent):
+    """``⟨|M|²⟩`` for a derivative ``V S S'`` vertex, both leg assignments.
+
+    The extracted coupling is linear in the momentum tags,
+    ``c(p(S) − p(S'))``; feynlag's convention is ``∂_μφ → i p(φ) φ``, so with
+    every leg taken **incoming** the amplitude is
+
+        ``M = ε*_μ Σ_legs (∂coupling/∂p(leg)) q_leg^μ``,
+        ``q_leg = +P`` for the parent, ``−p_i`` for a daughter.
+
+    Nothing is hard-coded: the polarization sum contracts the momentum
+    structure covariantly, exactly as :func:`vvs_squared` does. Both
+    topologies are handled —
+
+    * scalar parent, ``S → V S'``: no spin average;
+    * vector parent, ``V → S S'``: averaged over the parent's 3 polarizations.
+
+    ``p_V`` is annihilated by its own polarization sum
+    (``p^μ(−g_{μν} + p_μp_ν/m²) = 0``), so the vector's own momentum drops out
+    of ``M`` automatically rather than by hand.
+
+    Args:
+        coupling: the full Feynman rule, carrying its ``i`` and momentum tags.
+        kin: :class:`~feynlag.pheno.kinematics.TwoBodyKinematics`.
+        legs: ``(daughter1, daughter2)`` in the order matching ``kin.m1/m2``.
+        vector_leg: the vector symbol (see :func:`vss_vector_leg`).
+        parent: the decaying leg symbol.
+    """
+    a, b = index("a_vss"), index("b_vss")
+    coupling = sp.sympify(coupling)
+
+    # incoming-momentum head for each leg (parent in, daughters out)
+    q = {parent: lambda i: kin.p1(i) + kin.p2(i),
+         legs[0]: lambda i: -kin.p1(i),
+         legs[1]: lambda i: -kin.p2(i)}
+    mass = {legs[0]: kin.m1, legs[1]: kin.m2, parent: kin.M}
+
+    def current(i, conjugate=False):
+        """``Σ_legs (∂coupling/∂p(leg)) q_leg^i`` — the ``M^μ`` of the rule."""
+        out = sp.S.Zero
+        for leg, qhead in q.items():
+            c = sp.diff(coupling, tag(leg))
+            if c != 0:
+                out += (sp.conjugate(c) if conjugate else c) * qhead(i)
+        return out
+
+    pol = polarization_sum(q[vector_leg], mass[vector_leg], -a, -b)
+    expr = (current(a) * current(b, conjugate=True) * pol)
+    expr = expr.contract_metric(LorentzIndex.metric)
+    average = 3 if vector_leg == parent else 1     # average over V polarizations
+    return sp.expand(contract_to_dots(expr, kin.dot) / average)
+
+
 # ----------------------------------------------------------------- dispatch
 
-def amplitude_squared(vertex, kin):
+def amplitude_squared(vertex, kin, children=None, parent=None):
     """``⟨|M|²⟩`` for a :class:`~feynlag.pheno.vertices.DecayVertex`.
+
+    Args:
+        children: ``(leg1, leg2)`` matching ``kin.m1``/``kin.m2``. Required
+            for ``VSS``, whose two topologies (scalar parent vs vector parent)
+            and whose vector mass cannot be read off ``kin`` alone.
+        parent: the decaying leg symbol; required for ``VSS``.
 
     Raises:
         NotImplementedError: for a vertex type outside
@@ -171,11 +259,18 @@ def amplitude_squared(vertex, kin):
                            vector_mass=kin.M)
     if vtype == "VVS":
         return vvs_squared(vertex.coupling, kin)
-    if vtype in ("VSS", "VVV"):
+    if vtype == "VSS":
+        if children is None or parent is None:
+            raise ValueError(
+                "VSS needs `children` and `parent` to fix which leg is the "
+                "vector and which topology applies")
+        return vss_squared(vertex.coupling, kin, tuple(children),
+                           vss_vector_leg(vertex), parent)
+    if vtype == "VVV":
         raise NotImplementedError(
             f"{vtype} decays carry momentum tags p(φ) from "
             f"to_momentum_space(); squaring them needs derivative-coupling "
-            f"support that this first stage does not implement")
+            f"support that this stage does not implement")
     raise NotImplementedError(
         f"⟨|M|²⟩ for vertex type {vtype!r} is not implemented; supported "
         f"three-leg types are {SUPPORTED_VERTEX_TYPES}")

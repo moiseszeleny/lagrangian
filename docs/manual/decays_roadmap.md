@@ -209,6 +209,15 @@ new assembler each).
 **Effort: moderate** — *if* one accepts the recommended route. **Delivered**
 in `feynlag.pheno.loop` (see the end of this section).
 
+> **Extended for BSM loop content.** `loop.py` now also carries the spin-0 form
+> factor `A_zero` and a general `higgs_diphoton_amplitude(m_h, loops)` taking
+> `(coupling_ratio, spin, mass, charge, colour)` entries, so a charged Higgs —
+> or any rescaled coupling — runs in the $\gamma\gamma$ triangle. $A_0$'s sign
+> is *forced* by consistency with $A_1$ and $A_{1/2}$ rather than copied (see
+> its docstring); the SM-only signatures and their PDG-pinned numbers are
+> unchanged. $Z\gamma$ has **not** been extended: a charged scalar there needs
+> its own two-argument form factor.
+
 These vanish identically at tree level: the Higgs is electrically and colour
 neutral, so $h\to gg/\gamma\gamma$ proceed only through a top-quark triangle
 and (for $\gamma\gamma$) a $W$ loop. A tree-level library cannot reach them

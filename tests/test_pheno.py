@@ -617,3 +617,122 @@ def test_expand_particles_rejects_conflicts(sm):
     b = DiracParticle("mu", left=sm["eL_base"], right=sm["eR_base"], mass=me)
     with pytest.raises(ValueError, match="claimed by two"):
         expand_particles([a, b])
+
+
+# ---------------------------------------------------------------------------
+# VSS: the one derivative coupling in the 1->2 catalog.
+#
+# Pinned against BOTH the closed form and an independent explicit-4-vector
+# polarization sum built in the parent rest frame -- the same
+# oracle-not-sharing-code discipline the fermionic widths above use.
+# ---------------------------------------------------------------------------
+
+def _vss_oracle(M_val, mV_val, mS_val):
+    """Sum over the 3 polarizations of |eps . (P + p2)|^2, explicitly.
+
+    Independent of the covariant engine: literal 4-vectors, a literal metric,
+    and the massive-vector polarization basis written out by hand.
+    """
+    p = sp.sqrt(kallen(M_val**2, mV_val**2, mS_val**2)) / (2 * M_val)
+    E1, E2 = sp.sqrt(mV_val**2 + p**2), sp.sqrt(mS_val**2 + p**2)
+    g = sp.diag(1, -1, -1, -1)
+    P = sp.Matrix([M_val, 0, 0, 0])
+    p2 = sp.Matrix([E2, 0, 0, -p])
+    eps = [sp.Matrix([0, 1, 0, 0]), sp.Matrix([0, 0, 1, 0]),
+           sp.Matrix([p / mV_val, 0, 0, E1 / mV_val])]
+    dot = lambda x, y: (x.T * g * y)[0]
+    J = P + p2                       # all-incoming: q_S - q_S' = P + p2
+    return sum(dot(e, J)**2 for e in eps)
+
+
+def test_vss_vector_leg_is_the_untagged_one():
+    """The vector is identified from the vertex, not from leg ordering.
+
+    Derivatives act on the scalars, so exactly the two scalar legs carry a
+    ``p(leg)`` tag.  Leg order is alphabetical, so position cannot be used.
+    """
+    from feynlag.operators import momentum as tag
+    from feynlag.pheno.amplitudes import vss_vector_leg
+    from feynlag.pheno.vertices import DecayVertex
+
+    S, V, Sp = sp.symbols("S V Sp")
+    v = DecayVertex(particles=(Sp, S, V), vertex_type="VSS",
+                    coupling=sp.I * sp.Symbol("c") * (tag(S) - tag(Sp)))
+    assert vss_vector_leg(v) == V
+
+    bad = DecayVertex(particles=(Sp, S, V), vertex_type="VSS",
+                      coupling=sp.Symbol("c"))          # no tags at all
+    with pytest.raises(ValueError, match="momentum tag"):
+        vss_vector_leg(bad)
+
+
+def test_vss_squared_scalar_parent_matches_closed_form_and_oracle():
+    """S -> V S' : <|M|^2> = |c|^2 lambda(M^2,mV^2,mS'^2)/mV^2."""
+    from feynlag.operators import momentum as tag
+    from feynlag.pheno.amplitudes import vss_squared
+
+    S, V, Sp = sp.symbols("S V Sp")
+    M, mV, mS = sp.symbols("M m_V m_Sp", positive=True)
+    c = sp.Symbol("c", real=True)
+
+    kin = TwoBodyKinematics(M, mV, mS)
+    got = vss_squared(c * (tag(S) - tag(Sp)), kin, legs=(V, Sp),
+                      vector_leg=V, parent=S)
+    closed = c**2 * kallen(M**2, mV**2, mS**2) / mV**2
+    assert sp.simplify(got - closed) == 0
+
+    # and against the independent explicit polarization sum
+    for Mv, mVv, mSv in ((300, 91.19, 125), (500, 80.38, 200), (250, 91.19, 60)):
+        sub = {c: 1, M: Mv, mV: sp.Float(mVv), mS: sp.Float(mSv)}
+        oracle = float(sp.N(_vss_oracle(sp.Integer(Mv), sp.Float(mVv),
+                                        sp.Float(mSv))))
+        engine = float(sp.N(got.subs(sub)))
+        assert abs(engine - oracle) <= 1e-10 * abs(oracle)
+
+
+def test_vss_squared_vector_parent_averages_over_polarizations():
+    """V -> S S' carries the 1/3 parent-spin average; S -> V S' does not."""
+    from feynlag.operators import momentum as tag
+    from feynlag.pheno.amplitudes import vss_squared
+
+    S, V, Sp = sp.symbols("S V Sp")
+    M, mS = sp.symbols("M m_S", positive=True)
+    c = sp.Symbol("c", real=True)
+
+    kin = TwoBodyKinematics(M, mS, mS)
+    got = vss_squared(c * (tag(S) - tag(Sp)), kin, legs=(S, Sp),
+                      vector_leg=V, parent=V)
+    closed = c**2 * kallen(M**2, mS**2, mS**2) / (3 * M**2)
+    assert sp.simplify(got - closed) == 0
+
+
+def test_vss_width_is_the_kallen_three_halves_law():
+    """Gamma(S -> V S') = |c|^2 lambda^{3/2} / (16 pi M^3 mV^2)."""
+    from feynlag.operators import momentum as tag
+    from feynlag.pheno.calculator import partial_width
+    from feynlag.pheno.vertices import DecayVertex
+
+    S, V, Sp = sp.symbols("S V Sp")
+    M, mV, mS = sp.symbols("M m_V m_Sp", positive=True)
+    c = sp.Symbol("c", real=True)
+    vertex = DecayVertex(particles=(Sp, S, V), vertex_type="VSS",
+                         coupling=c * (tag(S) - tag(Sp)))
+
+    got = partial_width(vertex, M, mV, mS, children=(V, Sp), parent=S)
+    lam = kallen(M**2, mV**2, mS**2)
+    closed = c**2 * lam**sp.Rational(3, 2) / (16 * sp.pi * M**3 * mV**2)
+    assert sp.simplify(got - closed) == 0
+
+
+def test_vss_requires_leg_identities():
+    """VSS cannot be squared from `kin` alone -- it raises rather than guess."""
+    from feynlag.operators import momentum as tag
+    from feynlag.pheno.amplitudes import amplitude_squared
+    from feynlag.pheno.vertices import DecayVertex
+
+    S, V, Sp = sp.symbols("S V Sp")
+    vertex = DecayVertex(particles=(Sp, S, V), vertex_type="VSS",
+                         coupling=sp.Symbol("c") * (tag(S) - tag(Sp)))
+    kin = TwoBodyKinematics(sp.Integer(300), sp.Integer(91), sp.Integer(125))
+    with pytest.raises(ValueError, match="children"):
+        amplitude_squared(vertex, kin)

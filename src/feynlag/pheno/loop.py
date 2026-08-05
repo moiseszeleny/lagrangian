@@ -16,17 +16,31 @@ whole library, while the physical answer is a textbook closed form.
 Every formula here is verified numerically against the PDG values (see
 ``tests/test_loop.py``) and cited: the $gg$/$\gamma\gamma$ form factors and the
 $Z\gamma$ closed form follow Djouadi's review [Djouadi08] and Carena et al.
-[CGLW13]; the NLO-QCD $gg$ $K$-factor follows Spira et al. [Spira95].
+[CGLW13]; the NLO-QCD $gg$ $K$-factor follows Spira et al. [Spira95]; the
+spin-0 (charged-scalar) form factor and its coefficient follow Chakraborti
+et al. [ChakrabartyEtAl21].
+
+References
+----------
+[ChakrabartyEtAl21] M. Chakraborti, D. Das, M. Levy, S. Mukherjee, I. Saha,
+    "Prospects of light charged scalars in a three Higgs doublet model with
+    Z₃ symmetry", arXiv:2104.08146.  Eq. (27) the diphoton signal strength with
+    the charged-scalar loops and the coefficient
+    $\kappa_i=-m_h^2/2m_{H_i^+}^2$; Eq. (28) the three loop functions, written
+    in the reciprocal variable $x=4m^2/m_h^2$.
 """
 
 import cmath
 import math
 
 __all__ = [
-    "A_half", "A_one", "A_half_zgamma", "A_one_zgamma", "f_function",
-    "g_function", "higgs_gg_width", "higgs_gammagamma_width",
-    "higgs_zgamma_width",
+    "A_half", "A_one", "A_zero", "A_half_zgamma", "A_one_zgamma",
+    "f_function", "g_function", "higgs_diphoton_amplitude", "higgs_gg_width",
+    "higgs_gammagamma_width", "higgs_zgamma_width",
 ]
+
+#: key for the spin-1/2 entry of the form-factor table (avoids float equality)
+sp_half = "1/2"
 
 
 # ------------------------------------------------------ auxiliary functions
@@ -86,6 +100,30 @@ def A_one(tau):
     return -(2 * tau**2 + 3 * tau + 3 * (2 * tau - 1) * f_function(tau)) / tau**2
 
 
+def A_zero(tau):
+    r"""Spin-0 (charged-scalar-loop) form factor,
+    $A_0(\tau)=[\tau-f(\tau)]/\tau^2$.
+
+    Needed the moment the model has a charged scalar — a 2HDM/3HDM $H^\pm$
+    running in the $h\to\gamma\gamma$ triangle.  Heavy-loop limit
+    $A_0\to-\tfrac13$ as $\tau\to0$.
+
+    **On the sign.**  Conventions differ by an overall sign of the whole
+    amplitude, which is why this is fixed here by internal consistency rather
+    than copied.  [ChakrabartyEtAl21] Eq. (28) writes the three loop functions
+    as $F_W\to7$, $F_t\to-4/3$, $F^+\to+1/3$ in the reciprocal variable
+    $x=4m^2/m_h^2=1/\tau$; feynlag's $A_1=-F_W$ and $A_{1/2}=-F_t$, so
+    consistency *forces* $A_0=-F^+$ and hence the $-\tfrac13$ limit above.
+    Pinned by ``tests/test_loop.py``.
+
+    The physical content is the product with its coefficient
+    $\kappa=g_{hH^+H^-}v/(2m_{H^\pm}^2)$ — see
+    :func:`higgs_diphoton_amplitude`.
+    """
+    tau = complex(tau)
+    return (tau - f_function(tau)) / tau**2
+
+
 # ------------------------------------------- two-argument Zγ form factors
 
 def _I1(x, y):
@@ -117,23 +155,61 @@ def A_one_zgamma(x, y, sw2):
 
 # --------------------------------------------------------------- widths
 
-def higgs_gammagamma_width(m_h, m_t, m_W, v, alpha, quarks=((2 / 3, 3),)):
+def higgs_diphoton_amplitude(m_h, loops):
+    r"""The dimensionless $h\to\gamma\gamma$ triangle amplitude, general content.
+
+    $$\mathcal A=\sum_i c_i\,N_{c,i}\,Q_i^2\,A_{s_i}(m_h^2/4m_i^2)$$
+
+    with $A_s$ the spin-$s$ form factor.  This is the BSM-ready form: the
+    coefficients $c_i$ are what carry the model dependence, so a rescaled
+    Higgs coupling or an extra charged particle in the loop is expressed
+    without touching the form factors.
+
+    Args:
+        loops: iterable of ``(c, spin, mass, charge, n_colour)``.
+
+            * **fermion** (``spin=1/2``): ``c`` = $g_{hff}/g^{\rm SM}_{hff}$
+              (1 in the SM).
+            * **vector** (``spin=1``): ``c`` = $g_{hVV}/g^{\rm SM}_{hVV}$.
+            * **scalar** (``spin=0``): ``c`` = $g_{hSS}\,v/(2m_S^2)$ with
+              $g_{hSS}$ the mass-dimension-1 trilinear — the normalization of
+              [ChakrabartyEtAl21] Eq. (27), whose $\kappa_i=-m_h^2/2m_{H_i^+}^2$
+              is this expression at their $g_{hH^+H^-}=-m_h^2/v$.
+
+    The SM is ``[(1, 1, m_W, 1, 1), (1, 1/2, m_t, 2/3, 3)]``.
+    """
+    factors = {0: A_zero, sp_half: A_half, 1: A_one}
+    amp = 0j
+    for c, spin, mass, charge, n_colour in loops:
+        key = sp_half if abs(float(spin) - 0.5) < 1e-12 else int(spin)
+        if key not in factors:
+            raise ValueError(f"no loop form factor for spin {spin!r}; "
+                             f"have 0, 1/2 and 1")
+        amp += c * n_colour * charge**2 * factors[key](m_h**2 / (4 * mass**2))
+    return amp
+
+
+def higgs_gammagamma_width(m_h, m_t, m_W, v, alpha, quarks=((2 / 3, 3),),
+                           extra_loops=()):
     r"""$\Gamma(h\to\gamma\gamma)=\frac{\alpha^2 m_h^3}{256\pi^3 v^2}
-    \big|A_1(\tau_W)+\sum_f N_c Q_f^2 A_{1/2}(\tau_f)\big|^2$.
+    \big|\mathcal A\big|^2$ with $\mathcal A$ from
+    :func:`higgs_diphoton_amplitude`.
 
     Args:
         quarks: iterable of ``(Q_f, N_c)`` for the fermion loops (default: the
             top quark, $Q=2/3$, $N_c=3$ — the only numerically relevant one).
+        extra_loops: additional ``(c, spin, mass, charge, n_colour)`` entries,
+            e.g. a charged Higgs ``(g_hHH*v/(2*mHp**2), 0, mHp, 1, 1)``.
+            Empty by default, so the SM result is bit-for-bit unchanged.
 
     Returns:
         the width (same units as $m_h$; multiply by $10^6$ for keV when
         $m_h$ is in GeV).
     """
-    tau_W = m_h**2 / (4 * m_W**2)
-    amp = A_one(tau_W)
-    for Q, Nc in quarks:
-        tau_f = m_h**2 / (4 * m_t**2)
-        amp += Nc * Q**2 * A_half(tau_f)
+    loops = [(1, 1, m_W, 1, 1)]
+    loops += [(1, 0.5, m_t, Q, Nc) for Q, Nc in quarks]
+    loops += list(extra_loops)
+    amp = higgs_diphoton_amplitude(m_h, loops)
     return alpha**2 * m_h**3 / (256 * math.pi**3 * v**2) * abs(amp)**2
 
 

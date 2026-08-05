@@ -15,8 +15,11 @@ pedagogical walk-through). This directory is where the open questions go.
 | `LFVHD_3HDMS3.tex` | the draft this work checks against; **patched** (findings 6–8). |
 | `01_scalar_parameter_space.ipynb` | scalar parameter space under theory constraints. **Done.** |
 | `02_s3_fermion_sector.ipynb` | lepton + quark Yukawa sectors, the draft's derivations, the CKM obstruction, soft breaking. **Done.** |
+| `decays.py` | the physical basis registered on the `Model` at general δ, the electroweak kinetic sector, the lepton mass basis, and the benchmark-point loaders. |
+| `03_scalar_decays.ipynb` | physical basis, gauge couplings, VSS + loop γγ, and the LFV rates. **Done.** |
 | `results/viable_points.json` | benchmark points from the scalar scan. |
 | `results/quark_soft_fit.json` | soft-breaking quark benchmark (masses + Cabibbo angle). |
+| `results/decay_benchmarks.json` | per-point δ, VV couplings and LFV branching ratios. |
 
 Notebooks import `model.py` from their own directory; from the repo root use
 `sys.path.insert(0, "research/thdm_s3")`.
@@ -178,7 +181,7 @@ scalar case, where $\lambda_4$ flipped sign).
 All five terms pass gauge and S₃ invariance in feynlag. `suggest_yukawa`,
 enumerating independently, returns exactly five structures — matching
 $Y_1^\ell\ldots Y_5^\ell$. Character theory agrees: the trivial rep appears once
-in $\mathbf2^{\otimes3}$, and over the eight $(\bar L,H,e_R)$ irrep assignments
+in $\mathbf{2\otimes3}$, and over the eight $(\bar L,H,e_R)$ irrep assignments
 exactly five invariants exist.
 
 **Gap:** the draft declares $\nu_{1R},\nu_{2R}$ (a $\mathbf2$) and $\nu_{SR}$ (a
@@ -248,6 +251,45 @@ model reproduces the observed CKM matrix. A genuine global fit (all four CKM
 parameters and six masses at once) may well fail, since the two-stage structure
 ties the 2–3 rotation to the same few parameters that fix the masses. Open.
 
+### 10. The physical basis, the gauge sector, and LFV rates (notebook 03)
+
+`decays.py` registers the physical basis on the `Model` — the blocker this file
+recorded for notebook 03 — at **general δ**, with the draft's Scenarios A and B
+appearing only as the $\delta\to0,\pi/2$ limits.
+
+**$h_0$ is gauge-phobic, exactly.** $R_H(\delta)$ rotates only in the 1–3 plane,
+so $h_0$'s column of $R_S=R_AR_H(\delta)$ is $R_A$'s middle column, orthogonal to
+the vacuum direction. Hence for **any** δ
+
+$$g_{h_0VV}=0,\qquad g_{h_1VV}=\cos\delta\,g^{\rm SM},\qquad
+g_{h_2VV}=\sin\delta\,g^{\rm SM},\qquad \sum_i g_{h_iVV}^2=(g^{\rm SM})^2 .$$
+
+This also settles the old *"the 125 GeV cut is a mass condition only"* entry:
+with the electroweak kinetic terms in place the alignment scenarios are testable,
+and $\delta$ is **predicted** at each viable point (from `cp_even_angle`), giving
+a coupling-based SM-likeness cut notebook 01 could not apply. Over the 12 viable
+points δ lands in $[-1.40,\,0.24]$ rad — i.e. the model does *not* sit at either
+idealised scenario.
+
+**The draft's Scenario-C relations are exact**, not approximate: $Q_i$ is linear
+in the columns of $R_S$, so $Q_1(C)=\cos\delta\,Q_1(A)-\sin\delta\,Q_3(A)$ etc.
+hold for all δ, and $Q_2$ is entirely δ-independent. Combined with the above,
+$h_0$ has no $VV$ coupling *and* δ-independent lepton couplings.
+
+**LFV.** $\mathcal B(h\to\tau\mu)$ generically overshoots [CMS21]'s $0.15\%$ —
+a majority of sampled entries for the SM-like state, nearly all for $h_0$ — so
+LFV data really constrains this model. And $\mathcal B(h\to\tau e)$ is **zero to
+machine precision**: the same first-generation decoupling of $O_{12}$ that forced
+$V_{us}=0$ in finding 9 forbids any $e$–$\tau$ entry. The quark and lepton
+flavour structures are tied together by the exact-S₃ vacuum, and findings 9 and
+10 are the same fact seen from opposite ends.
+
+**Library work this required** (both in `src/`, pinned by the main suite):
+`VSS` decays ($A\to Zh$, $H^\pm\to W^\pm h$ — open at every benchmark point and
+gauge-strength, so omitting them would have made heavy-state BRs wrong rather
+than merely incomplete), and the spin-0 form factor `A_zero` plus a general
+`higgs_diphoton_amplitude` so a charged Higgs can run in the $\gamma\gamma$ loop.
+
 ## Open questions / next
 
 - **Get the [DasDey14] erratum.** Phys. Rev. D **91**, 039905 (2015), not posted
@@ -261,12 +303,6 @@ ties the 2–3 rotation to the same few parameters that fix the masses. Open.
   the real neutral slice; complex-neutral and charged directions are covered
   numerically, not analytically. [BotoRomaoSilva22] does this properly for
   U(1)×U(1), U(1)×Z₂ and Z₂×Z₂ — not S₃ — and is the methodological model.
-- **The 125 GeV cut is a mass condition only.** Testing [GomezBock21]'s
-  alignment scenarios A/B (Eqs. 54–55; one CP-even state coupling maximally to
-  $W/Z$, the other decoupled) needs the **gauge–scalar couplings** of their
-  Eq. (49). `examples/thdm_s3.py` declares *only* the potential — no kinetic
-  terms, no gauge bosons in the Lagrangian — so those couplings do not exist to
-  be computed. Blocked on adding the electroweak kinetic sector.
 - **A global quark fit** — see the caveat in finding 9. Whether the soft-broken
   model can reproduce all four CKM parameters *and* the six quark masses at once
   is open, and the $|V_{cb}|$ result is mild evidence against it without further
@@ -279,14 +315,17 @@ ties the 2–3 rotation to the same few parameters that fix the masses. Open.
 - **The neutrino sector** (finding 7) is enumerated but not built: Dirac Yukawas
   on $\tilde H$ plus S₃-allowed Majorana $\nu_R$ masses. feynlag has the pieces
   (`seesaw_mass_matrix`, `MajoranaRotation`, Takagi) — see `examples/sm_seesaw.py`.
-- **`03_scalar_decays.ipynb`** — widths/BRs for $h_0,H_1,H_2,A_1,A_2,H^\pm$.
-  **Blocker:** the physical basis is never registered on the `Model`. The
-  geometric rotation is a loose `sp.Matrix`; to get physical-basis vertices it
-  must become a registered `Rotation` (3×3 weak→physical per sector) so
-  `model.rotate` + `feynman_rules` apply — the pattern `examples/thdm.py`
-  uses for the 2HDM's 2×2 case. Also depends on the fermion sector, since
-  `pheno.DecayCalculator` needs fermions to decay into (FFS), and on the gauge
-  kinetic sector for $h\to VV$ (VVS).
+- **Quark channels are absent from notebook 03**, so it quotes the *measured*
+  SM-like total width rather than computing one, and reports no $b\bar b$ /
+  $c\bar c$ BRs. Deliberate: notebook 02 finding 9 showed the exact-S₃ quark
+  sector is already excluded ($V_{us}=0$), so fitting it would mean quoting
+  rates from a sector known to be wrong. The soft-broken vacuum is where to
+  redo it — which also makes the heavy-state ($A_{1,2}$, $H^\pm$) BRs
+  incomplete, even though the VSS machinery they need now exists.
+- **$Z\gamma$ with a charged scalar** would need its own two-argument form
+  factor, the analogue of what `A_zero` did for $\gamma\gamma$. Untouched.
+- The LFV rates depend on $\mu_3^\ell$, the one dial the lepton mass relations
+  leave free; notebook 03 scans it rather than fixing it from anything.
 - The scan samples λ uniformly, which is inefficient given the shape of the
   viable region. A targeted sampler would resolve its boundary far better.
 

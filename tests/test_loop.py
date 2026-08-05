@@ -128,3 +128,69 @@ def test_complete_higgs_br_shape():
     assert 0.05 < br["gg"] < 0.11                  # gg ~8%
     assert 0.001 < br["gammagamma"] < 0.004        # γγ ~0.2%
     assert abs(sum(br.values()) - 1) < 1e-9
+
+
+# ---------------------------------------------------------------------------
+# The spin-0 (charged-scalar) form factor and the BSM-ready amplitude.
+# ---------------------------------------------------------------------------
+
+def test_scalar_form_factor_decoupling_limit():
+    """A_0 -> -1/3, the sign forced by consistency with A_1 and A_{1/2}.
+
+    [ChakrabartyEtAl21] Eq. (28) gives F_W -> +7, F_t -> -4/3, F+ -> +1/3 in
+    the reciprocal variable.  feynlag has A_1 = -F_W and A_{1/2} = -F_t, so
+    A_0 = -F+ is the only consistent choice -- an overall amplitude sign is
+    convention, but the RELATIVE signs are physics.
+    """
+    from feynlag.pheno.loop import A_zero
+    assert abs(A_zero(1e-8).real - (-1 / 3)) < 1e-6
+    # relative to the other two, at the same (tiny) tau
+    assert abs(A_half(1e-8).real - 4 / 3) < 1e-6
+    assert abs(A_one(1e-8).real - (-7)) < 1e-4
+
+
+def test_diphoton_amplitude_reproduces_the_sm_content():
+    """The general assembler with SM content == the SM-only width."""
+    from feynlag.pheno.loop import higgs_diphoton_amplitude
+    m_h, m_t, m_W, v, alpha = 125.25, 172.69, 80.377, 246.0, 1 / 137.036
+    amp = higgs_diphoton_amplitude(m_h, [(1, 1, m_W, 1, 1),
+                                         (1, 0.5, m_t, 2 / 3, 3)])
+    direct = A_one(m_h**2 / (4 * m_W**2)) + 3 * (2 / 3)**2 * A_half(
+        m_h**2 / (4 * m_t**2))
+    assert abs(amp - direct) < 1e-12
+
+
+def test_charged_scalar_loop_suppresses_and_decouples():
+    """A charged Higgs suppresses h->gamma gamma and decouples as m_H+ -> inf.
+
+    With g_{hH+H-} = -m_h^2/v ([ChakrabartyEtAl21] Eq. 26) the coefficient
+    kappa = g v / (2 m_H+^2) is negative, and A_0 < 0, so kappa*A_0 > 0 adds
+    against the dominant A_1 = -7: the rate goes DOWN.  That is why light
+    charged scalars are constrained by the diphoton measurement.
+    """
+    from feynlag.pheno.loop import higgs_gammagamma_width
+    m_h, m_t, m_W, v, alpha = 125.25, 172.69, 80.377, 246.0, 1 / 137.036
+    sm = higgs_gammagamma_width(m_h, m_t, m_W, v, alpha)
+
+    def with_charged(m_hp):
+        kappa = (-m_h**2 / v) * v / (2 * m_hp**2)
+        return higgs_gammagamma_width(m_h, m_t, m_W, v, alpha,
+                                      extra_loops=[(kappa, 0, m_hp, 1, 1)])
+
+    assert with_charged(200.0) < with_charged(400.0) < sm      # suppression
+    assert abs(with_charged(5000.0) / sm - 1) < 1e-3           # decoupling
+
+
+def test_extra_loops_defaults_leave_the_sm_untouched():
+    """The generalization must not move the PDG-pinned SM numbers."""
+    from feynlag.pheno.loop import higgs_gammagamma_width
+    m_h, m_t, m_W, v, alpha = 125.25, 172.69, 80.377, 246.0, 1 / 137.036
+    got = higgs_gammagamma_width(m_h, m_t, m_W, v, alpha) * 1e6   # keV
+    assert 8.5 < got < 10.0                                       # PDG ~9.3 keV
+
+
+def test_diphoton_amplitude_rejects_unknown_spin():
+    """A spin outside {0, 1/2, 1} raises rather than being silently dropped."""
+    from feynlag.pheno.loop import higgs_diphoton_amplitude
+    with pytest.raises(ValueError, match="form factor for spin"):
+        higgs_diphoton_amplitude(125.0, [(1, 2, 100.0, 1, 1)])

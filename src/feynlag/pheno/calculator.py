@@ -38,17 +38,24 @@ class DecayChannel:
         return f"DecayChannel({self.parent} -> {kids} : {self.width})"
 
 
-def partial_width(vertex, M, m1, m2, color_factor=1, symmetry_factor=1):
+def partial_width(vertex, M, m1, m2, color_factor=1, symmetry_factor=1,
+                  children=None, parent=None):
     """``Γ = S · N_c · ⟨|M|²⟩ · √λ(M²,m₁²,m₂²)/(16πM³)``.
 
     Returns ``0`` when the channel is closed (``M < m₁+m₂``) and that is
     decidable; an undecidable symbolic comparison keeps the channel.
+
+    ``children``/``parent`` carry the leg identities through to
+    :func:`~feynlag.pheno.amplitudes.amplitude_squared`; only ``VSS`` needs
+    them (to tell which leg is the vector and which topology applies), and it
+    raises if they are missing.
     """
     if is_allowed(M, m1, m2) is False:
         return sp.S.Zero
     kin = TwoBodyKinematics(sp.sympify(M), sp.sympify(m1), sp.sympify(m2))
     return (sp.sympify(symmetry_factor) * sp.sympify(color_factor)
-            * amplitude_squared(vertex, kin) * kin.phase_space())
+            * amplitude_squared(vertex, kin, children=children, parent=parent)
+            * kin.phase_space())
 
 
 class DecayCalculator:
@@ -199,7 +206,8 @@ class DecayCalculator:
                         else sp.S.One)
             color = self._channel_color(remaining)
             width = partial_width(vertex, M, m1, m2, color_factor=color,
-                                  symmetry_factor=symmetry)
+                                  symmetry_factor=symmetry,
+                                  children=tuple(remaining), parent=parent)
             if width == 0:
                 continue
             out.append(DecayChannel(parent=parent, children=tuple(remaining),
