@@ -25,12 +25,28 @@ independent checks it survived and what would falsify it — and renders that bo
 as an end-of-notebook table and as a printable LaTeX appendix, so the algebra can
 be checked line by line away from the screen.
 
+**Write the mathematics in ledger strings as inline LaTeX**, ``$...$``::
+
+    ledger.step(r"$(\\sigma_1-\\sigma_2)^2 = (\\rho-\\mu_3)^2 + 4(\\mu_4+\\mu_5)^2$",
+                checks=(r"built from $\\mathrm{tr}(A^{\\mathsf T}A)$ and $\\det A$",))
+
+One string serves all three destinations: the LaTeX appendix passes the ``$...$``
+spans through verbatim, the notebook table renders as Markdown so MathJax
+typesets them, and a plain terminal gets them transliterated to Unicode
+(``μ₃``, ``√3``, ``→``).  ``$`` is therefore *reserved punctuation* in ledger
+strings — a literal dollar sign cannot be written there.
+
+Everything **outside** ``$...$`` is prose and is escaped, so LaTeX belongs
+inside the maths spans and nowhere else: write ``1%`` not ``1\\%`` (the escaper
+adds the backslash), and reach for word order rather than ``\\emph{...}``.
+
 Research code: `tests/` must never import this (see `research/README.md`).  If
 the vocabulary proves itself it is a candidate to graduate into `feynlag.verify`.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field as _field
 from pathlib import Path
 
@@ -266,6 +282,21 @@ def falsify(label, broken):
 # the ledger
 # --------------------------------------------------------------------------
 
+def _as_latex(obj):
+    """LaTeX for a `statement`: a raw string is already LaTeX, else sympy it."""
+    if isinstance(obj, str):
+        return obj.strip().strip("$")
+    return sp.latex(obj)
+
+
+def _display_claim(obj):
+    """A `statement` on a plain terminal: Unicode for strings, pprint for sympy."""
+    if isinstance(obj, str):
+        print("       " + _tex_to_console(obj if obj.strip().startswith("$")
+                                          else "$%s$" % obj.strip()))
+    else:
+        _display(obj)
+
 @dataclass
 class Step:
     claim: str
@@ -274,6 +305,7 @@ class Step:
     falsified_by: str = ""
     expr: object = None
     section: str = ""
+    statement: object = None       # the claim as a *displayed* formula
 
 
 @dataclass
@@ -286,34 +318,75 @@ class Ledger:
     _KINDS = ("derived", "imported", "assumed")
 
     def step(self, claim, obtained, checks=(), falsified_by="", expr=None,
-             section=""):
+             section="", statement=None):
+        """Record one derivation.
+
+        ``claim`` is a short title (inline ``$...$`` maths welcome).  When the
+        claim *is* an equation too long for a heading, put the short title in
+        ``claim`` and the formula in ``statement`` — a LaTeX string or a sympy
+        expression — and it is set as a displayed equation instead.  ``expr``
+        keeps its meaning: the computed *result*.
+        """
         if obtained not in self._KINDS:
             raise ValueError(f"`obtained` must be one of {self._KINDS}, "
                              f"got {obtained!r}")
         self.steps.append(Step(claim, obtained, tuple(checks), falsified_by,
-                               expr, section))
+                               expr, section, statement))
         return self.steps[-1]
 
+    def _counts(self):
+        n = {k: sum(1 for s in self.steps if s.obtained == k) for k in self._KINDS}
+        return (f"{len(self.steps)} steps: {n['derived']} derived here, "
+                f"{n['imported']} imported, {n['assumed']} assumed")
+
     def table(self):
-        """Print the ledger — claim / how obtained / checks / what would falsify."""
+        """Show the ledger — claim / how obtained / checks / what would falsify.
+
+        Rendered as Markdown under a notebook kernel so the ``$...$`` in the
+        strings typesets; transliterated to Unicode on a plain terminal.
+        """
+        if _in_notebook():
+            return self._table_markdown()
         print(f"\nDERIVATION LEDGER — {self.title}")
         print("=" * 76)
         for i, s in enumerate(self.steps, 1):
             tag = {"derived": "derived here", "imported": "IMPORTED",
                    "assumed": "ASSUMED"}[s.obtained]
-            print(f"{i}. [{tag}] {s.claim}")
+            print(f"{i}. [{tag}] {_tex_to_console(s.claim)}")
             if s.section:
-                print(f"     section        : {s.section}")
+                print(f"     section        : §{s.section}")
+            if s.statement is not None:
+                print("     claim          :")
+                _display_claim(s.statement)
             if s.expr is not None:
                 _display(s.expr)          # the result itself, typeset
             for c in s.checks:
-                print(f"     check          : {c}")
+                print(f"     check          : {_tex_to_console(c)}")
             if s.falsified_by:
-                print(f"     falsified by   : {s.falsified_by}")
-        n = {k: sum(1 for s in self.steps if s.obtained == k) for k in self._KINDS}
+                print(f"     falsified by   : {_tex_to_console(s.falsified_by)}")
         print("-" * 76)
-        print(f"{len(self.steps)} steps: {n['derived']} derived here, "
-              f"{n['imported']} imported, {n['assumed']} assumed")
+        print(self._counts())
+
+    def _table_markdown(self):
+        """The notebook rendering: one Markdown blob, so MathJax does the maths."""
+        from IPython.display import Markdown, display
+        md = [f"### Derivation ledger — {self.title}", ""]
+        for i, s in enumerate(self.steps, 1):
+            tag = {"derived": "derived here", "imported": "**imported**",
+                   "assumed": "**assumed**"}[s.obtained]
+            sec = f" &nbsp;·&nbsp; §{s.section}" if s.section else ""
+            md.append(f"**{i}. {s.claim}**  \n<sub>{tag}{sec}</sub>\n")
+            if s.statement is not None:
+                md.append(f"$${_as_latex(s.statement)}$$\n")
+            if s.expr is not None:
+                md.append(f"$${sp.latex(s.expr)}$$\n")
+            for c in s.checks:
+                md.append(f"- ✓ {c}")
+            if s.falsified_by:
+                md.append(f"\n*Would be falsified by:* {s.falsified_by}\n")
+            md.append("\n---\n")
+        md.append(f"<sub>{self._counts()}</sub>")
+        display(Markdown("\n".join(md)))
 
     # ---------------------------------------------------------------- LaTeX
     def to_latex(self, path, subtitle=""):
@@ -328,8 +401,15 @@ class Ledger:
                    "assumed": "assumed"}[s.obtained]
             body.append(r"\subsection*{%d.\quad %s}" % (i, _tex_escape(s.claim)))
             body.append(r"\emph{%s}%s\par\medskip" % (
-                tag, r" --- \S%s" % _tex_escape(s.section) if s.section else ""))
+                tag, r" --- \S%s" % _tex_escape(s.section).replace("-", "--")
+                if s.section else ""))
+            if s.statement is not None:
+                body.append(r"\textbf{Claim}\par\nopagebreak")
+                body.append(r"\begin{equation*}\small %s \end{equation*}"
+                            % _as_latex(s.statement))
             if s.expr is not None:
+                if s.statement is not None:
+                    body.append(r"\textbf{Result}\par\nopagebreak")
                 body.append(_tex_expr(s.expr))
             if s.checks:
                 body.append(r"\textbf{Independent checks}\begin{itemize}\itemsep0pt")
@@ -374,13 +454,97 @@ _TEX_UNICODE = {
     "→": r"$\to$", "←": r"$\leftarrow$", "≈": r"$\approx$", "≠": r"$\neq$",
     "≤": r"$\leq$", "≥": r"$\geq$", "×": r"$\times$", "·": r"$\cdot$",
     "±": r"$\pm$", "∞": r"$\infty$", "√": r"$\sqrt{\ }$",
-    "—": "---", "–": "--", "✓": r"$\checkmark$", "⟨": "$\\langle$",
+    "§": r"\S{}", "—": "---", "–": "--", "✓": r"$\checkmark$", "⟨": "$\\langle$",
     "⟩": "$\\rangle$", "“": "``", "”": "''", "’": "'", "‘": "`",
 }
 
 
-def _tex_escape(s):
-    """LaTeX-safe text: escape the special characters, transliterate Unicode."""
+#: Splits a string into alternating prose / ``$...$`` maths pieces.  ``re.split``
+#: with a capturing group keeps the delimited spans, so the odd-indexed pieces
+#: are exactly the maths and the even-indexed ones exactly the prose.
+_MATH_SPAN = re.compile(r"(\$[^$]*\$)")
+
+
+#: The reverse of `_TEX_UNICODE`, for showing inline maths on a plain terminal.
+#: Only the commands the ledger strings actually use — an unknown command keeps
+#: its name and simply loses the backslash, which stays readable.
+_CONSOLE_CMD = {
+    "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε",
+    "theta": "θ", "lambda": "λ", "mu": "μ", "nu": "ν", "pi": "π", "rho": "ρ",
+    "sigma": "σ", "tau": "τ", "varphi": "φ", "phi": "φ", "psi": "ψ",
+    "Lambda": "Λ", "Phi": "Φ", "Sigma": "Σ", "Delta": "Δ",
+    "to": "→", "rightarrow": "→", "leftarrow": "←", "leftrightarrow": "↔",
+    "approx": "≈", "neq": "≠", "leq": "≤", "le": "≤", "geq": "≥", "ge": "≥",
+    "times": "×", "cdot": "·", "pm": "±", "infty": "∞", "sqrt": "√",
+    "langle": "⟨", "rangle": "⟩", "det": "det", "min": "min", "max": "max",
+    "quad": " ", "qquad": "  ", "ldots": "…", "dots": "…",
+}
+_CONSOLE_SUB = str.maketrans("0123456789+-=()aeioruvxjhklmnpst",
+                             "₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑᵢₒᵣᵤᵥₓⱼₕₖₗₘₙₚₛₜ")
+_CONSOLE_SUP = str.maketrans("0123456789+-=()in", "⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁱⁿ")
+#: `^T` is a transpose, and there is no U+1D40 in the subscript table above.
+_CONSOLE_SUP_EXTRA = {"T": "ᵀ", "S": "ˢ", "L": "ᴸ", "R": "ᴿ"}
+
+
+def _script(body, table, extra=None):
+    """Sub/superscript ``body`` if every character maps, else mark it plainly."""
+    extra = extra or {}
+    out = []
+    for ch in body:
+        if ch in extra:
+            out.append(extra[ch])
+        elif ch.translate(table) != ch:
+            out.append(ch.translate(table))
+        else:
+            return None
+    return "".join(out)
+
+
+def _tex_to_console(s):
+    """Inline LaTeX maths → Unicode, for terminals with no MathJax.
+
+    Mirrors `_TEX_UNICODE` in the other direction so the module keeps its
+    promise of degrading to readable plain text outside a notebook.
+    """
+    def _one(m):
+        body = m.group(0)[1:-1]                       # strip the $ delimiters
+        # sizing/spacing: \left and \right only as whole words, or \leftrightarrow
+        # loses its \left and comes out as "rightarrow".
+        body = re.sub(r"\\(?:left|right)(?![A-Za-z])", "", body)
+        body = re.sub(r"\\[,;:]", " ", body).replace(r"\!", "")
+        # font commands, as an argument (\mathrm{tr}), applied to one token
+        # (\mathsf T) or as a bare switch (\rm SM)
+        _FONT = r"mathrm|mathsf|mathbb|mathcal|mathit|text|rm|bf|it|sf"
+        body = re.sub(r"\\(?:%s)\s*\{([^{}]*)\}" % _FONT, r"\1", body)
+        body = re.sub(r"\\(?:%s)\s+(\w)" % _FONT, r"\1", body)
+        body = re.sub(r"\\(?:%s)(?![A-Za-z])\s*" % _FONT, "", body)
+        # accents become combining marks, so \hat n reads as n̂ not "hat n"
+        for cmd, mark in (("hat", "\u0302"), ("bar", "\u0304"),
+                          ("tilde", "\u0303"), ("vec", "\u20d7"),
+                          ("dot", "\u0307")):
+            body = re.sub(r"\\%s\s*\{([^{}]*)\}|\\%s\s*(\w)" % (cmd, cmd),
+                          lambda c, _m=mark: (c.group(1) or c.group(2)) + _m, body)
+        body = re.sub(r"\\([A-Za-z]+)",
+                      lambda c: _CONSOLE_CMD.get(c.group(1), c.group(1)), body)
+        # subscripts and superscripts, braced or single-character
+        def _sub(c):
+            inner = c.group(1) or c.group(2)
+            return _script(inner, _CONSOLE_SUB) or "_" + inner
+
+        def _sup(c):
+            inner = c.group(1) or c.group(2)
+            return _script(inner, _CONSOLE_SUP, _CONSOLE_SUP_EXTRA) or "^" + inner
+        body = re.sub(r"_\{([^{}]*)\}|_(\w)", _sub, body)
+        body = re.sub(r"\^\{([^{}]*)\}|\^(\w)", _sup, body)
+        body = body.replace("{", "").replace("}", "")
+        # a command that consumed its trailing space leaves "⟨ H" / "det  A"
+        return re.sub(r"(?<=[⟨√])\s+|\s+(?=⟩)", "", re.sub(r"  +", " ", body))
+
+    return _MATH_SPAN.sub(_one, str(s))
+
+
+def _tex_escape_text(s):
+    """LaTeX-safe *prose*: escape the specials, transliterate Unicode."""
     out = str(s)
     for a, b in (("\\", r"\textbackslash{}"), ("&", r"\&"), ("%", r"\%"),
                  ("$", r"\$"), ("#", r"\#"), ("_", r"\_"), ("{", r"\{"),
@@ -391,6 +555,18 @@ def _tex_escape(s):
         out = out.replace(a, b)
     # anything still outside Latin-1 would break pdflatex; drop it loudly-ish
     return "".join(ch if ord(ch) < 256 else "?" for ch in out)
+
+
+def _tex_escape(s):
+    """LaTeX-safe text with ``$...$`` maths spans passed through **verbatim**.
+
+    Escaping the whole string is what made the appendices unreadable: an author
+    writing ``(sigma_1-sigma_2)^2`` got ``(sigma\\_1-sigma\\_2)\\textasciicircum{}2``.
+    Only the prose between maths spans is escaped now.
+    """
+    pieces = _MATH_SPAN.split(str(s))
+    return "".join(p if i % 2 else _tex_escape_text(p)
+                   for i, p in enumerate(pieces))
 
 
 def _tex_expr(expr):
