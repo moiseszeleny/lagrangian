@@ -1,6 +1,6 @@
 # Tutorials
 
-Eight fully executed Jupyter notebooks, walking a worked model stage by
+Ten fully executed Jupyter notebooks, walking a worked model stage by
 stage with real (stored) output — plots, mass matrices, Feynman rules. They
 are tracked through the `nbstripout --keep-output` git filter (see the
 repo's `CLAUDE.md`), so what you see below is exactly what re-running the
@@ -12,6 +12,7 @@ notebook produces.
 Particle_Decays_Tutorial
 Scattering_Tutorial
 SUN_Groups_Tutorial
+DiscreteGroups_Tutorial
 SM_Feynman_Rules_Tutorial
 SM_VLL_Tutorial
 SM_U1X_Tutorial
@@ -69,6 +70,28 @@ construction (with the tell-tale `√2` ladder entries of the **6** of SU(3)),
 conjugate representations `T̄ = −T*`, and anomaly coefficients — culminating in
 the SU(5) `5̄ + 10` anomaly cancellation and a gauge-invariance check of a
 scalar in the fundamental of SU(4).
+
+## Discrete Groups Tutorial
+
+The discrete counterpart to the SU(N) notebook: the finite flavour symmetries
+($\mathbb{Z}_N$, $S_3$, $A_4$) that model builders impose to *forbid* terms.
+Built around one practical question — **how many free parameters does an
+invariant potential have, and can you know before writing a single term?** —
+answered by deriving $S_3$'s character table from its generator matrices
+(nothing typed in), verifying orthogonality and $\sum_r(\dim r)^2=|G|$, and
+then predicting invariant counts by group averaging and checking each against
+explicit Clebsch–Gordan construction. Covers the four traps that produce wrong
+counts: the antisymmetric $\mathbf{1'}$ vanishing on a repeated multiplet;
+**distinct legs versus one field** (four doublets give 3 quartic invariants,
+one doublet gives 1 — characters versus the Molien series); basis conventions,
+where CG coefficients differ between the real and complex $S_3$ bases but counts
+do not; and the conjugate leg $X=(M^{-1})^{\mathsf T}$, which equals $M$ only for
+real orthogonal irreps, so the $S_3$ coincidence hides the $\mathbb{Z}_N$ error.
+Lands on the 3HDM: imposing $S_3$ cuts the potential from 33 operators to 10
+(2 mass + 8 quartic), the number `THDM_S3_Tutorial` builds on. Closes by
+defining $A_4$ — the workhorse flavour group, which the library does *not*
+ship — on top of `DiscreteSymmetry`, deriving its character table and running
+`reynolds_project` and `check_discrete_invariance` on it unchanged.
 
 ## SM Feynman Rules Tutorial
 
