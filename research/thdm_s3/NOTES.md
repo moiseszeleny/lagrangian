@@ -16,6 +16,8 @@ pedagogical walk-through). This directory is where the open questions go.
 | `01_scalar_parameter_space.ipynb` | scalar parameter space under theory constraints. **Done.** |
 | `02_s3_fermion_sector.ipynb` | lepton + quark Yukawa sectors, the draft's derivations, the CKM obstruction, soft breaking. **Done.** |
 | `decays.py` | the physical basis registered on the `Model` at general δ, the electroweak kinetic sector, the lepton mass basis, and the benchmark-point loaders. |
+| `derive.py` | the by-hand derivation vocabulary — `show`, `coefficients_of`, `rows`, `check_homogeneous/limit/invariant`, `hand_slice`, `falsify`, and the `Ledger` that emits the summary table and the printable LaTeX appendix. Renders sympy as typeset maths under a notebook kernel, aligned text outside one. |
+| `derivations_01.tex` | printable appendix emitted by notebook 01 §5.6 — the algebra typeset for checking on paper (`pdflatex derivations_01.tex`). |
 | `03_scalar_decays.ipynb` | physical basis, gauge couplings, VSS + loop γγ, and the LFV rates. **Done.** |
 | `results/viable_points.json` | benchmark points from the scalar scan. |
 | `results/quark_soft_fit.json` | soft-breaking quark benchmark (masses + Cabibbo angle). |
@@ -45,6 +47,61 @@ materializes full-length temporaries gets OOM-killed (silently — nbconvert die
 with no message and leaves the notebook untouched). `constraints.py` therefore
 applies every heavy array function in blocks (`_chunked`, `CHUNK = 250_000`),
 which holds peak RSS to ~285 MB for all masks over 2 M points.
+
+## How these notebooks are written: derive, then check
+
+The notebooks were originally written **state → assert**: the markdown announced a
+result, the code confirmed it, and the object you would have written on paper was
+computed and discarded. That establishes correctness and teaches nothing — a
+passing `assert` only says the machine agrees with a result you were handed.
+
+Headline derivations now use four moves (`derive.py`), first applied in §5.4 of
+notebook 01:
+
+1. **set up** — build the object and `show` it *raw*;
+2. **collect** — `coefficients_of` so the structure **emerges**; never type the
+   grouped form in from the answer and assert equality to it;
+3. **recognise** — name what appeared and why it had to (the symmetry, the
+   covariant);
+4. **check** — from *physics*, not from the same algebra: `check_homogeneous`
+   (scaling), `check_limit` (does a known theory come back?), `check_invariant`
+   (a symmetry it must respect), `hand_slice` (small enough to finish on paper).
+
+Plus `falsify` — a check that cannot fail is not a check, so break the input and
+confirm the check fires. The *predict* step is a **markdown blockquote** placed
+immediately before the cell that settles the question, asking the reader to commit
+to an expectation first; it was briefly a `predict()` function, but prose typesets
+and a print statement does not.
+
+Each step registers with a `Ledger`, which prints *claim / derived here vs
+imported vs assumed / independent checks / what would falsify it* and emits
+`derivations_0N.tex` for checking the algebra away from the screen. Every sympy
+object `derive.py` shows is rendered as typeset maths under a notebook kernel
+(`show`, `rows`, `coefficients_of`, the residual inside a failed check, and each
+`Ledger` step's expression) and degrades to aligned text outside one — the
+coefficient table is the thing you are meant to *stare at*, so it must not arrive
+as `(r_1**2 + r_2**2)**2`.
+
+### Where the idiom is applied
+
+| notebook | § | what it replaced |
+|---|---|---|
+| 01 | 4.2 | trying `e = ±λ₄` and keeping the match → **solving** an over-determined 20-equation system for $(d,e,f,g,h)$; the sign is an output |
+| 01 | 5.4 | the asserted grouped BFB form → `coefficients_of` |
+| 02 | 4 / 4.1 | three hand-typed μ dictionaries → read off `M_ℓ` |
+| 02 | 5.1 | comparing to two typed closed forms → building $(\sigma_1-\sigma_2)^2$ from $\mathrm{tr}(A^{\mathsf T}A)$ and $\det A$ |
+| 02 | 10 | a hand-written eigenvector → `eigenvects()`, and decoupling recast as orthogonality to the vacuum direction |
+| 03 | 2 | `sm_WW` typed in → read off the $\delta\to0$ limit, with $h_0$'s zero shown to be $R_S^{\mathsf T}\hat n=(\cos\delta,0,\sin\delta)$ |
+| 03 | 7 | `lepton_mus()` never checked → its output verified against the physical masses as singular values of $M_\ell$ |
+
+**§5.4 of notebook 01 is the reference implementation.** The payoff there was concrete: the
+`coefficients_of` table shows at a glance that λ₁,λ₃ share a coefficient (so only
+λ₁+λ₃ appears), that λ₅,λ₆,2λ₇ do likewise, and that **λ₂ multiplies zero** — it
+needs a relative phase, so the real neutral slice cannot see it. None of that was
+visible when the grouped form was asserted. The λ₄→0 limit check then shows *why*
+[DasDey14] Eq. (4g) looked right: with λ₄ off the potential is a genuine quadratic
+form in (x,y) and Eq. (4g) really is the copositivity cross-term condition. The
+half-integer power λ₄ introduces is exactly what invalidates it.
 
 ## Findings
 
