@@ -136,15 +136,15 @@ literally from [DasDey14] into feynlag's component labels **fails**
 The dictionary is established in two steps, neither of them assumed.
 
 **Seven entries by basis-independence.** Under a general $SO(2)$ rotation of the
-S₃ doublet, the singlet contraction $(s_1,s_2)$ rotates by α while $d_2$ rotates
-by 2α. Testing all eight quartic structures symbolically: **seven are invariant**
-and only $s\cdot d_2$ (the λ₄ structure) can change. Invariant structures are the
-same object in either basis, so their coefficients transfer by term matching:
-$a=2\lambda_8$, $b=\lambda_5$, $c=2\lambda_1$, $d=2\lambda_2$, $f=\lambda_6$,
-$g=2\lambda_3$, $h=2\lambda_7$.
+S₃ doublet, the singlet contraction $x_S=(x_{S1},x_{S2})$ rotates by α while $d_2$
+rotates by 2α. Testing all eight quartic structures symbolically: **seven are
+invariant** and only $x_S\cdot d_2$ (the λ₄ structure) can change. Invariant
+structures are the same object in either basis, so their coefficients transfer by
+term matching: $a=2\lambda_8$, $b=\lambda_5$, $c=2\lambda_1$, $d=2\lambda_2$,
+$f=\lambda_6$, $g=2\lambda_3$, $h=2\lambda_7$.
 
 **The last entry — λ₄'s sign — from physics.** The only S₃-preserving
-transformation that changes $s\cdot d_2$ is $\alpha=\pi$, i.e. $H_{1,2}\to-H_{1,2}$,
+transformation that changes $x_S\cdot d_2$ is $\alpha=\pi$, i.e. $H_{1,2}\to-H_{1,2}$,
 which flips it and leaves the other seven alone. Which sign applies is settled by
 requiring feynlag's independently-computed pseudoscalar and charged masses to equal
 [GomezBock21]'s closed forms Eqs. (30)–(33). All four match **exactly**, and only

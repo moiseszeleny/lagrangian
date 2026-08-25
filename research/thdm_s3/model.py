@@ -148,7 +148,7 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False,
 
     x11, x22 = bra(H1, H1), bra(H2, H2)
     x12, x21 = bra(H1, H2), bra(H2, H1)
-    s1, s2 = bra(HS, H1), bra(HS, H2)
+    xS1, xS2 = bra(HS, H1), bra(HS, H2)     # x_{Si} = H_S†H_i, i.e. x_ij extended to i,j in {1,2,S}
     sss = bra(HS, HS)
 
     # S₃ CG contractions of 2⊗2 = 1 ⊕ 1' ⊕ 2 in the real-orthogonal basis.
@@ -158,9 +158,9 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False,
     inv1p = x12 - x21
     d2 = (x11 - x22, -(x12 + x21))
 
-    lam4_term = s1 * d2[0] + s2 * d2[1]
+    lam4_term = xS1 * d2[0] + xS2 * d2[1]
     lam4_term += sp.conjugate(lam4_term)
-    lam7_term = s1**2 + s2**2
+    lam7_term = xS1**2 + xS2**2
     lam7_term += sp.conjugate(lam7_term)
 
     l = {k: p.s for k, p in lams.items()}
@@ -169,7 +169,7 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False,
          + l[3] * (d2[0]**2 + d2[1]**2)
          + l[4] * lam4_term
          + l[5] * sss * inv1
-         + l[6] * (s1 * bra(H1, HS) + s2 * bra(H2, HS))
+         + l[6] * (xS1 * bra(H1, HS) + xS2 * bra(H2, HS))
          + l[7] * lam7_term
          + l[8] * sss**2)
 
@@ -180,8 +180,8 @@ def build_model(vevs=(200.0, 115.0, 80.0), tex=False, check=False,
         structures = {
             "mD1sq": d2[0],                 # x11 − x22        } the 2 of 2⊗2
             "mD2sq": d2[1],                 # −(x12 + x21)     }
-            "mS1sq": herm(s1),              # H_S†H₁ + h.c.    } the S-doublet
-            "mS2sq": herm(s2),              # H_S†H₂ + h.c.    }
+            "mS1sq": herm(xS1),             # H_S†H₁ + h.c.    } the S-doublet
+            "mS2sq": herm(xS2),             # H_S†H₂ + h.c.    }
         }
         for name, struct in structures.items():
             p = ExternalParameter(nm(name, name), 0.0, unit_dim=2)
