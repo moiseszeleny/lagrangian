@@ -19,6 +19,8 @@ pedagogical walk-through). This directory is where the open questions go.
 | `derive.py` | the by-hand derivation vocabulary — `show`, `coefficients_of`, `rows`, `check_homogeneous/limit/invariant`, `hand_slice`, `falsify`, and the `Ledger` that emits the summary table and the printable LaTeX appendix. Renders sympy as typeset maths under a notebook kernel, aligned text outside one. |
 | `derivations_01.tex` | printable appendix emitted by notebook 01 §5.6 — the algebra typeset for checking on paper (`pdflatex derivations_01.tex`). |
 | `03_scalar_decays.ipynb` | physical basis, gauge couplings, VSS + loop γγ, and the LFV rates. **Done.** |
+| `04_bfb_conditions.ipynb` | the [BotoRomaoSilva22] BFB method read and executed: their $V_N/V_{CB}/V_G$ split, copositivity, the lower-bound strategy — then applied to our $S_3$ potential. **Done.** |
+| `derivations_04.tex` | printable appendix emitted by notebook 04 §8. |
 | `results/viable_points.json` | benchmark points from the scalar scan. |
 | `results/quark_soft_fit.json` | soft-breaking quark benchmark (masses + Cabibbo angle). |
 | `results/decay_benchmarks.json` | per-point δ, VV couplings and LFV branching ratios. |
@@ -360,6 +362,15 @@ than merely incomplete), and the spin-0 form factor `A_zero` plus a general
   the real neutral slice; complex-neutral and charged directions are covered
   numerically, not analytically. [BotoRomaoSilva22] does this properly for
   U(1)×U(1), U(1)×Z₂ and Z₂×Z₂ — not S₃ — and is the methodological model.
+  `04_bfb_conditions.ipynb` now pins down exactly what is missing: our $V_N$,
+  $V_{CB}$ and $V_G$ all sit inside their framework, and **only the $\lambda_4$
+  remainder does not** — its monomials are degree 1 in one off-diagonal bilinear (or
+  degree 1 in each of two different ones), shapes their three symmetry classes never
+  produce. Bounding it gives a quartic form in $\sqrt{r_i}$ with odd exponents, i.e.
+  not a polynomial in $r_i$, so copositivity does not apply. That is the same
+  obstruction as notebook 01's $t=\sqrt y$, and the natural construction is a hybrid:
+  their machinery for the charged/complex directions, ours for $\lambda_4$. **Not
+  implemented — `constraints.py` is untouched.**
 - **A global quark fit** — see the caveat in finding 9. Whether the soft-broken
   model can reproduce all four CKM parameters *and* the six quark masses at once
   is open, and the $|V_{cb}|$ result is mild evidence against it without further
@@ -420,6 +431,12 @@ than merely incomplete), and the spin-0 form factor `A_zero` plus a general
   [doi:10.1103/PhysRevD.106.115010](https://doi.org/10.1103/PhysRevD.106.115010).
   Covers U(1)×U(1), U(1)×Z₂, Z₂×Z₂ — not S₃ — but is the methodological model for
   doing the boundedness analysis properly (BFB-n and BFB-c directions separately).
+  **Read and executed in `04_bfb_conditions.ipynb`**: the $V_4=V_N+V_{CB}+V_G$ split,
+  $0\le z_{ij}\le r_ir_j$, BFB-n as copositivity of a 3×3 matrix, and their
+  lower-bound strategy (bound $V_{CB}$ and $V_G$ by their worst cases, then one
+  copositivity test) giving *sufficient* conditions. Note their general-3HDM couplings
+  are also called $\lambda_1\ldots\lambda_9$ and are **not** ours — their $\lambda_4$
+  is $(\phi_1^\dagger\phi_1)(\phi_2^\dagger\phi_2)$.
 - **[LFVHD]** M. Zeleny-Mora, M. Mondragón, T. A. Valencia-Pérez, *"Exploring LFV
   Higgs decays in the Three Higgs Doublet Model"*, draft — `LFVHD_3HDMS3.tex` in
   this directory. Supplies the S₃ lepton assignment, the Yukawa Lagrangian, the
