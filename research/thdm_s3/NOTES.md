@@ -394,6 +394,16 @@ than merely incomplete), and the spin-0 form factor `A_zero` plus a general
   factor, the analogue of what `A_zero` did for $\gamma\gamma$. Untouched.
 - The LFV rates depend on $\mu_3^\ell$, the one dial the lepton mass relations
   leave free; notebook 03 scans it rather than fixing it from anything.
+- **A neutral direct-search bound is missing from the scalar scan.** Notebook 01
+  applies $m_{H^\pm}>80$ GeV to the charged states and nothing to the neutral
+  ones, so its theory-allowed set contains CP-even scalars down to a couple of
+  GeV — including a 39.8 GeV $h_0$ and a 33.3 GeV $H_2$ among the twelve saved
+  benchmarks. A light $h_0$ is genuinely safe: it is the geometric-basis state
+  and $g_{h_0VV}=0$ *exactly* for any δ (finding 10), so LEP's $Z\to Zh$ search
+  does not reach it. A light $H_1$/$H_2$ is not — they carry $\cos\delta$ and
+  $\sin\delta$ times the SM coupling. Notebook 03 now supplies those couplings,
+  so re-cutting the scan with a coupling-aware neutral bound is the most valuable
+  follow-up to notebook 01.
 - The scan samples λ uniformly, which is inefficient given the shape of the
   viable region. A targeted sampler would resolve its boundary far better.
 

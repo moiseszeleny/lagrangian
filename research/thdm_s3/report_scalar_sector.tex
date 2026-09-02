@@ -276,6 +276,7 @@ $+$ tree unitarity              & $103\,465$ & $100.0\%$\\
 $+$ no tachyons                 & $7\,608$   & $7.35\%$\\
 $+$ $m_{H^\pm}>80$~GeV          & $6\,890$   & $90.6\%$\\
 $+$ one CP-even at $125\pm3$~GeV & $322$     & $4.67\%$\\
+$+$ 12-dimensional BFB backstop  & $319$     & $99.1\%$\\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -288,9 +289,12 @@ $+$ one CP-even at $125\pm3$~GeV & $322$     & $4.67\%$\\
 \end{figure}
 
 The line worth noticing is tree unitarity: it removes \textbf{nothing}. In this $\lambda$
-range boundedness is the binding constraint, and unitarity would only bite at
-$|\lambda|\gtrsim$ several --- at our old benchmark the largest eigenvalue was $3.63$
-against the bound $16\pi\approx50.3$. This is worth knowing before spending effort on the
+range boundedness is the binding constraint. That is not because the condition is toothless
+--- it rejects $5\%$ of points at $|\lambda|\le4$ and half of them at $|\lambda|\le6$ ---
+but because $|\lambda|\le2$ sits just inside it: the largest eigenvalue anywhere in the scan
+is $32.5$, or $65\%$ of the $16\pi\approx50.3$ bound. (The much-quoted $3.63$ belongs to the
+old benchmark $\lambda_k=0.05k$, a single point, not to this sample.) The margin is real but
+narrower than that figure suggests, and it is worth knowing before spending effort on the
 unitarity side.
 
 \section{What the viable region looks like}
@@ -299,8 +303,9 @@ unitarity side.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.80\textwidth]{figures/mass_ranges.png}
-\caption{Allowed mass ranges for the seven physical scalars after all theory and
-phenomenological cuts.}
+\caption{Theory-allowed mass ranges for the seven physical scalars. Charged states carry
+the LEP bound $m_{H^\pm}>80$~GeV; the neutral states carry no direct-search cut (see the
+caveat below).}
 \label{fig:masses}
 \end{figure}
 
@@ -324,7 +329,14 @@ $1.493$ & $123$ & $539$ & $190$ & $435$ & $620$ & $422$ & $556$ \\
 \end{center}
 {\small All masses in GeV. The $125\pm3$~GeV state is whichever CP-even scalar carries it ---
 note it is $h_0$ in none of these, which is a coupling question the gauge sector settles, not
-a mass-ordering one.}
+a mass-ordering one.\par\medskip
+\textbf{Caveat.} The only direct-search bound applied in the scan is $m_{H^\pm}>80$~GeV;
+\emph{no} bound constrains the neutral states, hence the $40$~GeV $h_0$ in the first row.
+That particular entry is defensible --- $h_0$ is the geometric-basis state and
+$g_{h_0VV}=0$ \emph{exactly} for any $\delta$, so LEP's $Z\to Zh$ search does not reach it.
+But $H_1$ and $H_2$ carry $\cos\delta$ and $\sin\delta$ times the SM coupling, so a light one
+of those would need small mixing, which the scalar-sector notebook has no gauge couplings to
+test. Re-cutting the scan with the couplings now available is the natural follow-up.}
 
 \begin{figure}[h]
 \centering

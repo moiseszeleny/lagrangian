@@ -1,5 +1,5 @@
 {
-  "description": "S3-3HDM scalar parameter points surviving boundedness-from-below ([DasDey14] Eq.4 PLUS the corrected neutral condition derived in notebook section 5, PLUS a full 12-dimensional numerical backstop), tree unitarity [DasDey14] Eq.36-37, no tachyons, m_Hpm > 80 GeV, and one CP-even state at 125 +- 3 GeV.",
+  "description": "S3-3HDM scalar parameter points surviving boundedness-from-below ([DasDey14] Eq.4 PLUS the corrected neutral condition derived in notebook section 5, PLUS a full 12-dimensional numerical backstop), tree unitarity [DasDey14] Eq.36-37, no tachyons, m_Hpm > 80 GeV, and one CP-even state at 125 +- 3 GeV.  CAVEAT: no direct-search bound is applied to the NEUTRAL scalars, so some points carry a light H1/H2 that a coupling-aware cut would reject; a light h0 is safe because it is gauge-phobic (g_h0VV = 0 exactly, notebook 03).",
   "electroweak_scale_GeV": 246.0,
   "sample_size": 2000000,
   "rng_seed": 20260729,
@@ -19,7 +19,8 @@
     "+ unitarity": 103465,
     "+ no tachyons": 7608,
     "+ charged > 80": 6890,
-    "+ CP-even 125+-3": 322
+    "+ CP-even 125+-3": 322,
+    "+ 12-d backstop": 319
   },
   "points": [
     {

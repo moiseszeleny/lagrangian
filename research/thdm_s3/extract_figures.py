@@ -25,7 +25,7 @@ OUTDIR = HERE / "figures"
 FIGURES = {
     "bfb_ft_curve": (59, "Eq. (4g) checks one point of a curve"),
     "cut_flow": (72, "Cut flow: S$_3$-3HDM scalar parameter space"),
-    "mass_ranges": (76, "Allowed mass ranges after theory constraints"),
+    "mass_ranges": (76, "Theory-allowed mass ranges"),
     "correlations": (77, "lightest CP-even scalar"),
 }
 
