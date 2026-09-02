@@ -34,8 +34,10 @@ we import from Das \& Dey \cite{DasDey14} are \emph{necessary but not sufficient
 Eq.~(4g) is exactly the statement $f(1)>0$ for a quartic $f(t)$ that must be non-negative
 for \emph{all} $t\ge0$. I give an explicit counterexample, derive the corrected condition
 in closed form, and find that it removes $9.5\%$ of the parameter points Eq.~(4) admits.
-One caveat governs how much of this is new: the \cite{DasDey14} Erratum is paywalled and I
-have not been able to read it (\S\ref{sec:asks}).
+The one caveat that governed how much of this was new is now settled: the
+\cite{DasDey14} Erratum corrects only the tadpole equations and leaves Eq.~(4) untouched
+(\S\ref{sec:erratum}), so this is an insufficiency of the conditions as they stand in the
+final published record.
 \end{abstract}
 
 \section{Summary}
@@ -246,17 +248,30 @@ conditions --- is what \cite{BotoRomaoSilva22} does for $U(1)\times U(1)$,
 $U(1)\times Z_2$ and $Z_2\times Z_2$; $S_3$ is not among their cases, and that is the
 natural next piece of work.
 
-\subsection{The caveat that governs everything above}
+\subsection{The erratum, and why it does not affect this}
 \label{sec:erratum}
 
 \cite{DasDey14} carries an \textbf{Erratum, Phys.\ Rev.\ D \textbf{91}, 039905 (2015)},
-which is \emph{not} posted to arXiv --- the arXiv record stops at v2 --- and is paywalled at
-APS. Everything transcribed into our code therefore comes from the pre-erratum arXiv v2. The
-erratum may already correct Eq.~(4g). What is established regardless is that the
-\emph{arXiv-v2 conditions}, which are what \cite{GomezBock21}~\S2.2 delegates to and what the
-community generally cites, are insufficient. Whether this is a new result or a rediscovery
-of a known correction cannot be settled without reading that erratum
-(\S\ref{sec:asks}).
+never posted to arXiv --- the arXiv record stops at v2 --- which is why it went unread for
+so long. It is freely readable at APS, and it has now been read. Its entire content is a
+correction to \textbf{Eqs.~(9a)--(9c)}, the tadpole (minimisation) conditions, closing with
+
+\begin{quote}
+``These changes, however, do not affect any of our conclusions in the original paper.''
+\end{quote}
+
+\textbf{Eq.~(4) is untouched, and so are the unitarity eigenvalues Eqs.~(36)--(37).} Two
+consequences follow. First, the insufficiency demonstrated above is an insufficiency of the
+conditions in the \emph{final published record} --- not of a superseded pre-erratum form,
+and not a rediscovery of a correction already made. Second, our transcription of Eq.~(4) and
+Eq.~(37) is of the definitive text.
+
+There is a pleasing footnote. The one equation Das \& Dey had to correct is the one equation
+we never imported: our tadpoles are derived from the Lagrangian (\S\ref{sec:vacuum}), so the
+error could not reach us. Better, the \emph{corrected} Eq.~(9) is now an independent check:
+setting (9a)~$=$~(9b), since both equal $2\mu_1^2$, leaves
+$3\lambda_4v_3(v_1^2-3v_2^2)/v_2$ and forces $v_1=\sqrt3\,v_2$ --- our own alignment, with
+$v_1\leftrightarrow v_2$ exactly as the documented basis difference requires.
 
 \section{The scan}
 \label{sec:scan}
@@ -350,22 +365,22 @@ test. Re-cutting the scan with the couplings now available is the natural follow
 \label{sec:asks}
 
 \begin{enumerate}\itemsep4pt
-\item \textbf{Can you get the \cite{DasDey14} erratum?} Phys.\ Rev.\ D \textbf{91}, 039905
-(2015). It is not on arXiv and I do not have APS access. This decides whether
-\S\ref{sec:main} is a new result or a rediscovery, and it may also touch the tree-unitarity
-eigenvalues of Eq.~(37), which we currently check only for internal consistency and cannot
-check against a corrected source. This is the single most useful thing.
+\item \textbf{The erratum question is closed.} Phys.\ Rev.\ D \textbf{91}, 039905 (2015)
+corrects Eqs.~(9a)--(9c) only, and says so itself (\S\ref{sec:erratum}). \S\ref{sec:main} is
+therefore not a rediscovery.
 
 \item \textbf{Cross-check the unitarity bounds against \cite{BentoRomaoSilva22}}, which
-recomputes them for all symmetry-constrained 3HDMs and post-dates the erratum. That would
-close the unitarity question independently of the erratum.
+recomputes them for all symmetry-constrained 3HDMs. Eq.~(37) is now known to be final, but
+we still only check it for \emph{internal} consistency; an independent recomputation would
+close that gap properly.
 
 \item \textbf{Complete the boundedness analysis} for complex-neutral and charged directions,
 following \cite{BotoRomaoSilva22}'s method. $S_3$ is not among the cases they treat.
 
-\item \textbf{Is any of \S\ref{sec:main} worth writing up separately}, or does it belong as a
-section of the LFV paper? It concerns a constraint the 3HDM literature uses widely, so my
-instinct is that it stands alone --- but that depends on the erratum.
+\item \textbf{Is \S\ref{sec:main} worth writing up separately}, or does it belong as a
+section of the LFV paper? This is now the open question that matters. The constraint is
+widely used, the erratum does not fix it, and the corrected condition is a short closed
+form --- so my instinct is that it stands alone. Your call.
 \end{enumerate}
 
 \appendix
@@ -407,8 +422,9 @@ $f(1)>0$\\
 Phys.\ Rev.\ D \textbf{89}, 095025 (2014),
 \href{https://arxiv.org/abs/1404.2491}{arXiv:1404.2491},
 \href{https://doi.org/10.1103/PhysRevD.89.095025}{doi:10.1103/PhysRevD.89.095025}.
-Erratum: Phys.\ Rev.\ D \textbf{91}, 039905 (2015) --- not posted to arXiv; everything used
-here comes from arXiv v2.
+Erratum: Phys.\ Rev.\ D \textbf{91}, 039905 (2015) --- not posted to arXiv, but freely
+readable at APS. It corrects Eqs.~(9a)--(9c), the tadpole conditions, and nothing else;
+Eq.~(4) and Eqs.~(36)--(37) are unaffected.
 
 \bibitem{GomezBock21} M.~Gómez-Bock, M.~Mondragón and A.~Pérez-Martínez,
 \emph{Scalar and gauge sectors in the 3-Higgs Doublet Model under the $S_3$-symmetry},

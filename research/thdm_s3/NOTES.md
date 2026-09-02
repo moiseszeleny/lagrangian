@@ -204,9 +204,15 @@ complex-neutral or charged directions. So the notebook also runs
 backstop on the quoted benchmark points; it removes a further 3 of 322 (§8),
 confirming the residual gap is real but small once the other cuts are applied.
 
-**Unresolved:** whether the [DasDey14] Erratum (Phys. Rev. D 91, 039905, 2015 —
-not on arXiv, paywalled) already corrects this. The insufficiency of the arXiv-v2
-conditions is established regardless.
+**Resolved.** The [DasDey14] Erratum (Phys. Rev. D 91, 039905, 2015 — never posted
+to arXiv, but freely readable at APS) corrects **Eqs. (9a)–(9c)**, the tadpole
+conditions, and nothing else; it states that the changes "do not affect any of our
+conclusions". Eq. (4) and Eqs. (36)–(37) are untouched, so this is an insufficiency
+of the *final published* conditions, not of a superseded pre-erratum form. Notebook 01
+§2.2 checks the corrected Eq. (9) against our own tadpole derivation: setting
+(9a) = (9b) leaves 3λ₄v₃(v₁²−3v₂²)/v₂ and forces v₁ = √3 v₂, which is our alignment
+under the documented v₁↔v₂ swap. The one equation Das & Dey had to correct is the one
+equation we never imported.
 
 ### 5. Boundedness, not unitarity, is the binding constraint
 
@@ -351,13 +357,12 @@ than merely incomplete), and the spin-0 form factor `A_zero` plus a general
 
 ## Open questions / next
 
-- **Get the [DasDey14] erratum.** Phys. Rev. D **91**, 039905 (2015), not posted
-  to arXiv, APS paywalled. It may already fix the Eq. (4g) insufficiency found
-  above, and it may also touch the unitarity eigenvalues Eq. (37) — which the
-  notebook checks for internal consistency (typeset↔code identity, discriminants
-  manifestly ≥ 0) but cannot check against a corrected source. **Cross-check
-  target:** [BentoRomaoSilva22], which recomputes unitarity bounds for all
-  symmetry-constrained 3HDMs and post-dates the erratum.
+- ~~Get the [DasDey14] erratum.~~ **Closed** — see finding 4. It corrects only the
+  tadpole equations, so Eq. (4g)'s insufficiency stands against the final published
+  record. What remains worth doing is an **independent recomputation of the unitarity
+  eigenvalues**: Eq. (37) is now known to be final, but the notebook still only checks
+  it for internal consistency (typeset↔code identity, discriminants manifestly ≥ 0).
+  [BentoRomaoSilva22] recomputes them for all symmetry-constrained 3HDMs.
 - **Complete the boundedness conditions.** The derived condition is exact only on
   the real neutral slice; complex-neutral and charged directions are covered
   numerically, not analytically. [BotoRomaoSilva22] does this properly for
@@ -426,10 +431,13 @@ than merely incomplete), and the spin-0 form factor `A_zero` plus a general
   Eq. (3c) the λ₁…λ₈ potential; Eq. (4a)–(4g) boundedness-from-below;
   Eq. (36) + (37a)–(37l) the tree-unitarity eigenvalues. This is the actual
   source of the constraints — [GomezBock21] §2.2 delegates to it.
-  ⚠️ **Erratum: Phys. Rev. D 91, 039905 (2015)** — *not* posted to arXiv (the
-  arXiv record stops at v2) and paywalled at APS. Everything transcribed into
-  `constraints.py` therefore comes from the **pre-erratum** arXiv v2; see
-  finding 4 and the open questions.
+  **Erratum: Phys. Rev. D 91, 039905 (2015)** — *not* posted to arXiv (the arXiv
+  record stops at v2), but freely readable at APS (bronze OA; APS returns 403 to
+  automated fetches, which is what made it look inaccessible). **Obtained and read.**
+  It corrects Eqs. (9a)–(9c), the tadpole conditions, and nothing else, stating that
+  the changes "do not affect any of our conclusions". Eq. (4) and Eqs. (36)–(37) —
+  what `constraints.py` transcribes — are unaffected. See finding 4 and notebook 01
+  §2.2.
 - **[BentoRomaoSilva22]** M. P. Bento, J. C. Romão, J. P. Silva, *"Unitarity
   bounds for all symmetry-constrained 3HDMs"*, JHEP **08** (2022) 273,
   [arXiv:2204.13130](https://arxiv.org/abs/2204.13130),
