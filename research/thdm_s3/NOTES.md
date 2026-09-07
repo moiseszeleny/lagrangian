@@ -28,11 +28,30 @@ pedagogical walk-through). This directory is where the open questions go.
 Notebooks import `model.py` from their own directory; from the repo root use
 `sys.path.insert(0, "research/thdm_s3")`.
 
-**Kernel note.** These notebooks are executed with the plain `python3` kernel,
-not the repo's `lagrangian` kernel, because the `lagrangian` conda env has no
-`numpy`/`matplotlib` (the scan and the figures need both). To use the standard
-kernel instead, install the dev extras into it:
-`/home/moises/miniconda3/envs/lagrangian/bin/pip install -e ".[dev]"`.
+**Kernel note.** These notebooks are executed with the repo's `lagrangian`
+kernel. They used to run under the plain `python3` kernel because the `lagrangian`
+conda env had no `numpy`/`matplotlib` (the scan and the figures need both); that
+env now carries the dev extras — `numpy`, `matplotlib` and `scipy` are all present
+— so the exception no longer applies and all four notebooks declare `lagrangian`.
+
+`language_info.version` records the interpreter that produced the stored outputs,
+so it is set by re-executing, never by hand. VS Code re-stamps it whenever it
+attaches a kernel, which is why a notebook can go dirty with nothing but that one
+line changed.
+
+**The switch moved `results/quark_soft_fit.json`.** The soft-breaking quark fit
+(notebook 02 §11) is seeded — `np.random.default_rng(7)` over 60 restarts — but
+that does not make it environment-stable: the `lagrangian` env carries numpy 2.5.1
+/ scipy 1.18.0 against base python3's 2.2.4 / 1.16.1, and the best-of-60
+`least_squares` lands on a different solution. It is not a disagreement about
+physics. The fit has **9 free parameters against 7 targets** (six quark masses plus
+$V_{us}$), so its exact solutions form a two-parameter family; both the old and the
+new point have `cost` ~1e-19 and reproduce all six masses and $V_{us}=0.2243$.
+`r` is therefore *not a prediction* — it is wherever the optimiser stopped ($1.674$
+before, $1.446$ now, against the exact-S₃ $\sqrt3=1.732$), and §11's claim is only
+that soft breaking frees $r$ from $\sqrt3$ and switches the Cabibbo angle on, which
+holds at either point. Quote `r` or `V_abs` from this file as an existence proof,
+never as a determination.
 
 Re-execute with the **miniconda** nbconvert, not the one first on `PATH`
 (`~/.local/bin/jupyter-nbconvert` runs under a different Python and dies on a
@@ -40,7 +59,7 @@ missing `packaging`/`dateutil`):
 
 ```bash
 /home/moises/miniconda3/bin/jupyter-nbconvert --to notebook --execute --inplace \
-  --ExecutePreprocessor.kernel_name=python3 --ExecutePreprocessor.timeout=1800 \
+  --ExecutePreprocessor.kernel_name=lagrangian --ExecutePreprocessor.timeout=1800 \
   research/thdm_s3/01_scalar_parameter_space.ipynb
 ```
 
